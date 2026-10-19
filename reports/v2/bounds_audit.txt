@@ -8,7 +8,7 @@ sys_clocked_mcu        led_res        400                      241              
 sys_clocked_mcu        pull           400                      244                        0
 sys_motor_ctrl         led_res        294                      143                        0
 sys_motor_ctrl         pull           400                      197                        0
-sys_sensor_node        ?               97                       97                        0
+sys_sensor_node        base_res        97                       97                        0
 sys_sensor_node        led_res        400                      256                        0
 sys_sensor_node        pull           400                      210                        0
 xtal_osc               led_res        109                        0                        0

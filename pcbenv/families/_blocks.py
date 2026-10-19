@@ -357,6 +357,7 @@ def led_npn(c: Composite, u: str, pin: str, vdd: float, vsup: float, sup_net: st
     c.vb.fixed(rpd, 4.7e3, 220e3)
     c.role("led_res", rl)
     c.role("pull", rpd)
+    c.role("base_res", rbase)   # not a v1 fault role; listed for audits
     c.mcu_pins.append((pin, f"{what} LED switch drive (high = on, high-impedance in reset)"))
     c.purpose.append(f"- {what.capitalize()} LED {d} is fed from {sup_net} through {rl} and switched on its cathode by "
                      f"NPN {q} (emitter to GND); {pin} drives the base through {rbase} (forced beta about 10, GPIO "

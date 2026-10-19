@@ -1,0 +1,15 @@
+divider_adc    1000/1000 ok
+ldo_reg        1000/1000 ok
+led_driver     1000/1000 ok
+mcu_i2c        1000/1000 ok
+nmos_switch    1000/1000 ok
+npn_switch     1000/1000 ok
+opamp_inv      1000/1000 ok
+opamp_noninv   1000/1000 ok
+rc_lowpass     1000/1000 ok
+sys_analog_frontend 1000/1000 ok
+sys_clocked_mcu 1000/1000 ok
+sys_motor_ctrl 1000/1000 ok
+sys_sensor_node 1000/1000 ok
+xtal_osc       1000/1000 ok
+total: 14000/14000 ok, 0 failures

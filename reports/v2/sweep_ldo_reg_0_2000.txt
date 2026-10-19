@@ -1,0 +1,2 @@
+ldo_reg        2000/2000 ok
+total: 2000/2000 ok, 0 failures

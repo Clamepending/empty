@@ -1,0 +1,4 @@
+ldo_reg first draws, seeds 0..1999:
+  v1 model, plain op: transient-op fallback on 42 seeds [62, 70, 276, 376, 383, 450, 462, 469, 499, 614, 631, 655, 673, 698, 737, 748, 860, 865, 868, 873, 888, 1020, 1026, 1089, 1128, 1210, 1246, 1255, 1273, 1311, 1361, 1395, 1396, 1400, 1422, 1473, 1579, 1580, 1714, 1739]
+  v1 model, v2 sim (robust path): assertions still failing on 0 of them []; rescues 105
+  v2 model, plain op: transient-op fallback on 0 seeds

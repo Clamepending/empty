@@ -1,0 +1,1 @@
+1400 goldens (14 families x 100 seeds): 0 plain-op failures / assertion failures; robust-path rescues during assertions: 0
