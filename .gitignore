@@ -5,3 +5,4 @@ __pycache__/
 *.kicad_pcb-bak
 *.kicad_prl
 fp-info-cache
+redteam/_tasks/
