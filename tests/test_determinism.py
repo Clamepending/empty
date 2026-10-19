@@ -27,7 +27,7 @@ with tempfile.TemporaryDirectory() as td:
     for fam, seed in prior:
         build_board(FAMILIES[fam].generate(seed), os.path.join(td, "prior.kicad_pcb"), 0)
     fam, seed = target
-    make_golden_task(FAMILIES[fam].generate(seed), out)
+    make_golden_task(FAMILIES[fam].generate(seed), out, task_id="det")
 """
 
 

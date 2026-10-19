@@ -132,9 +132,10 @@ def task_features(row: dict, meta: dict) -> dict:
     return {"keys": keys, "score": score, "reasons": reasons}
 
 
-KEY_WEIGHTS = {"family": 3.0, "hint": 3.0, "nf": 2.0, "fam_hint": 2.0, "ftype": 3.0, "ftype_hint": 1.0,
+KEY_WEIGHTS = {"family": 3.0, "hint": 3.0, "nf": 12.0, "fam_hint": 2.0, "ftype": 5.0, "ftype_hint": 1.0,
                "fam_ftype": 1.0}
-AMBIG_WEIGHT = 0.35
+FAULT_KEYS = ("ftype", "ftype_hint", "fam_ftype")  # divided by #faults so 3-fault tasks don't win by count
+AMBIG_WEIGHT = 0.25
 
 
 def select_tasks(rows: list[dict], metas: dict[str, dict], n: int, seed: int) -> list[dict]:
@@ -150,7 +151,8 @@ def select_tasks(rows: list[dict], metas: dict[str, dict], n: int, seed: int) ->
     while left and len(chosen) < n:
         def gain(r):
             f = feats[r["id"]]
-            cov = sum(KEY_WEIGHTS[k[0]] / (1 + counts[k]) for k in f["keys"])
+            nf = max(1, r["n_faults"])
+            cov = sum(KEY_WEIGHTS[k[0]] / (1 + counts[k]) / (nf if k[0] in FAULT_KEYS else 1) for k in f["keys"])
             return cov * (1 + AMBIG_WEIGHT * f["score"]) + jitter[r["id"]]
         best = max(left, key=gain)
         left.remove(best)
@@ -184,19 +186,43 @@ def pin_nets(design: dict) -> dict[str, str]:
     return {p: n for n, pins in design["nets"].items() for p in pins}
 
 
-def connection_diff(faulted: dict, golden: dict, ref_parts: dict[str, str]) -> list[str]:
-    """Human-readable lines: pins whose set of connected pins differs (faulted -> golden)."""
-    fp, gp = pin_nets(faulted), pin_nets(golden)
-    fmem = {p: set(faulted["nets"][n]) - {p} for p, n in fp.items()}
-    gmem = {p: set(golden["nets"][n]) - {p} for p, n in gp.items()}
-    lines = []
-    for p in sorted(set(fp) | set(gp)):
-        a, b = fmem.get(p), gmem.get(p)
-        if a == b:
+def match_nets(design: dict, golden: dict) -> dict[str, str]:
+    """Greedy max-overlap matching of design nets onto golden nets (deterministic)."""
+    pairs = sorted(((-len(set(design["nets"][a]) & set(golden["nets"][b])), a, b)
+                    for a in design["nets"] for b in golden["nets"]))
+    out: dict[str, str] = {}
+    used: set[str] = set()
+    for ov, a, b in pairs:
+        if ov == 0 or a in out or b in used:
             continue
-        fa = f"net {fp[p]} with {', '.join(sorted(a)) or '(nothing)'}" if p in fp else "unconnected"
-        gb = f"net {gp[p]} with {', '.join(sorted(b)) or '(nothing)'}" if p in gp else "unconnected"
-        lines.append(f"`{p}`: faulted {fa} → golden {gb}")
+        out[a] = b
+        used.add(b)
+    return out
+
+
+def moved_pins(design: dict, golden: dict) -> set[str]:
+    """Pins whose connection differs from the golden once nets are matched: unconnected on one
+    side, or sitting on a net whose best golden match is not the pin's golden net."""
+    m = match_nets(design, golden)
+    dn, gn = pin_nets(design), pin_nets(golden)
+    out = set()
+    for p in set(dn) | set(gn):
+        if p not in dn or p not in gn or m.get(dn[p]) != gn[p]:
+            out.add(p)
+    return out
+
+
+def connection_diff(faulted: dict, golden: dict, ref_parts: dict[str, str]) -> list[str]:
+    """Human-readable lines for each pin the reference fix re-connects (faulted -> golden)."""
+    fp, gp = pin_nets(faulted), pin_nets(golden)
+    lines = []
+    for p in sorted(moved_pins(faulted, golden)):
+        def desc(d, nets, pin):
+            if pin not in nets:
+                return "unconnected"
+            others = sorted(set(d["nets"][nets[pin]]) - {pin})
+            return f"net `{nets[pin]}` ({', '.join(others) or 'no other pins'})"
+        lines.append(f"`{p}`: faulted {desc(faulted, fp, p)} → golden {desc(golden, gp, p)}")
     return lines
 
 
@@ -494,10 +520,7 @@ def render_schematic_svg(design: dict, golden: dict, title: str) -> str:
     lay = schematic_layout(golden)
     hubs = _hub_positions(design, lay)
     fn = pin_nets(design)
-    gn = pin_nets(golden)
-    fmem = {p: frozenset(design["nets"][n]) for p, n in fn.items()}
-    gmem = {p: frozenset(golden["nets"][n]) for p, n in gn.items()}
-    bad = {p for p in set(fmem) | set(gmem) if fmem.get(p) != gmem.get(p)} if design is not golden else set()
+    bad = moved_pins(design, golden) if design is not golden else set()
     W, H = lay["width"], lay["height"]
     o = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}" '
          f'font-family="Helvetica,Arial,sans-serif">',

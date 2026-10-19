@@ -1,0 +1,11 @@
+# Expert review form for packet 22-pcbr-led_driver-232-8e7d18d6  (task pcbr-led_driver-232-8e7d18d6)
+# Fill every field; leave a field empty ("") if you have not decided yet (counts as pending).
+# Answer from the packet README (sections 1-2) and renders. ~5 min per packet.
+reviewer: ""                          # your initials
+task_fair: ""                         # yes | no | unsure  -- is this a fair task for an engineer?
+solvable_from_public_material: ""     # yes | no  -- section 1 (TASK.md, datasheets, files) is enough
+reference_fix_correct: ""             # yes | no  -- section 2.2 (golden) is a correct repair
+verifier_verdict_agrees: ""           # yes | no  -- section 2.3 verdicts match your judgement
+alternative_valid_fixes_rejected: ""  # none | <describe a valid repair the grader would reject>
+severity_if_wrong: ""                 # low | med | high  -- impact if task/verifier is wrong
+notes: ""

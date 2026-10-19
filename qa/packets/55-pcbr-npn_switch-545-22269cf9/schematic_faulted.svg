@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="810" viewBox="0 0 1080 810" font-family="Helvetica,Arial,sans-serif">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="10" y="20" font-size="15" font-weight="bold">pcbr-npn_switch-545-22269cf9 — design.json as given (faulted)</text>
+<text x="10" y="38" font-size="11">boxes = components (ref, part, value, footprint), dots = nets; red = connection or value differs from the golden design</text>
+<polyline points="488.0,429.0 474.0,429.0 450.0,358.3" fill="none" stroke="hsl(210,60%,38%)" stroke-width="1.4"/>
+<polyline points="788.0,438.0 774.0,438.0 450.0,358.3" fill="none" stroke="hsl(210,60%,38%)" stroke-width="1.4"/>
+<polyline points="188.0,199.0 174.0,199.0 450.0,358.3" fill="none" stroke="hsl(210,60%,38%)" stroke-width="1.4"/>
+<polyline points="488.0,199.0 474.0,199.0 450.0,358.3" fill="none" stroke="hsl(210,60%,38%)" stroke-width="1.4"/>
+<polyline points="188.0,659.0 174.0,659.0 450.0,358.3" fill="none" stroke="hsl(210,60%,38%)" stroke-width="1.4"/>
+<polyline points="788.0,226.0 774.0,226.0 450.0,358.3" fill="none" stroke="hsl(210,60%,38%)" stroke-width="1.4"/>
+<polyline points="292.0,438.0 306.0,438.0 570.0,582.3" fill="none" stroke="#e00000" stroke-width="2.4" stroke-dasharray="5,3"/>
+<polyline points="592.0,659.0 606.0,659.0 570.0,582.3" fill="none" stroke="hsl(42,60%,38%)" stroke-width="1.4"/>
+<polyline points="788.0,650.0 774.0,650.0 570.0,582.3" fill="none" stroke="hsl(42,60%,38%)" stroke-width="1.4"/>
+<polyline points="488.0,659.0 474.0,659.0 600.0,473.0" fill="none" stroke="hsl(244,60%,38%)" stroke-width="1.4"/>
+<polyline points="788.0,208.0 774.0,208.0 600.0,473.0" fill="none" stroke="hsl(244,60%,38%)" stroke-width="1.4"/>
+<polyline points="592.0,429.0 606.0,429.0 522.0,325.6" fill="none" stroke="hsl(221,60%,38%)" stroke-width="1.4"/>
+<polyline points="292.0,199.0 306.0,199.0 522.0,325.6" fill="none" stroke="hsl(221,60%,38%)" stroke-width="1.4"/>
+<polyline points="188.0,420.0 174.0,420.0 522.0,325.6" fill="none" stroke="#e00000" stroke-width="2.4" stroke-dasharray="5,3"/>
+<polyline points="788.0,668.0 774.0,668.0 522.0,325.6" fill="none" stroke="hsl(221,60%,38%)" stroke-width="1.4"/>
+<polyline points="788.0,172.0 774.0,172.0 522.0,325.6" fill="none" stroke="hsl(221,60%,38%)" stroke-width="1.4"/>
+<polyline points="292.0,659.0 306.0,659.0 540.0,351.0" fill="none" stroke="hsl(173,60%,38%)" stroke-width="1.4"/>
+<polyline points="788.0,190.0 774.0,190.0 540.0,351.0" fill="none" stroke="hsl(173,60%,38%)" stroke-width="1.4"/>
+<polyline points="788.0,420.0 774.0,420.0 570.0,377.0" fill="none" stroke="hsl(264,60%,38%)" stroke-width="1.4"/>
+<polyline points="592.0,199.0 606.0,199.0 570.0,377.0" fill="none" stroke="hsl(264,60%,38%)" stroke-width="1.4"/>
+<polyline points="292.0,420.0 306.0,420.0 570.0,377.0" fill="none" stroke="hsl(264,60%,38%)" stroke-width="1.4"/>
+<rect x="488.0" y="399.0" width="104" height="52" fill="#f2f4fa" stroke="#334" stroke-width="1.5" rx="4"/>
+<text x="540.0" y="413.0" font-size="13" font-weight="bold" text-anchor="middle">C1 <tspan font-weight="normal" font-size="10">C</tspan></text>
+<text x="540.0" y="424.0" font-size="10" text-anchor="middle" fill="#333" font-weight="normal">1u</text>
+<text x="540.0" y="462.0" font-size="8" text-anchor="middle" fill="#777">C_1206_3216Metric</text>
+<rect x="788.0" y="390.0" width="104" height="70" fill="#f2f4fa" stroke="#334" stroke-width="1.5" rx="4"/>
+<text x="840.0" y="404.0" font-size="13" font-weight="bold" text-anchor="middle">D1 <tspan font-weight="normal" font-size="10">D_SCHOTTKY</tspan></text>
+<text x="840.0" y="471.0" font-size="8" text-anchor="middle" fill="#777">D_SOD-123</text>
+<rect x="188.0" y="169.0" width="104" height="52" fill="#f2f4fa" stroke="#334" stroke-width="1.5" rx="4"/>
+<text x="240.0" y="183.0" font-size="13" font-weight="bold" text-anchor="middle">J1 <tspan font-weight="normal" font-size="10">CONN2</tspan></text>
+<text x="240.0" y="232.0" font-size="8" text-anchor="middle" fill="#777">PinHeader_1x02_P2.54mm_Ver</text>
+<rect x="488.0" y="169.0" width="104" height="52" fill="#f2f4fa" stroke="#334" stroke-width="1.5" rx="4"/>
+<text x="540.0" y="183.0" font-size="13" font-weight="bold" text-anchor="middle">J2 <tspan font-weight="normal" font-size="10">CONN2</tspan></text>
+<text x="540.0" y="232.0" font-size="8" text-anchor="middle" fill="#777">PinHeader_1x02_P2.54mm_Ver</text>
+<rect x="188.0" y="390.0" width="104" height="70" fill="#f2f4fa" stroke="#334" stroke-width="1.5" rx="4"/>
+<text x="240.0" y="404.0" font-size="13" font-weight="bold" text-anchor="middle">Q1 <tspan font-weight="normal" font-size="10">NPN</tspan></text>
+<text x="240.0" y="471.0" font-size="8" text-anchor="middle" fill="#777">SOT-23</text>
+<rect x="188.0" y="629.0" width="104" height="52" fill="#f2f4fa" stroke="#334" stroke-width="1.5" rx="4"/>
+<text x="240.0" y="643.0" font-size="13" font-weight="bold" text-anchor="middle">R1 <tspan font-weight="normal" font-size="10">R</tspan></text>
+<text x="240.0" y="654.0" font-size="10" text-anchor="middle" fill="#333" font-weight="normal">39k</text>
+<text x="240.0" y="692.0" font-size="8" text-anchor="middle" fill="#777">R_0603_1608Metric</text>
+<rect x="488.0" y="629.0" width="104" height="52" fill="#f2f4fa" stroke="#334" stroke-width="1.5" rx="4"/>
+<text x="540.0" y="643.0" font-size="13" font-weight="bold" text-anchor="middle">R2 <tspan font-weight="normal" font-size="10">R</tspan></text>
+<text x="540.0" y="654.0" font-size="10" text-anchor="middle" fill="#333" font-weight="normal">2.2k</text>
+<text x="540.0" y="692.0" font-size="8" text-anchor="middle" fill="#777">R_0805_2012Metric</text>
+<rect x="788.0" y="620.0" width="104" height="70" fill="#f2f4fa" stroke="#334" stroke-width="1.5" rx="4"/>
+<text x="840.0" y="634.0" font-size="13" font-weight="bold" text-anchor="middle">R4 <tspan font-weight="normal" font-size="10">R</tspan></text>
+<text x="840.0" y="645.0" font-size="10" text-anchor="middle" fill="#333" font-weight="normal">30k</text>
+<text x="840.0" y="701.0" font-size="8" text-anchor="middle" fill="#777">R_0805_2012Metric</text>
+<rect x="788.0" y="142.0" width="104" height="106" fill="#f2f4fa" stroke="#334" stroke-width="1.5" rx="4"/>
+<text x="840.0" y="156.0" font-size="13" font-weight="bold" text-anchor="middle">U1 <tspan font-weight="normal" font-size="10">MCU8</tspan></text>
+<text x="840.0" y="259.0" font-size="8" text-anchor="middle" fill="#777">SOIC-8_3.9x4.9mm_P1.27mm</text>
+<circle cx="488.0" cy="429.0" r="2.5" fill="#334"/>
+<text x="492.0" y="432.5" font-size="10" text-anchor="start" fill="#223">1</text>
+<circle cx="592.0" cy="429.0" r="2.5" fill="#334"/>
+<text x="588.0" y="432.5" font-size="10" text-anchor="end" fill="#223">2</text>
+<circle cx="788.0" cy="420.0" r="2.5" fill="#334"/>
+<text x="792.0" y="423.5" font-size="10" text-anchor="start" fill="#223">A</text>
+<circle cx="788.0" cy="438.0" r="2.5" fill="#334"/>
+<text x="792.0" y="441.5" font-size="10" text-anchor="start" fill="#223">K</text>
+<circle cx="188.0" cy="199.0" r="2.5" fill="#334"/>
+<text x="192.0" y="202.5" font-size="10" text-anchor="start" fill="#223">1</text>
+<circle cx="292.0" cy="199.0" r="2.5" fill="#334"/>
+<text x="288.0" y="202.5" font-size="10" text-anchor="end" fill="#223">2</text>
+<circle cx="488.0" cy="199.0" r="2.5" fill="#334"/>
+<text x="492.0" y="202.5" font-size="10" text-anchor="start" fill="#223">1</text>
+<circle cx="592.0" cy="199.0" r="2.5" fill="#334"/>
+<text x="588.0" y="202.5" font-size="10" text-anchor="end" fill="#223">2</text>
+<circle cx="188.0" cy="420.0" r="2.5" fill="#e00000"/>
+<text x="192.0" y="423.5" font-size="10" text-anchor="start" fill="#e00000">B</text>
+<circle cx="292.0" cy="420.0" r="2.5" fill="#334"/>
+<text x="288.0" y="423.5" font-size="10" text-anchor="end" fill="#223">C</text>
+<circle cx="292.0" cy="438.0" r="2.5" fill="#e00000"/>
+<text x="288.0" y="441.5" font-size="10" text-anchor="end" fill="#e00000">E</text>
+<circle cx="188.0" cy="659.0" r="2.5" fill="#334"/>
+<text x="192.0" y="662.5" font-size="10" text-anchor="start" fill="#223">1</text>
+<circle cx="292.0" cy="659.0" r="2.5" fill="#334"/>
+<text x="288.0" y="662.5" font-size="10" text-anchor="end" fill="#223">2</text>
+<circle cx="488.0" cy="659.0" r="2.5" fill="#334"/>
+<text x="492.0" y="662.5" font-size="10" text-anchor="start" fill="#223">1</text>
+<circle cx="592.0" cy="659.0" r="2.5" fill="#334"/>
+<text x="588.0" y="662.5" font-size="10" text-anchor="end" fill="#223">2</text>
+<circle cx="788.0" cy="650.0" r="2.5" fill="#334"/>
+<text x="792.0" y="653.5" font-size="10" text-anchor="start" fill="#223">1</text>
+<circle cx="788.0" cy="668.0" r="2.5" fill="#334"/>
+<text x="792.0" y="671.5" font-size="10" text-anchor="start" fill="#223">2</text>
+<circle cx="788.0" cy="172.0" r="2.5" fill="#334"/>
+<text x="792.0" y="175.5" font-size="10" text-anchor="start" fill="#223">GND</text>
+<circle cx="788.0" cy="190.0" r="2.5" fill="#334"/>
+<text x="792.0" y="193.5" font-size="10" text-anchor="start" fill="#223">NRST</text>
+<circle cx="892.0" cy="172.0" r="2.5" fill="#334"/>
+<text x="888.0" y="175.5" font-size="10" text-anchor="end" fill="#223">PA0 ✕</text>
+<circle cx="892.0" cy="190.0" r="2.5" fill="#334"/>
+<text x="888.0" y="193.5" font-size="10" text-anchor="end" fill="#223">PA1 ✕</text>
+<circle cx="788.0" cy="208.0" r="2.5" fill="#334"/>
+<text x="792.0" y="211.5" font-size="10" text-anchor="start" fill="#223">PA2</text>
+<circle cx="892.0" cy="208.0" r="2.5" fill="#334"/>
+<text x="888.0" y="211.5" font-size="10" text-anchor="end" fill="#223">SCL ✕</text>
+<circle cx="892.0" cy="226.0" r="2.5" fill="#334"/>
+<text x="888.0" y="229.5" font-size="10" text-anchor="end" fill="#223">SDA ✕</text>
+<circle cx="788.0" cy="226.0" r="2.5" fill="#334"/>
+<text x="792.0" y="229.5" font-size="10" text-anchor="start" fill="#223">VDD</text>
+<circle cx="450.0" cy="358.3" r="5" fill="hsl(210,60%,38%)"/>
+<text x="450.0" y="350.3" font-size="11" font-weight="bold" text-anchor="middle" fill="hsl(210,60%,38%)" stroke="#fff" stroke-width="3" paint-order="stroke">+3V3</text>
+<circle cx="570.0" cy="582.3" r="5" fill="hsl(42,60%,38%)"/>
+<text x="570.0" y="574.3" font-size="11" font-weight="bold" text-anchor="middle" fill="hsl(42,60%,38%)" stroke="#fff" stroke-width="3" paint-order="stroke">BASE</text>
+<circle cx="600.0" cy="473.0" r="5" fill="hsl(244,60%,38%)"/>
+<text x="600.0" y="465.0" font-size="11" font-weight="bold" text-anchor="middle" fill="hsl(244,60%,38%)" stroke="#fff" stroke-width="3" paint-order="stroke">CTRL</text>
+<circle cx="522.0" cy="325.6" r="5" fill="hsl(221,60%,38%)"/>
+<text x="522.0" y="317.6" font-size="11" font-weight="bold" text-anchor="middle" fill="hsl(221,60%,38%)" stroke="#fff" stroke-width="3" paint-order="stroke">GND</text>
+<circle cx="540.0" cy="351.0" r="5" fill="hsl(173,60%,38%)"/>
+<text x="540.0" y="343.0" font-size="11" font-weight="bold" text-anchor="middle" fill="hsl(173,60%,38%)" stroke="#fff" stroke-width="3" paint-order="stroke">NRST</text>
+<circle cx="570.0" cy="377.0" r="5" fill="hsl(264,60%,38%)"/>
+<text x="570.0" y="369.0" font-size="11" font-weight="bold" text-anchor="middle" fill="hsl(264,60%,38%)" stroke="#fff" stroke-width="3" paint-order="stroke">SW</text>
+</svg>

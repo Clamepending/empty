@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="821" height="741" viewBox="0 0 821 741" font-family="Helvetica,Arial,sans-serif">
+<rect width="100%" height="100%" fill="#f7f5ee"/>
+<text x="8" y="18" font-size="15" font-weight="bold">pcbr-divider_adc-700-45820320 — board.kicad_pcb as given (faulted)</text>
+<text x="8" y="34" font-size="11">red = F.Cu track, blue = B.Cu track, grey = courtyard, yellow halo = differs from the other board, magenta box = footprint moved/changed</text>
+<polyline points="40.5,80.5 780.5,80.5 780.5,700.5 40.5,700.5 40.5,80.5" fill="none" stroke="#c9b000" stroke-width="2"/>
+<polyline points="440.5,408.5 440.5,444.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="14.0" stroke-linecap="round"/>
+<polyline points="450.5,392.5 462.5,380.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="14.0" stroke-linecap="round"/>
+<polyline points="452.5,406.5 504.5,406.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="14.0" stroke-linecap="round"/>
+<polyline points="400.9,385.9 460.1,385.9" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="400.9,415.1 400.9,385.9" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="460.1,385.9 460.1,415.1" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="460.1,415.1 400.9,415.1" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(415.0,400.5) rotate(-0)"><rect x="-9.0" y="-9.5" width="18.0" height="19.0" rx="4.5" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>C1 pad 1: DIV</title></rect></g>
+<g transform="translate(446.0,400.5) rotate(-0)"><rect x="-9.0" y="-9.5" width="18.0" height="19.0" rx="4.5" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>C1 pad 2: GND</title></rect></g>
+<polyline points="606.5,384.5 483.5,384.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="483.5,384.5 483.5,456.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="606.5,456.5 606.5,384.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="483.5,456.5 606.5,456.5" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(570.5,420.5) rotate(-270)"><rect x="-17.0" y="-17.0" width="34.0" height="34.0" rx="0.0" fill="#d4a017" stroke="#7a5a00" stroke-width="0.5"><title>J1 pad 1: VSENSE</title></rect></g>
+<g transform="translate(519.7,420.5) rotate(-270)"><rect x="-17.0" y="-17.0" width="34.0" height="34.0" rx="17.0" fill="#d4a017" stroke="#7a5a00" stroke-width="0.5"><title>J1 pad 2: GND</title></rect></g>
+<polyline points="384.5,356.5 507.5,356.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="507.5,356.5 507.5,284.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="384.5,284.5 384.5,356.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="507.5,284.5 384.5,284.5" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(420.5,320.5) rotate(-90)"><rect x="-17.0" y="-17.0" width="34.0" height="34.0" rx="0.0" fill="#d4a017" stroke="#7a5a00" stroke-width="0.5"><title>J2 pad 1: DIV</title></rect></g>
+<g transform="translate(471.3,320.5) rotate(-90)"><rect x="-17.0" y="-17.0" width="34.0" height="34.0" rx="17.0" fill="#d4a017" stroke="#7a5a00" stroke-width="0.5"><title>J2 pad 2: GND</title></rect></g>
+<polyline points="531.5,354.1 531.5,286.9" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="569.5,354.1 531.5,354.1" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="531.5,286.9 569.5,286.9" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="569.5,286.9 569.5,354.1" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(550.5,338.8) rotate(-90)"><rect x="-10.2" y="-14.0" width="20.5" height="28.0" rx="5.1" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>R1 pad 1: VSENSE</title></rect></g>
+<g transform="translate(550.5,302.3) rotate(-90)"><rect x="-10.2" y="-14.0" width="20.5" height="28.0" rx="5.1" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>R1 pad 2: DIV</title></rect></g>
+<polyline points="364.9,438.1 456.1,438.1" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="364.9,482.9 364.9,438.1" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="456.1,438.1 456.1,482.9" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="456.1,482.9 364.9,482.9" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(381.2,460.5) rotate(-0)"><rect x="-11.2" y="-17.5" width="22.5" height="35.0" rx="5.6" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>R2 pad 1: DIV</title></rect></g>
+<g transform="translate(439.8,460.5) rotate(-0)"><rect x="-11.2" y="-17.5" width="22.5" height="35.0" rx="5.6" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>R2 pad 2: GND</title></rect></g>
+<polyline points="390.5,428.5 390.5,446.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>DIV F.Cu 0.25 mm</title></polyline>
+<polyline points="410.5,408.5 390.5,428.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>DIV F.Cu 0.25 mm</title></polyline>
+<polyline points="420.5,392.5 420.5,336.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>DIV F.Cu 0.25 mm</title></polyline>
+<polyline points="436.5,304.5 452.5,304.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>DIV F.Cu 0.25 mm</title></polyline>
+<polyline points="440.5,408.5 440.5,444.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="4.0" stroke-linecap="round"><title>GND F.Cu 0.2 mm</title></polyline>
+<polyline points="450.5,392.5 462.5,380.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="4.0" stroke-linecap="round"><title>GND F.Cu 0.2 mm</title></polyline>
+<polyline points="452.5,304.5 462.5,294.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>DIV F.Cu 0.25 mm</title></polyline>
+<polyline points="452.5,406.5 504.5,406.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="4.0" stroke-linecap="round"><title>GND F.Cu 0.2 mm</title></polyline>
+<polyline points="462.5,294.5 538.5,294.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>DIV F.Cu 0.25 mm</title></polyline>
+<polyline points="462.5,380.5 462.5,332.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>GND F.Cu 0.3 mm</title></polyline>
+<polyline points="504.5,406.5 508.5,410.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>GND F.Cu 0.3 mm</title></polyline>
+<polyline points="554.5,404.5 554.5,346.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>VSENSE F.Cu 0.25 mm</title></polyline>
+<text x="415.0" y="403.5" font-size="8" text-anchor="middle" fill="#000">DIV</text>
+<text x="446.0" y="403.5" font-size="8" text-anchor="middle" fill="#000">GND</text>
+<text x="430.5" y="382.9" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">C1 5.6n</text>
+<text x="570.5" y="423.5" font-size="8" text-anchor="middle" fill="#000">VSENSE</text>
+<text x="519.7" y="423.5" font-size="8" text-anchor="middle" fill="#000">GND</text>
+<text x="570.5" y="381.5" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">J1</text>
+<text x="420.5" y="323.5" font-size="8" text-anchor="middle" fill="#000">DIV</text>
+<text x="471.3" y="323.5" font-size="8" text-anchor="middle" fill="#000">GND</text>
+<text x="420.5" y="281.5" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">J2</text>
+<text x="550.5" y="341.8" font-size="8" text-anchor="middle" fill="#000">VSENSE</text>
+<text x="550.5" y="305.3" font-size="8" text-anchor="middle" fill="#000">DIV</text>
+<text x="550.5" y="283.9" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">R1 49.9k</text>
+<text x="381.2" y="463.5" font-size="8" text-anchor="middle" fill="#000">DIV</text>
+<text x="439.8" y="463.5" font-size="8" text-anchor="middle" fill="#000">GND</text>
+<text x="410.5" y="435.1" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">R2 150k</text>
+</svg>
