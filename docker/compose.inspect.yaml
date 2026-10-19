@@ -1,0 +1,16 @@
+# Sandbox definition for the Inspect adapter (pcbenv/adapters/inspect_task.py).
+# Inspect copies each sample's public files into the container's working dir (/work).
+# hidden/ is never mounted here; the scorer reads the deliverables back and verifies on the host.
+services:
+  default:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: agent
+    image: pcb-repair-agent
+    command: ["tail", "-f", "/dev/null"]
+    working_dir: /work
+    network_mode: none
+    init: true
+    mem_limit: 4g
+    cpus: 2

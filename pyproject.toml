@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pcb-repair"
+version = "0.1.0"
+description = "PCB-Repair: an RL environment and eval where agents repair faulty small PCB designs (KiCad 7), graded by a deterministic verifier."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "LICENSE-TBD (founder decision)" }
+authors = [{ name = "PCB-Repair maintainers" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+# NOTE: `pcbnew` is NOT on PyPI. It comes from the system KiCad 7 install
+# (Ubuntu 24.04: `apt install kicad=7.0.11* kicad-footprints=7.0.11*`, module in
+# /usr/lib/python3/dist-packages) together with `ngspice` (apt). Use the distro python3 that
+# KiCad was built for; a venv must be created with --system-site-packages to see pcbnew.
+dependencies = ["numpy"]
+
+[project.optional-dependencies]
+test = ["pytest"]
+inspect = ["inspect-ai"]      # pcbenv.adapters.inspect_task
+anthropic = ["anthropic"]     # examples/run_with_claude.py
+
+[project.scripts]
+pcbtool = "pcbenv.tool:main"
+
+[tool.setuptools.packages.find]
+include = ["pcbenv*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

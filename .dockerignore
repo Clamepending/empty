@@ -1,0 +1,11 @@
+.git
+**/__pycache__
+**/*.pyc
+.pytest_cache
+tasks
+dist
+redteam
+reports
+scorecard
+/tmp
+**/hidden
