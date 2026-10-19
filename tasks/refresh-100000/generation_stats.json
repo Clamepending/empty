@@ -1,0 +1,420 @@
+{
+  "accepted": 118,
+  "args": {
+    "count": 120,
+    "dedupe_against": [
+      "tasks/manifest.jsonl"
+    ],
+    "holdout_frac": 0.2,
+    "out": "tasks/refresh-100000",
+    "start_seed": 100000
+  },
+  "drop_reasons": {
+    "a fault was cancelled by another": 1,
+    "fault not individually detected / replay mismatch": 1
+  },
+  "dropped": 2,
+  "dropped_tasks": [
+    {
+      "family": "rc_lowpass",
+      "reason": "a fault was cancelled by another",
+      "seed": 100058
+    },
+    {
+      "family": "mcu_i2c",
+      "reason": "fault not individually detected / replay mismatch: pin_to_wrong_net",
+      "seed": 100103
+    }
+  ],
+  "generator": "pcb-repair-v1",
+  "per_family": {
+    "divider_adc": 12,
+    "ldo_reg": 12,
+    "led_driver": 12,
+    "mcu_i2c": 11,
+    "nmos_switch": 12,
+    "npn_switch": 12,
+    "opamp_inv": 12,
+    "opamp_noninv": 12,
+    "rc_lowpass": 11,
+    "xtal_osc": 12
+  },
+  "per_hint": {
+    "explicit": 39,
+    "symptom": 47,
+    "vague": 32
+  },
+  "per_n_faults": {
+    "1": 42,
+    "2": 48,
+    "3": 28
+  },
+  "per_split": {
+    "holdout": 24,
+    "train": 94
+  },
+  "per_type": {
+    "board_pad_swap": {
+      "alone_checked": 14,
+      "alone_detected": 14,
+      "applied": 31,
+      "attempts": 34,
+      "families": [
+        "divider_adc",
+        "led_driver",
+        "nmos_switch",
+        "npn_switch",
+        "opamp_inv",
+        "opamp_noninv",
+        "rc_lowpass",
+        "xtal_osc"
+      ],
+      "in_shipped": 14,
+      "invalid": 0,
+      "invisible_in_shipped": 14,
+      "not_applicable": 3,
+      "replay_mismatch": 0
+    },
+    "bom_mismatch": {
+      "alone_checked": 12,
+      "alone_detected": 12,
+      "applied": 26,
+      "attempts": 26,
+      "families": [
+        "divider_adc",
+        "led_driver",
+        "mcu_i2c",
+        "nmos_switch",
+        "npn_switch",
+        "opamp_inv",
+        "opamp_noninv",
+        "rc_lowpass"
+      ],
+      "in_shipped": 12,
+      "invalid": 0,
+      "invisible_in_shipped": 12,
+      "not_applicable": 0,
+      "replay_mismatch": 0
+    },
+    "broken_trace": {
+      "alone_checked": 17,
+      "alone_detected": 17,
+      "applied": 28,
+      "attempts": 28,
+      "families": [
+        "divider_adc",
+        "led_driver",
+        "mcu_i2c",
+        "nmos_switch",
+        "npn_switch",
+        "opamp_inv",
+        "opamp_noninv",
+        "rc_lowpass",
+        "xtal_osc"
+      ],
+      "in_shipped": 16,
+      "invalid": 0,
+      "invisible_in_shipped": 0,
+      "not_applicable": 0,
+      "replay_mismatch": 0
+    },
+    "clearance_violation": {
+      "alone_checked": 15,
+      "alone_detected": 15,
+      "applied": 18,
+      "attempts": 22,
+      "families": [
+        "divider_adc",
+        "led_driver",
+        "mcu_i2c",
+        "npn_switch",
+        "opamp_inv",
+        "xtal_osc"
+      ],
+      "in_shipped": 15,
+      "invalid": 0,
+      "invisible_in_shipped": 0,
+      "not_applicable": 4,
+      "replay_mismatch": 0
+    },
+    "decap_misconnected": {
+      "alone_checked": 5,
+      "alone_detected": 5,
+      "applied": 6,
+      "attempts": 18,
+      "families": [
+        "ldo_reg",
+        "mcu_i2c",
+        "npn_switch",
+        "opamp_inv",
+        "opamp_noninv"
+      ],
+      "in_shipped": 5,
+      "invalid": 0,
+      "invisible_in_shipped": 3,
+      "not_applicable": 12,
+      "replay_mismatch": 0
+    },
+    "decap_moved_far": {
+      "alone_checked": 11,
+      "alone_detected": 11,
+      "applied": 18,
+      "attempts": 42,
+      "families": [
+        "ldo_reg",
+        "mcu_i2c",
+        "opamp_inv",
+        "opamp_noninv"
+      ],
+      "in_shipped": 11,
+      "invalid": 0,
+      "invisible_in_shipped": 11,
+      "not_applicable": 24,
+      "replay_mismatch": 0
+    },
+    "floating_pin": {
+      "alone_checked": 18,
+      "alone_detected": 18,
+      "applied": 38,
+      "attempts": 54,
+      "families": [
+        "mcu_i2c",
+        "nmos_switch",
+        "npn_switch",
+        "opamp_inv",
+        "opamp_noninv",
+        "xtal_osc"
+      ],
+      "in_shipped": 17,
+      "invalid": 0,
+      "invisible_in_shipped": 0,
+      "not_applicable": 16,
+      "replay_mismatch": 0
+    },
+    "footprint_swap": {
+      "alone_checked": 16,
+      "alone_detected": 16,
+      "applied": 32,
+      "attempts": 42,
+      "families": [
+        "divider_adc",
+        "ldo_reg",
+        "led_driver",
+        "mcu_i2c",
+        "nmos_switch",
+        "npn_switch",
+        "opamp_inv",
+        "opamp_noninv",
+        "rc_lowpass"
+      ],
+      "in_shipped": 15,
+      "invalid": 0,
+      "invisible_in_shipped": 0,
+      "not_applicable": 10,
+      "replay_mismatch": 0
+    },
+    "magnitude_slip": {
+      "alone_checked": 17,
+      "alone_detected": 17,
+      "applied": 35,
+      "attempts": 35,
+      "families": [
+        "divider_adc",
+        "led_driver",
+        "mcu_i2c",
+        "nmos_switch",
+        "npn_switch",
+        "opamp_inv",
+        "opamp_noninv",
+        "rc_lowpass",
+        "xtal_osc"
+      ],
+      "in_shipped": 17,
+      "invalid": 0,
+      "invisible_in_shipped": 17,
+      "not_applicable": 0,
+      "replay_mismatch": 0
+    },
+    "narrow_power_trace": {
+      "alone_checked": 11,
+      "alone_detected": 11,
+      "applied": 16,
+      "attempts": 20,
+      "families": [
+        "divider_adc",
+        "ldo_reg",
+        "led_driver",
+        "mcu_i2c",
+        "nmos_switch",
+        "opamp_noninv",
+        "rc_lowpass",
+        "xtal_osc"
+      ],
+      "in_shipped": 11,
+      "invalid": 0,
+      "invisible_in_shipped": 11,
+      "not_applicable": 4,
+      "replay_mismatch": 0
+    },
+    "pin_to_wrong_net": {
+      "alone_checked": 13,
+      "alone_detected": 13,
+      "applied": 44,
+      "attempts": 45,
+      "families": [
+        "divider_adc",
+        "ldo_reg",
+        "led_driver",
+        "mcu_i2c",
+        "nmos_switch",
+        "opamp_noninv",
+        "rc_lowpass"
+      ],
+      "in_shipped": 13,
+      "invalid": 0,
+      "invisible_in_shipped": 12,
+      "not_applicable": 1,
+      "replay_mismatch": 1
+    },
+    "reversed_polarity": {
+      "alone_checked": 7,
+      "alone_detected": 7,
+      "applied": 19,
+      "attempts": 35,
+      "families": [
+        "led_driver",
+        "nmos_switch",
+        "npn_switch",
+        "xtal_osc"
+      ],
+      "in_shipped": 7,
+      "invalid": 0,
+      "invisible_in_shipped": 7,
+      "not_applicable": 16,
+      "replay_mismatch": 0
+    },
+    "short_between_nets": {
+      "alone_checked": 13,
+      "alone_detected": 13,
+      "applied": 23,
+      "attempts": 29,
+      "families": [
+        "divider_adc",
+        "ldo_reg",
+        "led_driver",
+        "mcu_i2c",
+        "npn_switch",
+        "opamp_inv",
+        "opamp_noninv",
+        "rc_lowpass"
+      ],
+      "in_shipped": 13,
+      "invalid": 0,
+      "invisible_in_shipped": 0,
+      "not_applicable": 6,
+      "replay_mismatch": 0
+    },
+    "swapped_ic_pins": {
+      "alone_checked": 9,
+      "alone_detected": 9,
+      "applied": 19,
+      "attempts": 29,
+      "families": [
+        "ldo_reg",
+        "mcu_i2c",
+        "opamp_inv",
+        "opamp_noninv",
+        "xtal_osc"
+      ],
+      "in_shipped": 9,
+      "invalid": 0,
+      "invisible_in_shipped": 9,
+      "not_applicable": 10,
+      "replay_mismatch": 0
+    },
+    "transistor_pinout": {
+      "alone_checked": 8,
+      "alone_detected": 8,
+      "applied": 22,
+      "attempts": 57,
+      "families": [
+        "nmos_switch",
+        "npn_switch"
+      ],
+      "in_shipped": 8,
+      "invalid": 0,
+      "invisible_in_shipped": 8,
+      "not_applicable": 35,
+      "replay_mismatch": 0
+    },
+    "wrong_feedback_resistor": {
+      "alone_checked": 11,
+      "alone_detected": 11,
+      "applied": 18,
+      "attempts": 29,
+      "families": [
+        "divider_adc",
+        "ldo_reg",
+        "opamp_inv",
+        "opamp_noninv"
+      ],
+      "in_shipped": 11,
+      "invalid": 0,
+      "invisible_in_shipped": 11,
+      "not_applicable": 11,
+      "replay_mismatch": 0
+    },
+    "wrong_filter_cap": {
+      "alone_checked": 12,
+      "alone_detected": 12,
+      "applied": 22,
+      "attempts": 36,
+      "families": [
+        "divider_adc",
+        "opamp_inv",
+        "opamp_noninv",
+        "rc_lowpass",
+        "xtal_osc"
+      ],
+      "in_shipped": 12,
+      "invalid": 0,
+      "invisible_in_shipped": 12,
+      "not_applicable": 14,
+      "replay_mismatch": 0
+    },
+    "wrong_led_resistor": {
+      "alone_checked": 10,
+      "alone_detected": 10,
+      "applied": 18,
+      "attempts": 45,
+      "families": [
+        "led_driver",
+        "npn_switch",
+        "xtal_osc"
+      ],
+      "in_shipped": 10,
+      "invalid": 0,
+      "invisible_in_shipped": 10,
+      "not_applicable": 27,
+      "replay_mismatch": 0
+    },
+    "wrong_pull_resistor": {
+      "alone_checked": 6,
+      "alone_detected": 6,
+      "applied": 12,
+      "attempts": 25,
+      "families": [
+        "mcu_i2c",
+        "nmos_switch",
+        "npn_switch"
+      ],
+      "in_shipped": 6,
+      "invalid": 0,
+      "invisible_in_shipped": 6,
+      "not_applicable": 13,
+      "replay_mismatch": 0
+    }
+  },
+  "seconds": 56.4,
+  "share_with_invisible": 0.839
+}

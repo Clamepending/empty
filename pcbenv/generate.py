@@ -248,9 +248,14 @@ def _build_one(seed: int, staging: str, log: list) -> dict:
             alone_rewards.append(res.reward)
             rec.invisible_to_drc_erc = rec1.invisible_to_drc_erc
             fails = _failing(res)
-            alone_info.append({"type": rec.type, "reward": res.reward, "failing": fails})
+            # a layout failure that only says "this power net's pin set changed" is a by-product of
+            # the topology change, not an independent observable symptom
+            layout_side = "layout" in fails and all(
+                str(m).startswith(("power_net_missing", "power_net_unrouted")) for m in res.detail.get("layout", []))
+            alone_info.append({"type": rec.type, "reward": res.reward, "failing": fails,
+                               "topology_only": set(fails) - ({"layout"} if layout_side else set()) == {"topology"}})
         gates["each_fault_detected"] = alone_rewards
-        silent = [a["type"] for a in alone_info if a.get("failing") == ["topology"]]
+        silent = [a["type"] for a in alone_info if a.get("topology_only")]
         # TASK.md + final meta
         sym = prompts.symptoms(golden, design, fboard, silent) if hint != "vague" else []
         rec_dicts = [r.to_dict() for r in records]
