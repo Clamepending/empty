@@ -9,7 +9,7 @@ import time
 import pytest
 
 from pcbenv.design import validate
-from pcbenv.families import FAMILIES
+from pcbenv.families import FAMILIES, HARD_FAMILIES, tier
 from pcbenv.parts import PARTS, format_value, parse_value
 from pcbenv.sim import run_assertions
 
@@ -99,7 +99,10 @@ def test_golden_structure(family):
             assert d["components"][cap]["part"] == "C"
             net = [n for n, pins in d["nets"].items() if icp in pins]
             assert net and any(p.startswith(cap + ".") for p in d["nets"][net[0]])
-        assert 20 <= g.board_w_mm <= 50 and 20 <= g.board_h_mm <= 50
+        if tier(family) == "hard":
+            assert 40 <= g.board_w_mm <= 90 and 40 <= g.board_h_mm <= 70
+        else:
+            assert 20 <= g.board_w_mm <= 50 and 20 <= g.board_h_mm <= 50
         assert g.intent.strip() and g.params
 
 
@@ -144,6 +147,8 @@ def _mutate(family: str, g) -> dict:
         _scale(d, "R2")
     elif family == "xtal_osc":
         _scale(d, "C1")
+    elif tier(family) == "hard":
+        _scale(d, g.params["roles"]["feedback"][0])  # LDO feedback divider top: wrong rail voltage
     else:
         raise AssertionError(f"no mutation for {family}")
     return d
@@ -190,3 +195,36 @@ def test_ldo_never_redraws():
         g = gen("ldo_reg", s)
         assert "redraw" not in g.params and g.seed == s
         assert all(r.passed for r in run_assertions(g.design, g.assertions))
+
+
+# ------------------------------------------------------------------ hard tier (composites)
+@pytest.mark.parametrize("family", HARD_FAMILIES)
+def test_hard_tier_composite_structure(family):
+    """Composite boards: 20-40 parts, >= 2 ICs, 2 supply rails (input + regulated) besides GND,
+    decoupling for every IC supply pin, and an intent with connector and MCU pin tables."""
+    assert len(HARD_FAMILIES) >= 3
+    for s in SEEDS:
+        g = gen(family, s)
+        comps = g.design["components"]
+        assert 20 <= len(comps) <= 40, (s, len(comps))
+        ics = [r for r in comps if r.startswith("U")]
+        assert len(ics) >= 2, (s, ics)
+        assert len([n for n in g.power_nets if n != "GND"]) >= 2, (s, g.power_nets)
+        assert "## Connectors" in g.intent and "Rails:" in g.intent
+        if any(c["part"] == "MCU8" for c in comps.values()):
+            assert "## MCU pin assignment" in g.intent
+        names = [a["name"] for a in g.assertions]
+        assert len(names) == len(set(names)), names
+
+
+@pytest.mark.parametrize("family", FAMS)
+def test_reduced_intent_mentions_every_part(family):
+    """QA F10: the reduced intent (symptom / vague tasks) still names every sub-circuit, with every
+    component ref, by purpose."""
+    import re
+    from pcbenv.prompts import reduce_intent
+    for s in range(15):
+        g = gen(family, s)
+        red = reduce_intent(g.intent)
+        missing = [r for r in g.design["components"] if not re.search(rf"\b{r}\b", red)]
+        assert not missing, (s, missing)

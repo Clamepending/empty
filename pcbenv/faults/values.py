@@ -35,7 +35,8 @@ ROLE_TEXT = {"feedback": "gain/divider-setting resistor", "led_res": "LED curren
 
 
 def _role_refs(golden: Golden, design: dict, role: str, exclude: set[str]) -> list[str]:
-    refs = ROLES.get(golden.family, {}).get(role, [])
+    # composite (hard-tier) families record their per-seed roles in params["roles"]
+    refs = ROLES.get(golden.family, {}).get(role) or golden.params.get("roles", {}).get(role, [])
     return [r for r in refs if r in design["components"] and free(exclude, r)]
 
 

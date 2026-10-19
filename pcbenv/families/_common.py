@@ -119,6 +119,15 @@ def sig2_up(x: float) -> float:
     return float(f"{math.ceil(x / 10 ** e * (1 - 1e-12)) * 10 ** e:.2g}")
 
 
+class BoundsDict(dict):
+    """ref -> [min, max]; `.limits` = ref -> [datasheet min | None, datasheet max | None] that the
+    bound was widened to contain (recorded into the golden's params as `datasheet_limits`)."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.limits: dict[str, list[float | None]] = {}
+
+
 class Bounds:
     """Value bounds policy (SPEC §4 + QA F1).
 
@@ -133,8 +142,8 @@ class Bounds:
 
     def __init__(self, family: str, seed: int):
         self.family, self.seed = family, seed
-        self.out: dict[str, list[float]] = {}
-        self.limits: dict[str, list[float | None]] = {}
+        self.out = BoundsDict()
+        self.limits = self.out.limits
 
     def spec(self, ref: str, v: float, ds_lo: float | None = None, ds_hi: float | None = None) -> None:
         r = random.Random(f"value_bounds/{self.family}/{self.seed}/{ref}")
@@ -187,6 +196,9 @@ def golden(family: str, seed: int, b: Builder, assertions: list[dict], power_net
     design = b.design()
     vb = {k: list(v) for k, v in sorted((value_bounds or {}).items())}
     check_bounds(design, vb)
+    limits = getattr(value_bounds, "limits", None)
+    if limits:
+        params = dict(params, datasheet_limits={k: list(v) for k, v in sorted(limits.items())})
     return Golden(family=family, seed=seed, design=design, assertions=assertions, power_nets=power_nets,
                   decoupling=decoupling, intent=intent.strip() + "\n", params=params, board_w_mm=w, board_h_mm=h,
                   value_bounds=vb)

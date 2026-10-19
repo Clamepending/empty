@@ -47,6 +47,18 @@ OUT_OF_BOUND = {
 }
 
 
+def _ic_decap(g) -> str:
+    """Composite refs vary per seed: the decoupling cap of the first MCU8 / OPAMP."""
+    comps = g.design["components"]
+    return next(dc["cap"] for dc in g.decoupling
+                if comps[dc["ic_pin"].split(".")[0]]["part"] in ("MCU8", "OPAMP"))
+
+
+for _f in FAMS:
+    if _f not in OUT_OF_BOUND:   # hard-tier composites: IC decoupling cap /100 (no assertion sees it)
+        OUT_OF_BOUND[_f] = (_ic_decap, "1n", True)
+
+
 @pytest.fixture(scope="module")
 def task_root(tmp_path_factory):
     return tmp_path_factory.mktemp("vb_tasks")
@@ -126,6 +138,7 @@ def test_out_of_bound_value_fails(task_root, tmp_path, family):
     ref, new, unconstrained = OUT_OF_BOUND[family]
     td = build_task(task_root, family, 0)
     g = FAMILIES[family].generate(0)
+    ref = ref(g) if callable(ref) else ref
     lo, hi = g.value_bounds[ref]
     assert not lo <= parse_value(new) <= hi
     wd = workdir(td, tmp_path / "w")

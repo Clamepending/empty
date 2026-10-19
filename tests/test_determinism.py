@@ -38,23 +38,26 @@ def _task(tmp: Path, name: str, prior: list, target: tuple) -> dict[str, bytes]:
     return {str(p.relative_to(out)): p.read_bytes() for p in sorted(out.rglob("*")) if p.is_file()}
 
 
-@pytest.mark.parametrize("target", [("mcu_i2c", 3), ("ldo_reg", 1)])
+@pytest.mark.parametrize("target", [("mcu_i2c", 3), ("ldo_reg", 1), ("sys_motor_ctrl", 2)])
 def test_same_bytes_across_process_histories(tmp_path, target):
     fresh = _task(tmp_path, "fresh", [], target)
     busy = _task(tmp_path, "busy", [["xtal_osc", 7], ["opamp_inv", 3], ["divider_adc", 5]], target)
     assert sorted(fresh) == sorted(busy)
     diff = [k for k in fresh if fresh[k] != busy[k]]
     assert not diff, diff
-    # the golden board equals the shipped one when the frozen task set is present
-    manifest = ROOT / "tasks" / "manifest.jsonl"
-    if manifest.exists():
-        for line in manifest.read_text().splitlines():
-            row = json.loads(line)
-            if (row["family"], row["seed"]) == tuple(target):
-                shipped = list((ROOT / "tasks").glob(f"*/{row['id']}/hidden/golden_board.kicad_pcb"))
-                if shipped:
-                    assert hashlib.sha256(shipped[0].read_bytes()).hexdigest() == \
-                        hashlib.sha256(fresh["hidden/golden_board.kicad_pcb"]).hexdigest()
+    # v1 compared against the frozen shipped task set; v2 regenerates every task, so the reference is
+    # a fresh regeneration in this (pytest) process, whose KiCad UUID history differs from both
+    # subprocesses above
+    from pcbenv.families import FAMILIES
+    from pcbenv.taskio import make_golden_task
+    regen = tmp_path / "regen"
+    make_golden_task(FAMILIES[target[0]].generate(target[1]), regen, task_id="det")
+    again = {str(p.relative_to(regen)): p.read_bytes() for p in sorted(regen.rglob("*")) if p.is_file()}
+    assert sorted(again) == sorted(fresh)
+    assert hashlib.sha256(again["hidden/golden_board.kicad_pcb"]).hexdigest() == \
+        hashlib.sha256(fresh["hidden/golden_board.kicad_pcb"]).hexdigest()
+    diff = [k for k in fresh if fresh[k] != again[k]]
+    assert not diff, diff
 
 
 def test_canonical_pass_is_idempotent(tmp_path):

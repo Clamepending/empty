@@ -168,8 +168,7 @@ register(Part(
 
 LDO_VREF = 0.8
 LDO_GAIN = 1e4        # error-amplifier DC gain (80 dB): regulation error 1/(gain*VREF/VOUT) <= 0.1 %
-LDO_ILIM = 0.5        # pass element current limit (A)
-LDO_RPASS = 0.8       # pass element small-signal resistance (ohm): ~0.25 V dropout at 300 mA
+LDO_RPASS = 0.8       # pass element resistance (ohm): 0.24 V dropout at 300 mA
 
 
 def _softplus(z: str, k: float = 0.01) -> str:
@@ -179,9 +178,11 @@ def _softplus(z: str, k: float = 0.01) -> str:
 
 # Behavioural LDO built for robust DC convergence: a finite-gain error amplifier (no hidden
 # integrator, no step-like transfer), smoothly clamped between 0 V and VIN, driving the output
-# through a smooth current-limited pass element I = ILIM*tanh(V/(ILIM*RPASS)). Every branch is
-# smooth with non-zero derivatives, so Newton converges from the default initial point. The loop
-# is algebraic (memoryless), so AC and transient analyses see an ideal fast regulator.
+# through a linear pass resistance. Every branch is smooth, and nothing saturates to a flat
+# characteristic in the normal operating region, so Newton converges from the default initial
+# point. (The ~500 mA current limit is not modelled: a tanh-limited pass element stalls Newton at
+# power-up, where the pass element starts deep in its limit.) The loop is algebraic (memoryless),
+# so AC and transient analyses see an ideal fast regulator.
 LDO_MODEL = (
     ".subckt PCB_LDO vin vss en fb vout\n"
     "Rq vin vss 100k\n"
@@ -190,7 +191,7 @@ LDO_MODEL = (
     f"Bx x vss V={_softplus(f'{LDO_GAIN:g}*({LDO_VREF:g}-v(fb,vss))')}\n"
     f"Btop top vss V={_softplus('v(vin,vss)')}\n"
     f"Bo o vss V=v(ena,vss)*(v(top,vss)-{_softplus('v(top,vss)-v(x,vss)')})\n"
-    f"Bpass o vout I={LDO_ILIM:g}*tanh(v(o,vout)/{LDO_ILIM * LDO_RPASS:g})\n"
+    f"Rpass o vout {LDO_RPASS:g}\n"
     "Rdis vout vss 1Meg\n"
     ".ends PCB_LDO"
 )
@@ -245,9 +246,10 @@ register(Part(
             "Rcp inp vn 1e10\nRcm inm vn 1e10\n"
             "Rq vp vn 50k\n"
             "Bmid mid vn V=0.5*v(vp,vn)\n"
-            # input stage: 1 S transconductance, smoothly limited at +-1 mA (internal node within
-            # +-100 V of mid, so Newton never sees an unbounded node); small-signal gain unchanged
-            "Bg1 mid x I=1e-3*tanh(v(inp,inm)/1e-3)\n"
+            # input stage: linear 1 S transconductance into the dominant-pole node. (A tanh-limited
+            # stage was tried: its flat derivative in saturation stalls Newton when the op-amp is
+            # powered from the LDO rail; see tests/test_sim_convergence.py.)
+            "G1 mid x inp inm 1\n"
             f"R1 x mid {OPAMP_A0:g}\n"
             f"C1 x mid {1 / (2 * math.pi * OPAMP_A0 * OPAMP_GBW / OPAMP_A0):.6g}\n"
             # rail-to-rail output: smooth clamp between V- + 5 mV and V+ - 5 mV (C-infinity, so the

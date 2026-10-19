@@ -58,6 +58,7 @@ class Composite:
     values: list[str] = field(default_factory=list)          # component-value requirement notes
     spec: list[str] = field(default_factory=list)            # spec lines
     params: dict = field(default_factory=dict)
+    roles: dict[str, list[str]] = field(default_factory=dict)  # fault-injector roles (faults/values.py)
     _n: dict[str, int] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -78,6 +79,9 @@ class Composite:
         """A ceramic capacitor whose footprint is rated >= 1.6x the highest voltage across it."""
         ok = [fp for fp in C_FP if v_max <= 0.6 * C_VOLT[fp]]
         return self.b.add(self.ref("C"), "C", value, pick(self.rng, ok))
+
+    def role(self, name: str, *refs: str) -> None:
+        self.roles.setdefault(name, []).extend(r for r in refs if r)
 
     def power(self, net: str, w: float) -> None:
         self.power_nets[net] = max(w, self.power_nets.get(net, 0.0))
@@ -103,6 +107,9 @@ class Composite:
         intent += "Component values: " + "; ".join(self.values) + ".\n\n"
         intent += parts_summary(self.groups) + "\n"
         self.params["parts"] = len(design["components"])
+        self.params["roles"] = {k: list(v) for k, v in sorted(self.roles.items())}
+        if self.vb.limits:
+            self.params["datasheet_limits"] = {k: list(v) for k, v in sorted(self.vb.limits.items())}
         return Golden(family=self.family, seed=self.seed, design=design, assertions=self.assertions,
                       power_nets=dict(sorted(self.power_nets.items())), decoupling=self.decoupling, intent=intent,
                       params=self.params, board_w_mm=float(board[0]), board_h_mm=float(board[1]), value_bounds=vb)
@@ -157,6 +164,8 @@ def ldo(c: Composite, vin: float, vout: float, vin_net: str, rail: str, drop: fl
     else:
         b.net(vin_net, f"{u}.EN")
     vact = LDO_VREF * (1 + b.val(rt) / b.val(rb))
+    c.role("feedback", rt, rb)
+    c.role("pull", ren)
     c.decoupling += [{"cap": cin, "ic_pin": f"{u}.VIN", "max_mm": 5.0}, {"cap": cout, "ic_pin": f"{u}.VOUT", "max_mm": 5.0}]
     c.vb.fixed(cin, *BULK)
     c.vb.fixed(cout, *BULK)
@@ -207,6 +216,7 @@ def mcu(c: Composite, vdd: float, rail: str) -> dict:
     c.decoupling.append({"cap": cd, "ic_pin": f"{u}.VDD", "max_mm": 5.0})
     c.vb.fixed(cd, *DECOUPLING)
     c.vb.fixed(rn, *NRST_PULLUP)
+    c.role("pull", rn)
     st = c.stim(c.params["vin"])
     c.assertions += [
         {"name": "mcu_vdd", "type": "dc_voltage", "net_pin": f"{u}.VDD", "ref_pin": f"{u}.GND",
@@ -254,6 +264,7 @@ def i2c(c: Composite, u: str, vdd: float, rail: str, header_rail_pin: bool = Tru
         c.assertions.append({"name": f"{line}_sink_current", "type": "dc_current", "element": r, "min": 0.0,
                              "max": I2C_SINK_MAX, **sup, "source": {"pin": pin, "dc": I2C_VOL, "r": 1e-3}})
         c.vb.spec(r, rp, ds_lo=rmin, ds_hi=rmax)
+    c.role("pull", rsda, rscl)
     c.connectors += [(j, "1", f"{rail} (bus supply)"), (j, "2", "GND"), (j, "3", "SDA"), (j, "4", "SCL")]
     c.mcu_pins += [("SDA", f"I2C data -> {j} pin 3"), ("SCL", f"I2C clock -> {j} pin 4")]
     c.purpose.append(f"- I2C: SDA ({u}.SDA -> {j}.3) and SCL ({u}.SCL -> {j}.4) are open-drain with pull-ups "
@@ -281,6 +292,7 @@ def led_gpio(c: Composite, u: str, pin: str, vdd: float, what: str) -> dict:
     c.assertions.append({"name": f"{what}_led_current", "type": "dc_current", "element": d, **band(i_act, 0.15),
                          **c.stim(c.params["vin"], source={"pin": f"{u}.{pin}", "dc": vdd, "r": GPIO_R})})
     c.vb.spec(r, b.val(r), ds_lo=led_r_min(vdd, 1, vf10, i_max=GPIO_IMAX))
+    c.role("led_res", r)
     c.mcu_pins.append((pin, f"{what} LED drive (push-pull, high = on)"))
     c.purpose.append(f"- {pin} drives the {what} LED {d} through {r} ({u}.{pin} -> {r} -> {d} anode, cathode to GND).")
     c.groups.append((f"{what} LED with series resistor", [d, r]))
@@ -303,6 +315,7 @@ def led_rail(c: Composite, rail: str, vrail: float, what: str) -> dict:
     c.assertions.append({"name": f"{what}_led_current", "type": "dc_current", "element": d, **band(i_act, 0.15),
                          **c.stim(c.params["vin"])})
     c.vb.spec(r, b.val(r), ds_lo=led_r_min(vrail, 1, vf10))
+    c.role("led_res", r)
     c.purpose.append(f"- {what} indicator: {r} from {rail} to the anode of {d}, cathode to GND.")
     c.groups.append((f"{what} indicator LED with series resistor", [d, r]))
     c.spec.append(f"- {what.capitalize()} indicator current {i_act*1e3:.2f} mA ±15 %.")
@@ -340,6 +353,8 @@ def led_npn(c: Composite, u: str, pin: str, vdd: float, vsup: float, sup_net: st
     c.vb.spec(rl, b.val(rl), ds_lo=led_r_min(vsup, 1, vf10, v_switch=0.05))
     c.vb.spec(rbase, b.val(rbase), ds_lo=(vdd - 0.75) / GPIO_IMAX)
     c.vb.fixed(rpd, 4.7e3, 220e3)
+    c.role("led_res", rl)
+    c.role("pull", rpd)
     c.mcu_pins.append((pin, f"{what} LED switch drive (high = on, high-impedance in reset)"))
     c.purpose.append(f"- {what.capitalize()} LED {d} is fed from {sup_net} through {rl} and switched on its cathode by "
                      f"NPN {q} (emitter to GND); {pin} drives the base through {rbase} (forced beta about 10, GPIO "
@@ -389,6 +404,8 @@ def adc_divider(c: Composite, u: str, pin: str, vdd: float, what: str) -> dict:
     c.vb.spec(r1, rv1)
     c.vb.spec(r2, rv2)
     c.vb.spec(ca, cv)
+    c.role("feedback", r1, r2)
+    c.role("filter_cap", ca)
     c.connectors += [(j, "1", f"{what} input, 0–{vmax:g} V"), (j, "2", "GND")]
     c.mcu_pins.append((pin, f"ADC input: {what} (scaled so {vmax:g} V reads 90 % of full scale)"))
     c.purpose.append(f"- {what.capitalize()} input: {r1} from {j} pin 1 to the ADC node, {r2} from the ADC node to "
@@ -477,6 +494,8 @@ def lowside_motor(c: Composite, u: str, pwm_pin: str, adc_pin: str, vdd: float, 
     c.vb.spec(rf, rfv)
     c.vb.spec(cf, cfv)
     c.vb.fixed(cb, *BULK)
+    c.role("pull", rpd)
+    c.role("filter_cap", cf)
     w = 0.5 if iload > 0.5 else 0.4
     for n in (vmot_net, "MOTOR_SW", "ISENSE", "GND"):
         c.power(n, w)
@@ -531,6 +550,7 @@ def crystal(c: Composite, u: str, vdd: float) -> dict:
     c.vb.exact(y, b.val(y), 1e-3)
     c.vb.spec(c1, cv)
     c.vb.spec(c2, cv)
+    c.role("filter_cap", c1, c2)
     c.mcu_pins += [("PA1", f"XIN: {freq}Hz crystal"), ("PA2", f"XOUT: {freq}Hz crystal")]
     c.purpose.append(f"- Clock: crystal {y} ({part}, rated CL {cl*1e12:.0f} pF) between XIN (PA1) and XOUT (PA2); load "
                      f"capacitor {c1} from XIN to GND and {c2} from XOUT to GND, next to the crystal.")
@@ -605,6 +625,8 @@ def opamp_channel(c: Composite, k: int, vcc: float, rail: str, jin: str, in_pin:
         c.vb.spec(cf, b.val(cf))
     c.vb.spec(raa, raav)
     c.vb.spec(caa, caav)
+    c.role("feedback", rf, rg)
+    c.role("filter_cap", caa, cf)
     c.purpose.append(
         f"- Channel {k}: {in_pin.replace('.', ' pin ')} -> IN+ of op-amp {u} ({rbias} from IN+ to GND defines the input); "
         f"{rf} from OUT to IN- and {rg} from IN- to GND set G = 1 + {rf}/{rg}"
