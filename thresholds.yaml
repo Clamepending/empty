@@ -30,3 +30,8 @@ packaging:
   onboarding_consecutive_passes: 2
 refresh:
   new_tasks_per_run_min: 100
+frontier:
+  # Added by the orchestrator after v1 calibration (sonnet 100/100, opus 50/50): tasks must
+  # challenge the strongest model, not just the weakest. Stricter, not looser, than before.
+  hard_tier_best_model_pass_band: [0.10, 0.70]
+  hard_tier_sample_min: 40

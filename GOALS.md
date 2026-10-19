@@ -25,6 +25,7 @@ ready with their human step clearly marked as the only thing left. The orchestra
 | G8 | Packaging: README quickstart, Python API, Inspect-style + JSONL adapters, data card | builder-packaging | fresh agent with no context runs 20 tasks end-to-end from README in <30 min, twice in a row | todo |
 | G9 | Expert QA packets | builder-packaging | 100-task review packets generated. **Human EE sign-off is founder-owned (blocked on human)** | todo |
 | G10 | Refresh engine | builder-faults | `python3 -m pcbenv.generate --seed N` produces ≥100 new gated tasks, deduped against shipped | todo |
+| G12 | Hard tier that challenges frontier models | builder-hard + evaluator | v1 calibration: sonnet 100/100, opus 50/50 → saturated. Hard tier (latent datasheet-rule faults with no tool feedback, hidden-but-stated design-rule checks, composite multi-rail boards, optional no-autoroute tool mode): best model's pass rate on a ≥40-task hard sample within 10–70 %, 0 red-team hacks, every task still gated (golden 1.0 / faulted 0.0 / oracle 1.0) | todo |
 | G11 | Buyer signal | **founder (human)** | one-pager + outreach draft prepared by agents; sending is human-only | todo |
 
 ## Out of scope for v1 (deliberate)
