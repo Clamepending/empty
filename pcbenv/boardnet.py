@@ -141,16 +141,36 @@ def footprint_fingerprint(fp: "pcbnew.FOOTPRINT") -> str:
     return _h((pads, crt, fpl))
 
 
+_PLUGIN = None
+_PROTOS: dict[str, "pcbnew.FOOTPRINT | None"] = {}
+
+
+def library_footprint(fpid: str) -> "pcbnew.FOOTPRINT | None":
+    """A fresh copy (new UUIDs) of library footprint "Lib:Name", or None if not found.
+
+    Prototypes are parsed once per process through one shared PCB_PLUGIN (calling
+    pcbnew.FootprintLoad repeatedly leaks memory)."""
+    global _PLUGIN
+    if fpid not in _PROTOS:
+        proto = None
+        if ":" in fpid:
+            lib, name = fpid.split(":", 1)
+            path = os.path.join(FOOTPRINT_ROOT, lib + ".pretty")
+            if "/" not in name and os.path.isfile(os.path.join(path, name + ".kicad_mod")):
+                if _PLUGIN is None:
+                    _PLUGIN = pcbnew.PCB_PLUGIN()
+                proto = _PLUGIN.FootprintLoad(path, name)
+                if proto is not None:
+                    proto.SetFPID(pcbnew.LIB_ID(lib, name))
+        _PROTOS[fpid] = proto
+    proto = _PROTOS[fpid]
+    return None if proto is None else proto.Duplicate().Cast()
+
+
 @functools.lru_cache(maxsize=None)
 def library_pad_fingerprint(fpid: str) -> str | None:
     """Fingerprint of the pristine library footprint "Lib:Name" (None if not found)."""
-    if ":" not in fpid:
-        return None
-    lib, name = fpid.split(":", 1)
-    path = os.path.join(FOOTPRINT_ROOT, lib + ".pretty")
-    if not os.path.isfile(os.path.join(path, name + ".kicad_mod")):
-        return None
-    fp = pcbnew.FootprintLoad(path, name)
+    fp = library_footprint(fpid)
     return footprint_fingerprint(fp) if fp is not None else None
 
 

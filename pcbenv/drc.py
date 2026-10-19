@@ -8,8 +8,11 @@ board-file-level settings (solder mask, layer count/enabled layers) from the rul
 (the golden) and takes, for every numeric minimum, max(canonical, rules board) so a rules
 board can only tighten the rules, never loosen them.
 
-The candidate is copied alone into a fresh temp dir before loading, so no `.kicad_pro`
-(severities, exclusions), `.kicad_dru` (custom rules) or `.kicad_prl` next to it is used.
+The candidate is copied into a fresh temp dir next to our own canonical `.kicad_pro` and
+`.kicad_dru` before loading, so no project file (severities, exclusions) or custom rules
+file next to the candidate -- or in the process CWD, which KiCad would otherwise use for a
+board without a project -- can apply. DRC is run twice per load to dodge a KiCad 7.0.11
+uninitialised-member bug (see `_CANON_DRU`).
 
 Ignored report items (see `IGNORED_RULES`):
 - every item whose severity is not `error` (spec: warnings ignored). With KiCad's default
@@ -95,6 +98,7 @@ def apply_rules(board: "pcbnew.BOARD", rules_board: "pcbnew.BOARD | None" = None
         ds.m_NetSettings.m_NetClasses.clear()
     except Exception:  # pragma: no cover - binding differences
         pass
+    board.SynchronizeNetsAndNetClasses(False)
     if rd is not None:
         ds.m_SolderMaskExpansion = rd.m_SolderMaskExpansion
         ds.m_SolderMaskMinWidth = rd.m_SolderMaskMinWidth
@@ -161,36 +165,76 @@ def parse_report(text: str) -> tuple[list[dict], int]:
     return errors, unconnected
 
 
-def run_drc_on_board(board: "pcbnew.BOARD", rules_board: "pcbnew.BOARD | None" = None) -> DrcResult:
-    """Run DRC on an in-memory board (rules applied first). Used by the builder."""
-    apply_rules(board, rules_board)
-    with tempfile.TemporaryDirectory(prefix="pcbdrc_") as td:
-        rpt = os.path.join(td, "drc.rpt")
-        board.BuildConnectivity()
-        ok = pcbnew.WriteDRCReport(board, rpt, pcbnew.EDA_UNITS_MILLIMETRES, True)
-        if not ok or not os.path.exists(rpt):
-            raise RuntimeError("WriteDRCReport failed")
-        text = open(rpt, encoding="utf-8", errors="replace").read()
-    errors, unconnected = parse_report(text)
-    return DrcResult(errors=errors, unconnected=unconnected, raw=text)
+# KiCad 7.0.11 bug workaround: BOARD::m_DRCMaxClearance is not initialised by the BOARD
+# constructor and is only reset by IncrementTimeStamp() when one of the board's expression
+# caches is non-empty. With a garbage (huge) value the copper R-tree bounding boxes overflow
+# and the copper clearance / short tests silently find nothing (~10 % of runs in a process
+# after the first). We therefore (1) give the board a rule whose condition fills
+# m_LayerExpressionCache (harmless: silk clearance >= 0) and (2) run DRC twice on the same
+# board object, using the second result, whose cache-reset path zeroes the field.
+_CANON_DRU = """(version 1)
+(rule "pcbenv_cache_init"
+  (constraint silk_clearance (min 0mm))
+  (condition "A.Layer == 'F.SilkS'"))
+"""
+_CANON_PRO = '{"meta": {"filename": "board.kicad_pro", "version": 1}}\n'
 
 
-def _load_isolated(path: str, td: str, name: str) -> "pcbnew.BOARD":
-    dst = os.path.join(td, name)
+def _write_report(board: "pcbnew.BOARD", td: str) -> str:
+    rpt = os.path.join(td, "drc.rpt")
+    if os.path.exists(rpt):
+        os.remove(rpt)
+    ok = pcbnew.WriteDRCReport(board, rpt, pcbnew.EDA_UNITS_MILLIMETRES, True)
+    if not ok or not os.path.exists(rpt):
+        raise RuntimeError("WriteDRCReport failed")
+    with open(rpt, encoding="utf-8", errors="replace") as f:
+        return f.read()
+
+
+def _load_in_sandbox(path: str, td: str) -> "pcbnew.BOARD":
+    """Copy `path` into `td` next to our own canonical .kicad_pro/.kicad_dru and load it.
+
+    The project file matters: without one, KiCad resolves `<name>.kicad_dru` relative to
+    the *default project*, i.e. the process CWD, so a rules file in the CWD would apply."""
+    with open(os.path.join(td, "board.kicad_pro"), "w", encoding="utf-8") as f:
+        f.write(_CANON_PRO)
+    with open(os.path.join(td, "board.kicad_dru"), "w", encoding="utf-8") as f:
+        f.write(_CANON_DRU)
+    dst = os.path.join(td, "board.kicad_pcb")
     shutil.copyfile(path, dst)
-    return pcbnew.LoadBoard(dst)
+    board = pcbnew.LoadBoard(dst)
+    if board is None:
+        raise RuntimeError(f"cannot load board {path}")
+    return board
+
+
+def _release(board: "pcbnew.BOARD") -> None:
+    """Unload the sandbox project (the settings manager otherwise keeps every one)."""
+    try:
+        prj = board.GetProject()
+        board.ClearProject()
+        if prj is not None:
+            pcbnew.GetSettingsManager().UnloadProject(prj, False)
+    except Exception:  # pragma: no cover - best effort
+        pass
 
 
 def run_drc(board_path: str, rules_board_path: str | None = None) -> DrcResult:
     """DRC `board_path` under the canonical rules tightened by `rules_board_path`."""
     with tempfile.TemporaryDirectory(prefix="pcbdrc_") as td:
-        os.mkdir(os.path.join(td, "c"))
-        os.mkdir(os.path.join(td, "r"))
-        board = _load_isolated(board_path, os.path.join(td, "c"), "board.kicad_pcb")
-        rules = None
-        if rules_board_path:
-            rules = _load_isolated(rules_board_path, os.path.join(td, "r"), "rules.kicad_pcb")
-        # The fresh dir holds no .kicad_pro, so exclusions/severity overrides cannot apply;
-        # drop any markers that were loaded from the file anyway.
+        cdir, rdir = os.path.join(td, "c"), os.path.join(td, "r")
+        os.mkdir(cdir)
+        os.mkdir(rdir)
+        board = _load_in_sandbox(board_path, cdir)
+        rules = _load_in_sandbox(rules_board_path, rdir) if rules_board_path else None
+        # The sandbox project holds no exclusions/severity overrides; drop any markers too.
         board.DeleteMARKERs()
-        return run_drc_on_board(board, rules)
+        apply_rules(board, rules)
+        board.BuildConnectivity()
+        _write_report(board, cdir)          # 1st run: fills the expression cache
+        text = _write_report(board, cdir)   # 2nd run: reliable (see comment above)
+        for b in (board, rules):
+            if b is not None:
+                _release(b)
+    errors, unconnected = parse_report(text)
+    return DrcResult(errors=errors, unconnected=unconnected, raw=text)

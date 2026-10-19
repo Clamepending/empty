@@ -34,8 +34,9 @@ import numpy as np
 import pcbnew
 
 from pcbenv import drc
+from pcbenv.boardnet import library_footprint
 from pcbenv.golden import Golden
-from pcbenv.parts import FOOTPRINT_ROOT, PARTS
+from pcbenv.parts import PARTS
 from pcbenv.router import PadGeom, Router, RouteError, Rules
 
 ORIGIN = (100.0, 100.0)
@@ -58,12 +59,9 @@ def _mm(v: int) -> float:
 
 
 def load_footprint(fpid: str) -> "pcbnew.FOOTPRINT":
-    lib, name = fpid.split(":", 1)
-    path = os.path.join(FOOTPRINT_ROOT, lib + ".pretty")
-    fp = pcbnew.FootprintLoad(path, name)
+    fp = library_footprint(fpid)
     if fp is None:
         raise BuildError(f"footprint not found: {fpid}")
-    fp.SetFPID(pcbnew.LIB_ID(lib, name))
     return fp
 
 
@@ -426,5 +424,5 @@ def build_board(golden: Golden, out_path: str, seed: int, pitch: float = 0.1,
             os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
             shutil.copyfile(tmp, out_path)
         return {"attempts": attempt + 1, "seconds": time.monotonic() - t0,
-                "tracks": len(router.segs), "vias": len(router.vias)}
+                "tracks": len(router.segs), "vias": len(router.vias), "log": errors}
     raise BuildError(f"build failed for {golden.family}/{golden.seed} seed {seed}: " + "; ".join(errors[-5:]))

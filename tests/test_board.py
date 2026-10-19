@@ -259,6 +259,34 @@ def test_drc_ignores_sidecar_rules(base_board, tmp_path):
     assert "clearance" in _types(res)
 
 
+def test_drc_ignores_cwd_rules(base_board, tmp_path, monkeypatch):
+    """KiCad resolves <name>.kicad_dru against the default project (= CWD) if the board has
+    no project; run_drc sandboxes the board with its own project so this cannot apply."""
+    _, path = base_board
+    y = ORIGIN[1] + 1.5
+    def f(b):
+        _track(b, "N1", ORIGIN[0] + 2, y, ORIGIN[0] + 6, y, layer=pcbnew.B_Cu)
+        _track(b, "OUT", ORIGIN[0] + 2, y + 0.3, ORIGIN[0] + 6, y + 0.3, layer=pcbnew.B_Cu)
+    cand = _mutate(path, str(tmp_path / "board.kicad_pcb"), f)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    (cwd / "board.kicad_dru").write_text('(version 1)\n(rule loose (constraint clearance (min 0mm)))\n')
+    monkeypatch.chdir(cwd)
+    assert "clearance" in _types(run_drc(cand, path))
+
+
+def test_drc_repeatable(base_board, tmp_path):
+    """Regression for the KiCad 7 uninitialised m_DRCMaxClearance bug (see drc.py)."""
+    g, path = base_board
+    def f(b):
+        ts = sorted((t for t in b.GetTracks() if t.GetClass() == "PCB_TRACK"), key=lambda t: -t.GetLength())
+        for t in ts[:3]:
+            t.Move(_v(0, 0.45))
+    cand = _mutate(path, str(tmp_path / "m.kicad_pcb"), f)
+    runs = [tuple(sorted((e["type"], e["pos"]) for e in run_drc(cand, path).errors)) for _ in range(25)]
+    assert len(set(runs)) == 1 and runs[0]
+
+
 # ------------------------------------------------------------- fingerprints etc
 def test_pad_fingerprint(base_board, tmp_path):
     g, path = base_board
