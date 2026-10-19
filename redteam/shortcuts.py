@@ -141,7 +141,7 @@ SHORTCUTS = {
                            ("route_thin_0.2", sc_route_thin, "wrong")],
     "clearance_violation": [("reroute_both", sc_reroute_both, "legit"), ("route_net_only", sc_reroute_net_only, "legit")],
     "short_between_nets": [("reroute_both", sc_reroute_both, "legit"), ("route_net_only", sc_reroute_net_only, "legit")],
-    "bom_mismatch": [("design_follows_board", sc_design_follows_board, "wrong"),
+    "bom_mismatch": [("design_follows_board", sc_design_follows_board, "legit-if-in-bounds"),
                      ("board_follows_design", sc_board_follows_design, "legit")],
     "footprint_swap": [("keep_new_footprint", sc_keep_new_footprint, "legit")],
     "magnitude_slip": [("bound_lo", sc_bound_edge, "legit-if-spec")],
