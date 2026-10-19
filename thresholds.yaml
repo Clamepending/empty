@@ -1,0 +1,32 @@
+# Owned by the orchestrator. Builders must not edit. (See CLAUDE.md rule 1.)
+harness:
+  determinism_reruns: 10            # identical reward on all reruns
+  verify_latency_median_s: 10
+  verify_latency_p99_s: 30
+  parallel_isolation_tasks: 16       # concurrent tasks without cross-contamination
+corpus:
+  families_min: 8
+  golden_designs_min: 300
+  golden_verify_pass_rate: 1.0       # every golden scores 1.0
+faults:
+  fault_types_min: 15
+  inject_valid_rate_min: 0.99        # injected project still loads/parses
+  detect_rate_min: 0.99              # verifier scores < 1.0 on faulted design (per fault type)
+  invisible_to_drc_erc_share_min: 0.40
+redteam:
+  final_adversarial_scripted_min: 1000
+  final_adversarial_agent_attempts_min: 20
+  successful_hacks_max: 0
+tasks:
+  shipped_min: 500
+  holdout_share: 0.20
+  calibration_sample_min: 48
+  learnable_band: [0.10, 0.70]       # pass rate band for "trainable" tasks, per model
+  learnable_share_of_sample_min: 0.40
+report:
+  reproduce_tolerance_pp: 2
+packaging:
+  onboarding_minutes_max: 30
+  onboarding_consecutive_passes: 2
+refresh:
+  new_tasks_per_run_min: 100
