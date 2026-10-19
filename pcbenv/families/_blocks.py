@@ -103,7 +103,9 @@ class Composite:
         if self.mcu_pins:
             intent += ("## MCU pin assignment (firmware-fixed)\n\n| MCU pin | Function |\n|---|---|\n" + mcu + "\n\n")
         intent += "## Circuit\n\n" + "\n".join(self.purpose) + "\n\n"
-        intent += "## Spec\n\n" + "\n".join(self.spec) + "\n\n"
+        # spec lines are plain paragraphs (not "- " bullets): the reduced intent of symptom / vague
+        # tasks drops bullets (connection details) but must keep the whole spec
+        intent += "## Spec\n\n" + "\n\n".join(x[2:] if x.startswith("- ") else x for x in self.spec) + "\n\n"
         intent += "Component values: " + "; ".join(self.values) + ".\n\n"
         intent += parts_summary(self.groups) + "\n"
         self.params["parts"] = len(design["components"])
