@@ -96,3 +96,5 @@ register(Part(
     spice=lambda ref, n, v: "",
     datasheet="# CONN2 — 2-pin header\n\nPin `1` = signal/supply, pin `2` = ground by board convention.\n",
 ))
+
+from pcbenv import parts_lib  # noqa: E402,F401
