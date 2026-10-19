@@ -35,3 +35,5 @@ frontier:
   # challenge the strongest model, not just the weakest. Stricter, not looser, than before.
   hard_tier_best_model_pass_band: [0.10, 0.70]
   hard_tier_sample_min: 40
+qa:
+  ee_verifier_agreement_min: 0.95   # two independent EEs; disagreements must be resolved
