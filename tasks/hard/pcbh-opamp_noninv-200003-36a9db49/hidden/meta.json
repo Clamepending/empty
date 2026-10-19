@@ -1,0 +1,270 @@
+{
+  "alt_partitions": [],
+  "assertions": [
+    {
+      "freq": 100.0,
+      "ground_pin": "J1.2",
+      "in_pin": "J2.1",
+      "max": 15.45,
+      "min": 14.55,
+      "name": "gain",
+      "out_pin": "J3.1",
+      "source": {
+        "ac": 1.0,
+        "dc": 0.1332,
+        "pin": "J2.1"
+      },
+      "supply": {
+        "pin": "J1.1",
+        "volts": 5.0
+      },
+      "type": "ac_gain"
+    },
+    {
+      "ground_pin": "J1.2",
+      "max": 2.06566,
+      "min": 1.93562,
+      "name": "dc_out",
+      "net_pin": "J3.1",
+      "source": {
+        "ac": 1.0,
+        "dc": 0.1332,
+        "pin": "J2.1"
+      },
+      "supply": {
+        "pin": "J1.1",
+        "volts": 5.0
+      },
+      "type": "dc_voltage"
+    },
+    {
+      "edge": "high",
+      "ground_pin": "J1.2",
+      "in_pin": "J2.1",
+      "max": 6484.03,
+      "min": 5305.12,
+      "name": "bandwidth",
+      "out_pin": "J3.1",
+      "source": {
+        "ac": 1.0,
+        "dc": 0.1332,
+        "pin": "J2.1"
+      },
+      "supply": {
+        "pin": "J1.1",
+        "volts": 5.0
+      },
+      "type": "cutoff"
+    }
+  ],
+  "board_h_mm": 40.0,
+  "board_seed": 0,
+  "board_w_mm": 49.0,
+  "decoupling": [
+    {
+      "cap": "C1",
+      "ic_pin": "U1.V+",
+      "max_mm": 5.0
+    }
+  ],
+  "difficulty": {
+    "measured": null,
+    "predicted": "hard"
+  },
+  "family": "opamp_noninv",
+  "faults": [
+    {
+      "category": "latent",
+      "data": {
+        "detected_by": "topology",
+        "evidence": "design intent (full text kept): bias / bypass / reset parts returned to GND; MCU8 / OPAMP application notes",
+        "footprints": {},
+        "golden_net": "GND",
+        "latent": true,
+        "moves": {
+          "R3.2": [
+            "GND",
+            "VCC"
+          ]
+        },
+        "needs_full_intent": true,
+        "net": "VCC",
+        "pin": "R3.2",
+        "rule_codes": [],
+        "rule_violations": [],
+        "values": {}
+      },
+      "detail": "R3.2 returned to VCC instead of GND",
+      "invisible_to_drc_erc": true,
+      "targets": [
+        "R3",
+        "net:GND",
+        "net:VCC"
+      ],
+      "type": "bias_wrong_rail"
+    },
+    {
+      "category": "connectivity",
+      "data": {
+        "drc_after": {
+          "errors": [],
+          "unconnected": 0
+        },
+        "erc_after": [
+          "unconnected_required"
+        ],
+        "golden_net": "IN",
+        "moves": {
+          "U1.IN+": [
+            "IN",
+            null
+          ]
+        },
+        "pin": "U1.IN+"
+      },
+      "detail": "U1.IN+ left unconnected (should be on IN)",
+      "invisible_to_drc_erc": false,
+      "targets": [
+        "U1",
+        "net:IN"
+      ],
+      "type": "floating_pin"
+    },
+    {
+      "category": "value",
+      "data": {
+        "drc_after": {
+          "errors": [],
+          "unconnected": 0
+        },
+        "erc_after": [
+          "unconnected_required"
+        ],
+        "golden_value": "220p",
+        "ref": "C2",
+        "role": "filter_cap",
+        "value": "150p"
+      },
+      "detail": "C2 (filter/timing capacitor) is 150p, should be 220p",
+      "invisible_to_drc_erc": true,
+      "targets": [
+        "C2"
+      ],
+      "type": "wrong_filter_cap"
+    },
+    {
+      "category": "board",
+      "data": {
+        "drc_after": {
+          "errors": [],
+          "unconnected": 2
+        },
+        "erc_after": [
+          "unconnected_required"
+        ],
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "golden_footprint": "Resistor_SMD:R_1206_3216Metric",
+        "nets": [
+          "FB",
+          "OUT"
+        ],
+        "ref": "R1"
+      },
+      "detail": "R1 footprint changed to Resistor_SMD:R_0603_1608Metric (was Resistor_SMD:R_1206_3216Metric); tracks no longer fit",
+      "invisible_to_drc_erc": false,
+      "targets": [
+        "R1",
+        "net:FB",
+        "net:OUT"
+      ],
+      "type": "footprint_swap"
+    }
+  ],
+  "generator": "pcb-repair-hard-v0",
+  "hardened_footprints": {},
+  "hint_level": "symptom",
+  "intent": "full",
+  "params": {
+    "bandwidth_hz": 5894.6,
+    "cf": true,
+    "gain": 15.0,
+    "vcc": 5.0
+  },
+  "power_net_pins": {
+    "GND": [
+      "C1.2",
+      "J1.2",
+      "J2.2",
+      "J3.2",
+      "R2.2",
+      "R3.2",
+      "U1.V-"
+    ],
+    "VCC": [
+      "C1.1",
+      "J1.1",
+      "U1.V+"
+    ]
+  },
+  "power_nets": {
+    "GND": 0.3,
+    "VCC": 0.3
+  },
+  "ref_parts": {
+    "C1": "C",
+    "C2": "C",
+    "J1": "CONN2",
+    "J2": "CONN2",
+    "J3": "CONN2",
+    "R1": "R",
+    "R2": "R",
+    "R3": "R",
+    "U1": "OPAMP"
+  },
+  "rules": {
+    "inductive_loads": [],
+    "scenarios": [
+      {
+        "ground_pin": "J1.2",
+        "loads": null,
+        "source": [
+          {
+            "dc": 0.1332,
+            "pin": "J2.1"
+          }
+        ],
+        "supply": {
+          "pin": "J1.1",
+          "volts": 5.0
+        }
+      }
+    ],
+    "version": 1
+  },
+  "seed": 200003,
+  "task_id": "pcbh-opamp_noninv-200003-36a9db49",
+  "tier": "hard",
+  "tools_mode": "no_autoroute",
+  "value_bounds": {
+    "C1": [
+      4.7e-08,
+      1e-05
+    ],
+    "C2": [
+      8.1e-11,
+      8.7e-10
+    ],
+    "R1": [
+      31000.0,
+      320000.0
+    ],
+    "R2": [
+      2300.0,
+      21000.0
+    ],
+    "R3": [
+      47000.0,
+      2200000.0
+    ]
+  }
+}

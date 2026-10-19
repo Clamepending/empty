@@ -1,0 +1,366 @@
+{
+  "alt_partitions": [],
+  "assertions": [
+    {
+      "ground_pin": "J1.2",
+      "max": 5.1,
+      "min": 4.9,
+      "name": "vdd",
+      "net_pin": "U1.VDD",
+      "ref_pin": "U1.GND",
+      "supply": {
+        "pin": "J1.1",
+        "volts": 5.0
+      },
+      "type": "dc_voltage"
+    },
+    {
+      "ground_pin": "J1.2",
+      "max": 5.05,
+      "min": 4.5,
+      "name": "nrst_high",
+      "net_pin": "U1.NRST",
+      "supply": {
+        "pin": "J1.1",
+        "volts": 5.0
+      },
+      "type": "dc_voltage"
+    },
+    {
+      "ground_pin": "J1.2",
+      "levels": [
+        0.3,
+        0.7
+      ],
+      "loads": [
+        {
+          "c": 3e-10,
+          "pin": "J2.3"
+        },
+        {
+          "c": 3e-10,
+          "pin": "J2.4"
+        }
+      ],
+      "max": 1e-06,
+      "min": 0.0,
+      "name": "sda_rise_time",
+      "net_pin": "U1.SDA",
+      "source": {
+        "kind": "release",
+        "pin": "U1.SDA",
+        "r_on": 10.0
+      },
+      "supply": {
+        "pin": "J1.1",
+        "volts": 5.0
+      },
+      "tstop": 8e-06,
+      "type": "rise_time"
+    },
+    {
+      "element": "R2",
+      "ground_pin": "J1.2",
+      "max": 0.003,
+      "min": 0.0,
+      "name": "sda_sink_current",
+      "source": {
+        "dc": 0.4,
+        "pin": "U1.SDA",
+        "r": 0.001
+      },
+      "supply": {
+        "pin": "J1.1",
+        "volts": 5.0
+      },
+      "type": "dc_current"
+    },
+    {
+      "ground_pin": "J1.2",
+      "levels": [
+        0.3,
+        0.7
+      ],
+      "loads": [
+        {
+          "c": 3e-10,
+          "pin": "J2.3"
+        },
+        {
+          "c": 3e-10,
+          "pin": "J2.4"
+        }
+      ],
+      "max": 1e-06,
+      "min": 0.0,
+      "name": "scl_rise_time",
+      "net_pin": "U1.SCL",
+      "source": {
+        "kind": "release",
+        "pin": "U1.SCL",
+        "r_on": 10.0
+      },
+      "supply": {
+        "pin": "J1.1",
+        "volts": 5.0
+      },
+      "tstop": 8e-06,
+      "type": "rise_time"
+    },
+    {
+      "element": "R3",
+      "ground_pin": "J1.2",
+      "max": 0.003,
+      "min": 0.0,
+      "name": "scl_sink_current",
+      "source": {
+        "dc": 0.4,
+        "pin": "U1.SCL",
+        "r": 0.001
+      },
+      "supply": {
+        "pin": "J1.1",
+        "volts": 5.0
+      },
+      "type": "dc_current"
+    }
+  ],
+  "board_h_mm": 43.0,
+  "board_seed": 0,
+  "board_w_mm": 50.0,
+  "decoupling": [
+    {
+      "cap": "C1",
+      "ic_pin": "U1.VDD",
+      "max_mm": 5.0
+    }
+  ],
+  "difficulty": {
+    "measured": null,
+    "predicted": "hard"
+  },
+  "family": "mcu_i2c",
+  "faults": [
+    {
+      "category": "latent",
+      "data": {
+        "detected_by": "topology",
+        "evidence": "parts/MCU8.md pin functions + intent's MCU pin assignment (e.g. SDA -> J2.3)",
+        "footprints": {},
+        "latent": true,
+        "moves": {
+          "U1.SCL": [
+            "SCL",
+            "SDA"
+          ],
+          "U1.SDA": [
+            "SDA",
+            "SCL"
+          ]
+        },
+        "needs_full_intent": false,
+        "pins": [
+          "U1.SDA",
+          "U1.SCL"
+        ],
+        "rule_codes": [],
+        "rule_violations": [],
+        "values": {}
+      },
+      "detail": "U1.SDA and U1.SCL functions exchanged (pin assignment fixed by the intent / datasheet)",
+      "invisible_to_drc_erc": true,
+      "targets": [
+        "U1",
+        "net:SCL",
+        "net:SDA"
+      ],
+      "type": "mcu_pin_swap"
+    },
+    {
+      "category": "latent",
+      "data": {
+        "detected_by": "topology",
+        "evidence": "design intent (full text kept): bias / bypass / reset parts returned to GND; MCU8 / OPAMP application notes",
+        "footprints": {},
+        "golden_net": "GND",
+        "latent": true,
+        "moves": {
+          "C3.2": [
+            "GND",
+            "+5V"
+          ]
+        },
+        "needs_full_intent": true,
+        "net": "+5V",
+        "pin": "C3.2",
+        "rule_codes": [],
+        "rule_violations": [],
+        "values": {}
+      },
+      "detail": "C3.2 returned to +5V instead of GND",
+      "invisible_to_drc_erc": true,
+      "targets": [
+        "C3",
+        "net:+5V",
+        "net:GND"
+      ],
+      "type": "bias_wrong_rail"
+    },
+    {
+      "category": "board",
+      "data": {
+        "at": [
+          130.953,
+          117.9
+        ],
+        "drc_after": {
+          "errors": [],
+          "unconnected": 1
+        },
+        "erc_after": [],
+        "layer": "F.Cu",
+        "net": "NRST"
+      },
+      "detail": "track of net NRST on F.Cu cut near (130.95, 117.90)",
+      "invisible_to_drc_erc": false,
+      "targets": [
+        "net:NRST"
+      ],
+      "type": "broken_trace"
+    }
+  ],
+  "generator": "pcb-repair-hard-v0",
+  "hardened_footprints": {},
+  "hint_level": "vague",
+  "intent": "full",
+  "params": {
+    "bulk_cap": false,
+    "cbus_pf": 300,
+    "mode": "standard",
+    "reset_cap": true,
+    "rpullup": 3000.0,
+    "tr_nominal_ns": 775.3,
+    "vdd": 5.0
+  },
+  "power_net_pins": {
+    "+5V": [
+      "C1.1",
+      "J1.1",
+      "J2.1",
+      "R1.1",
+      "R2.1",
+      "R3.1",
+      "U1.VDD"
+    ],
+    "GND": [
+      "C1.2",
+      "C3.2",
+      "J1.2",
+      "J2.2",
+      "U1.GND"
+    ]
+  },
+  "power_nets": {
+    "+5V": 0.3,
+    "GND": 0.3
+  },
+  "ref_parts": {
+    "C1": "C",
+    "C3": "C",
+    "J1": "CONN2",
+    "J2": "CONN4",
+    "R1": "R",
+    "R2": "R",
+    "R3": "R",
+    "U1": "MCU8"
+  },
+  "rules": {
+    "inductive_loads": [],
+    "scenarios": [
+      {
+        "ground_pin": "J1.2",
+        "loads": null,
+        "source": null,
+        "supply": {
+          "pin": "J1.1",
+          "volts": 5.0
+        }
+      },
+      {
+        "ground_pin": "J1.2",
+        "loads": [
+          {
+            "c": 3e-10,
+            "pin": "J2.3"
+          },
+          {
+            "c": 3e-10,
+            "pin": "J2.4"
+          }
+        ],
+        "source": null,
+        "supply": {
+          "pin": "J1.1",
+          "volts": 5.0
+        }
+      },
+      {
+        "ground_pin": "J1.2",
+        "loads": null,
+        "source": [
+          {
+            "dc": 0.4,
+            "pin": "U1.SDA",
+            "r": 0.001
+          }
+        ],
+        "supply": {
+          "pin": "J1.1",
+          "volts": 5.0
+        }
+      },
+      {
+        "ground_pin": "J1.2",
+        "loads": null,
+        "source": [
+          {
+            "dc": 0.4,
+            "pin": "U1.SCL",
+            "r": 0.001
+          }
+        ],
+        "supply": {
+          "pin": "J1.1",
+          "volts": 5.0
+        }
+      }
+    ],
+    "version": 1
+  },
+  "seed": 200132,
+  "task_id": "pcbh-mcu_i2c-200132-8ff8484d",
+  "tier": "hard",
+  "tools_mode": "no_autoroute",
+  "value_bounds": {
+    "C1": [
+      4.7e-08,
+      1e-05
+    ],
+    "C3": [
+      1e-08,
+      1e-06
+    ],
+    "R1": [
+      2200.0,
+      100000.0
+    ],
+    "R2": [
+      830.0,
+      9500.0
+    ],
+    "R3": [
+      850.0,
+      8600.0
+    ]
+  }
+}

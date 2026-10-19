@@ -4,7 +4,8 @@ from __future__ import annotations
 import math
 import random
 
-from pcbenv.families._common import DECOUPLING, E6, E24, E96, Bounds, Builder, band, cutoff_of, gain_at, golden, nearest, pick, series_values
+from pcbenv.families._common import (DECOUPLING, E6, E24, E96, Bounds, Builder, band, cutoff_of, gain_at, golden, nearest,
+                                     parts_summary, pick, series_values)
 from pcbenv.golden import Golden
 from pcbenv.parts_lib import OPAMP_A0, OPAMP_GBW
 
@@ -77,6 +78,11 @@ J3 (pin 1 = output, pin 2 = GND), centred at mid-supply. Single {vcc:g} V supply
 Spec: output DC level VCC/2 ±3 %; |gain| {g_mid:.3g} ±3 % at 1 kHz; low -3 dB corner {fc_low:.3g} Hz ±15 %.
 Component values: decoupling C1 47 nF–10 µF (100 nF typical); bias divider R3, R4 4.7 kΩ–470 kΩ each;
 VMID bypass C3 470 nF–47 µF.
+
+{parts_summary([("supply connector", ["J1"]), ("op-amp with supply decoupling", ["U1", "C1"]),
+                ("mid-supply bias divider and bypass", ["R3", "R4", "C3"]), ("input coupling capacitor", ["C2"]),
+                ("gain-setting input and feedback resistors", ["R1", "R2"]), ("input connector", ["J2"]),
+                ("output connector", ["J3"])])}
 """
     params = {"vcc": vcc, "gain": gain, "f_hp": f_hp, "fc_low_hz": round(fc_low, 3)}
     vb = Bounds(FAMILY, seed)

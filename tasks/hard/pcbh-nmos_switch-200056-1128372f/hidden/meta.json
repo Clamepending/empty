@@ -1,0 +1,292 @@
+{
+  "alt_partitions": [],
+  "assertions": [
+    {
+      "element": "J2.2",
+      "ground_pin": "J1.2",
+      "loads": [
+        {
+          "pin": "J2.1",
+          "r": 45.0,
+          "to": "J2.2"
+        }
+      ],
+      "max": 0.21,
+      "min": 0.19,
+      "name": "load_on_current",
+      "source": {
+        "dc": 5.0,
+        "pin": "J1.3",
+        "r": 50.0
+      },
+      "supply": {
+        "pin": "J1.1",
+        "volts": 9.0
+      },
+      "type": "dc_current"
+    },
+    {
+      "ground_pin": "J1.2",
+      "loads": [
+        {
+          "pin": "J2.1",
+          "r": 45.0,
+          "to": "J2.2"
+        }
+      ],
+      "max": 0.1,
+      "min": 0.0,
+      "name": "vds_on",
+      "net_pin": "Q1.D",
+      "source": {
+        "dc": 5.0,
+        "pin": "J1.3",
+        "r": 50.0
+      },
+      "supply": {
+        "pin": "J1.1",
+        "volts": 9.0
+      },
+      "type": "dc_voltage"
+    },
+    {
+      "element": "J2.2",
+      "ground_pin": "J1.2",
+      "loads": [
+        {
+          "pin": "J2.1",
+          "r": 45.0,
+          "to": "J2.2"
+        },
+        {
+          "pin": "Q1.G",
+          "r": 10000000.0,
+          "to": "J1.1"
+        }
+      ],
+      "max": 0.0001,
+      "min": 0.0,
+      "name": "load_off_current",
+      "supply": {
+        "pin": "J1.1",
+        "volts": 9.0
+      },
+      "type": "dc_current"
+    },
+    {
+      "element": "R1",
+      "ground_pin": "J1.2",
+      "loads": [
+        {
+          "pin": "J2.1",
+          "r": 45.0,
+          "to": "J2.2"
+        }
+      ],
+      "max": 0.001,
+      "min": 0.0,
+      "name": "ctrl_current_on",
+      "source": {
+        "dc": 5.0,
+        "pin": "J1.3",
+        "r": 50.0
+      },
+      "supply": {
+        "pin": "J1.1",
+        "volts": 9.0
+      },
+      "type": "dc_current"
+    }
+  ],
+  "board_h_mm": 33.0,
+  "board_seed": 0,
+  "board_w_mm": 40.0,
+  "decoupling": [],
+  "difficulty": {
+    "measured": null,
+    "predicted": "hard"
+  },
+  "family": "nmos_switch",
+  "faults": [
+    {
+      "category": "latent",
+      "data": {
+        "detected_by": "rules",
+        "evidence": "parts/C.md voltage rating by footprint + 80 % rule; rail voltages in the intent; TASK.md Design rules",
+        "footprint": "Capacitor_SMD:C_0603_1608Metric",
+        "footprints": {
+          "C1": [
+            "Capacitor_SMD:C_1206_3216Metric",
+            "Capacitor_SMD:C_0603_1608Metric"
+          ]
+        },
+        "golden_footprint": "Capacitor_SMD:C_1206_3216Metric",
+        "latent": true,
+        "moves": {},
+        "needs_full_intent": false,
+        "ref": "C1",
+        "rule_codes": [
+          "capacitor_voltage"
+        ],
+        "rule_violations": [
+          "capacitor_voltage: C1 sees 9 V > 8 V (80 % of 10 V, C_0603_1608Metric) [condition 0]"
+        ],
+        "values": {}
+      },
+      "detail": "C1 capacitor footprint downsized C_1206_3216Metric -> C_0603_1608Metric; it now exceeds the rating of the smaller part",
+      "invisible_to_drc_erc": true,
+      "targets": [
+        "C1"
+      ],
+      "type": "capacitor_underrated"
+    },
+    {
+      "category": "value",
+      "data": {
+        "drc_after": {
+          "errors": [],
+          "unconnected": 0
+        },
+        "erc_after": [],
+        "golden_value": "51k",
+        "ref": "R2",
+        "role": "pull",
+        "value": "2.2M"
+      },
+      "detail": "R2 (pull-up/pull-down resistor) is 2.2M, should be 51k",
+      "invisible_to_drc_erc": true,
+      "targets": [
+        "R2"
+      ],
+      "type": "wrong_pull_resistor"
+    },
+    {
+      "category": "board",
+      "data": {
+        "at": [
+          127.488,
+          123.212
+        ],
+        "drc_after": {
+          "errors": [],
+          "unconnected": 1
+        },
+        "erc_after": [],
+        "layer": "F.Cu",
+        "net": "GATE"
+      },
+      "detail": "track of net GATE on F.Cu cut near (127.49, 123.21)",
+      "invisible_to_drc_erc": false,
+      "targets": [
+        "net:GATE"
+      ],
+      "type": "broken_trace"
+    }
+  ],
+  "generator": "pcb-repair-hard-v0",
+  "hardened_footprints": {},
+  "hint_level": "vague",
+  "intent": "reduced",
+  "params": {
+    "iload": 0.2,
+    "kind": "resistive",
+    "rload": 45.0,
+    "vctrl": 5.0,
+    "vload": 9.0
+  },
+  "power_net_pins": {
+    "+9V": [
+      "C1.1",
+      "J1.1",
+      "J2.1"
+    ],
+    "GND": [
+      "C1.2",
+      "J1.2",
+      "Q1.S",
+      "R2.2"
+    ],
+    "SW": [
+      "J2.2",
+      "Q1.D"
+    ]
+  },
+  "power_nets": {
+    "+9V": 0.5,
+    "GND": 0.5,
+    "SW": 0.5
+  },
+  "ref_parts": {
+    "C1": "C",
+    "J1": "CONN3",
+    "J2": "CONN2",
+    "Q1": "NMOS",
+    "R1": "R",
+    "R2": "R"
+  },
+  "rules": {
+    "inductive_loads": [],
+    "scenarios": [
+      {
+        "ground_pin": "J1.2",
+        "loads": [
+          {
+            "pin": "J2.1",
+            "r": 45.0,
+            "to": "J2.2"
+          }
+        ],
+        "source": [
+          {
+            "dc": 5.0,
+            "pin": "J1.3",
+            "r": 50.0
+          }
+        ],
+        "supply": {
+          "pin": "J1.1",
+          "volts": 9.0
+        }
+      },
+      {
+        "ground_pin": "J1.2",
+        "loads": [
+          {
+            "pin": "J2.1",
+            "r": 45.0,
+            "to": "J2.2"
+          },
+          {
+            "pin": "Q1.G",
+            "r": 10000000.0,
+            "to": "J1.1"
+          }
+        ],
+        "source": null,
+        "supply": {
+          "pin": "J1.1",
+          "volts": 9.0
+        }
+      }
+    ],
+    "version": 1
+  },
+  "seed": 200056,
+  "task_id": "pcbh-nmos_switch-200056-1128372f",
+  "tier": "hard",
+  "tools_mode": "no_autoroute",
+  "value_bounds": {
+    "C1": [
+      1e-06,
+      2.2e-05
+    ],
+    "R1": [
+      4.7,
+      220.0
+    ],
+    "R2": [
+      4700.0,
+      220000.0
+    ]
+  }
+}

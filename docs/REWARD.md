@@ -42,6 +42,30 @@ G3, 10 reruns of the same input produced identical results (`reports/g3_verify_r
 | `values` | every component listed in `meta.value_bounds` (ref → [min, max], SI units; also public in `spec.json` and TASK.md) has a design value inside its range. Values that assertions pin down get a wide sanity range; values no assertion sees get a datasheet range (decoupling 47 nF–10 µF, NRST pull-up 2.2k–100k, gate/base pull-downs, bulk caps, crystal frequency ±0.1 %, ...). Tasks without `value_bounds` pass trivially | values the spec cannot see: a crystal at the wrong frequency (RT01), a decoupling cap ×100, a 430 Ω gate resistor, a pull-down that no longer holds the switch off; absurd R-vs-C rescaling that keeps a corner frequency |
 | `layout` | each golden power net, identified on the board by its pin set and never by name, has every track ≥ the required width; each decoupling cap's pads are within `max_mm` of its IC pin pad | undersized power traces; decoupling caps moved away from the IC |
 
+## Design rules (`rules`, hard tier and resistor power)
+
+Tasks whose `hidden/meta.json` carries a rule context get a sixth check, `rules`
+(`pcbenv/rules.py`): datasheet design rules that `pcbtool` deliberately does **not** run. The
+candidate design is DC-simulated under every stimulus condition of the golden's assertions and
+checked against absolute-maximum ratings (MCU pins within -0.3 V…VDD+0.3 V, op-amp inputs within the
+rails, LDO EN ≤ VIN, NMOS |VGS| ≤ 12 V, ...), current limits (MCU pins, LED IF by package, NPN IC/IB,
+forced beta ≤ 20 for a saturated switch), resistor power (I²R ≤ 50 % of the footprint rating:
+0603 0.1 W, 0805 0.125 W, 1206 0.5 W), capacitor voltage (≤ 80 % of 10/25/50 V for 0603/0805/1206)
+and flyback-diode orientation across inductive loads. Every rule is stated in the task's
+`parts/<PART>.md` and TASK.md.
+
+- `meta["rules"]` (hard tier, `tier: "hard"`, `python3 -m pcbenv.generate --tier hard`): all rules.
+- `meta["rules_power"]` (all tiers from v2 on): the resistor power rule only.
+- Tasks without either key (all v1 shipped tasks) are graded exactly as before; `checks` has no `rules` entry.
+
+Hard-tier tasks also carry `public/tools.json` (`{"mode": "full" | "no_autoroute"}`); in
+`no_autoroute` mode `pcbtool route` / `sync` exit 2. This is a task knob, not a security boundary:
+the grader only sees the two deliverable files.
+
+When the topology gate fails, a golden power net that cannot be found by its pin set is reported
+under `detail["layout_skipped"]` instead of failing `layout` (the connectivity error is the
+topology gate's finding).
+
 ## Known limitations
 
 - **The spec check is only as strong as the golden assertions.** A value change that stays inside

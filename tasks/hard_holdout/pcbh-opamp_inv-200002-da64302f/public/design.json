@@ -1,0 +1,102 @@
+{
+  "components": {
+    "C1": {
+      "footprint": "Capacitor_SMD:C_0805_2012Metric",
+      "part": "C",
+      "value": "100n"
+    },
+    "C2": {
+      "footprint": "Capacitor_SMD:C_1206_3216Metric",
+      "part": "C",
+      "value": "220n"
+    },
+    "C3": {
+      "footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "part": "C",
+      "value": "10u"
+    },
+    "J1": {
+      "footprint": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
+      "part": "CONN2",
+      "value": ""
+    },
+    "J2": {
+      "footprint": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
+      "part": "CONN2",
+      "value": ""
+    },
+    "J3": {
+      "footprint": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
+      "part": "CONN2",
+      "value": ""
+    },
+    "R1": {
+      "footprint": "Resistor_SMD:R_0805_2012Metric",
+      "part": "R",
+      "value": "14k"
+    },
+    "R2": {
+      "footprint": "Resistor_SMD:R_0805_2012Metric",
+      "part": "R",
+      "value": "42.2k"
+    },
+    "R3": {
+      "footprint": "Resistor_SMD:R_1206_3216Metric",
+      "part": "R",
+      "value": "100k"
+    },
+    "R4": {
+      "footprint": "Resistor_SMD:R_1206_3216Metric",
+      "part": "R",
+      "value": "100k"
+    },
+    "U1": {
+      "footprint": "Package_TO_SOT_SMD:SOT-23-5",
+      "part": "OPAMP",
+      "value": ""
+    }
+  },
+  "nets": {
+    "GND": [
+      "J1.2",
+      "U1.V-",
+      "C1.2",
+      "R4.2",
+      "J2.2",
+      "J3.2"
+    ],
+    "IN": [
+      "J2.1",
+      "C2.1"
+    ],
+    "IN_AC": [
+      "C2.2",
+      "R1.1"
+    ],
+    "OUT": [
+      "U1.OUT",
+      "R2.2",
+      "J3.1"
+    ],
+    "SUM": [
+      "R1.2",
+      "R2.1",
+      "U1.IN+"
+    ],
+    "VCC": [
+      "C1.1",
+      "C3.2",
+      "J1.1",
+      "R3.1",
+      "U1.V+"
+    ],
+    "VMID": [
+      "C3.1",
+      "R3.2",
+      "R4.1",
+      "U1.IN-"
+    ]
+  },
+  "schema": "pcbenv/design@1",
+  "title": "inverting x2 AC amplifier"
+}

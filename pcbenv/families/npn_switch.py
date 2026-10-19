@@ -3,9 +3,10 @@ from __future__ import annotations
 
 import random
 
-from pcbenv.families._common import DECOUPLING, E24, NRST_PULLUP, Bounds, Builder, band, golden, nearest, pick, series_values
+from pcbenv.families._common import (DECOUPLING, E24, NRST_PULLUP, Bounds, Builder, band, golden, led_r_min, nearest,
+                                     parts_summary, pick, series_values)
 from pcbenv.golden import Golden
-from pcbenv.parts_lib import led_vf
+from pcbenv.parts_lib import GPIO_IMAX, led_vf
 
 FAMILY = "npn_switch"
 VF10 = {"RED": 2.0, "GREEN": 2.2}
@@ -92,14 +93,20 @@ Spec: with {gpio} driven high the load current is {ic*1e3:.1f} mA ±15 % and Q1 
 with {gpio} high-impedance the load stays off even with 1 MΩ of leakage from the supply into the base.
 Component values: decoupling C1 47 nF–10 µF (100 nF typical); NRST pull-up R1 2.2 kΩ–100 kΩ;
 base pull-down R4 4.7 kΩ–220 kΩ (datasheet: 10k–100k).
+
+{parts_summary([("supply connector", ["J1"]), ("MCU", ["U1"]), ("VDD decoupling", ["C1"]), ("reset pull-up", ["R1"]),
+                ("transistor switch with base resistor and base pull-down", ["Q1", "R2", "R4"]),
+                ("LED load with series resistor" if load == "led" else "relay-coil connector with flyback diode",
+                 ["D1", "R3"] if load == "led" else ["J2", "D1"])])}
 """
     params["i_load"] = round(ic, 6)
     vb = Bounds(FAMILY, seed)
     vb.fixed("C1", *DECOUPLING)
     vb.fixed("R1", *NRST_PULLUP)
-    vb.spec("R2", b.val("R2"))  # base drive pinned by load_on_current / vce_sat / gpio_current
-    if "R3" in b.components:
-        vb.spec("R3", b.val("R3"))  # LED current pinned by load_on_current
+    # base drive pinned by load_on_current / vce_sat / gpio_current; datasheet floor = 8 mA GPIO limit
+    vb.spec("R2", b.val("R2"), ds_lo=(vs - 0.75) / GPIO_IMAX)
+    if "R3" in b.components:  # LED current pinned by load_on_current; datasheet floor = 25 mA LED limit
+        vb.spec("R3", b.val("R3"), ds_lo=led_r_min(vs, 1, VF10[params["color"]]))
     vb.fixed("R4", 4.7e3, 220e3)  # NPN datasheet: base pull-down 10k-100k (x2 slack)
     power_nets = {vnet: 0.3, "GND": 0.3}
     decoupling = [{"cap": "C1", "ic_pin": "U1.VDD", "max_mm": 5.0}]

@@ -4,7 +4,7 @@ from __future__ import annotations
 import math
 import random
 
-from pcbenv.families._common import E12, E96, Bounds, Builder, band, cutoff_of, golden, nearest, pick, series_values
+from pcbenv.families._common import E12, E96, Bounds, Builder, band, cutoff_of, golden, nearest, parts_summary, pick, series_values
 from pcbenv.golden import Golden
 
 FAMILY = "divider_adc"
@@ -62,6 +62,9 @@ Scales a 0–{vmax:g} V signal on J1 (pin 1 = sensed voltage, pin 2 = GND) down 
 
 Spec: ADC voltage = {ratio_t:.4f} × input ±2 %; anti-alias -3 dB corner {fc:.4g} Hz ±10 %.
 {"Component values: series resistor R3 47 Ω–2.2 kΩ (low enough for the ADC's sampling input)." if series_r else ""}
+
+{parts_summary([("sense input connector", ["J1"]), ("scaling divider", ["R1", "R2"]), ("anti-alias capacitor", ["C1"])]
+               + ([("ADC series protection resistor", ["R3"])] if series_r else []) + [("ADC header", ["J2"])])}
 """
     params = {"vmax": vmax, "vfs": vfs, "ratio": round(ratio, 6), "f_aa": f_aa, "fc_hz": round(fc, 3),
               "series_r": series_r}

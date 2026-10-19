@@ -3,9 +3,11 @@ from __future__ import annotations
 
 import random
 
-from pcbenv.families._common import DECOUPLING, E24, NRST_PULLUP, Bounds, Builder, golden, nearest, pick, series_values
+from pcbenv.families._common import (DECOUPLING, E24, NRST_PULLUP, Bounds, Builder, golden, led_r_min, nearest, parts_summary,
+                                     pick, series_values)
 from pcbenv.golden import Golden
 from pcbenv.parts import PARTS
+from pcbenv.parts_lib import GPIO_IMAX
 
 FAMILY = "xtal_osc"
 
@@ -38,6 +40,7 @@ def generate(seed: int) -> Golden:
     led = rng.random() < 0.5
     if led:
         b.add("D1", pick(rng, ["LED_RED", "LED_GREEN"]))
+        led_vf10 = 2.0 if b.components["D1"]["part"] == "LED_RED" else 2.2
         b.add("R2", "R", nearest(E24, (vdd - 2.1) / 0.004))
         b.net("LED", "U1.PA0", "R2.1")
         b.net("LED_A", "R2.2", "D1.A")
@@ -73,6 +76,10 @@ Spec: effective crystal load CL_eff = C1·C2/(C1+C2) + Cstray within ±10 % of {
 Clock: Y1 must be a {freq}Hz crystal (value `{freq}`, ±0.1 %): the firmware's clock tree assumes exactly
 this frequency, and MCU8 only supports 4–25 MHz crystals.
 Component values: decoupling C3 47 nF–10 µF (100 nF typical); NRST pull-up R1 2.2 kΩ–100 kΩ.
+
+{parts_summary([("supply connector", ["J1"]), ("MCU", ["U1"]), ("VDD decoupling", ["C3"]), ("reset pull-up", ["R1"]),
+                ("crystal oscillator: crystal and load capacitors", ["Y1", "C1", "C2"])]
+               + ([("status LED on PA0 with series resistor", ["D1", "R2"])] if led else []))}
 """
     params = {"xtal": xtal, "freq": freq, "cl_pf": cl * 1e12, "cstray_pf": cstray * 1e12, "c_load": c,
               "vdd": vdd, "status_led": led}
@@ -83,6 +90,7 @@ Component values: decoupling C3 47 nF–10 µF (100 nF typical); NRST pull-up R1
     vb.fixed("C3", *DECOUPLING)
     vb.fixed("R1", *NRST_PULLUP)
     if led:
-        vb.spec("R2", b.val("R2"))     # LED current pinned by led_current
+        # LED current pinned by led_current; datasheet floor = 8 mA GPIO limit
+        vb.spec("R2", b.val("R2"), ds_lo=led_r_min(vdd, 1, led_vf10, i_max=GPIO_IMAX))
     return golden(FAMILY, seed, b, assertions, {vnet: 0.3, "GND": 0.3},
                   [{"cap": "C3", "ic_pin": "U1.VDD", "max_mm": 5.0}], intent, params, big=True, value_bounds=vb.out)

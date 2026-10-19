@@ -182,3 +182,14 @@ def test_blocked_fault_type_not_named_in_task_md():
         md = open(os.path.join(os.path.dirname(H.MANIFEST), m["split"], m["id"], "public", "TASK.md"), encoding="utf-8").read()
         for f in m["faults"]:
             assert f["type"] not in md and f["type"].replace("_", " ") not in md.lower(), (m["id"], f["type"])
+
+
+def test_exploit_RT59_control_chars_in_values(tmp_path):
+    """Values with a trailing newline ('6.8n\\n') are accepted on design AND board: KiCad 7 stores the
+    escaped string and keeps it, so consistency passes, and parse_value's `$` matches before a
+    final newline. A golden with every value newline-suffixed scores 1.0 (round-1 RT04 was
+    blocked only because the fault remained)."""
+    td = H.pick(family="led_driver", k=0)
+    wd = _golden_wd(td, tmp_path)
+    ATTACKS["value_newline"](wd)
+    assert verify_isolated(wd, td).reward == 0.0, "values with control characters must be rejected"

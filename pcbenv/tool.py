@@ -18,6 +18,8 @@ from types import SimpleNamespace
 DESIGN = "design.json"
 BOARD = "board.kicad_pcb"
 SPEC = "spec.json"
+TOOLS = "tools.json"
+MODES = ("full", "no_autoroute")
 
 
 class ToolError(RuntimeError):
@@ -63,6 +65,29 @@ def load_spec() -> dict:
             return json.load(f)
     except (OSError, ValueError):
         return {"assertions": [], "power_nets": [], "decoupling": []}
+
+
+def tool_mode() -> str:
+    """Task-level tool mode from `tools.json` (`{"mode": "full" | "no_autoroute"}`); default full.
+
+    In `no_autoroute` mode `route` and `sync` refuse (exit 2): the agent edits the tracks in
+    board.kicad_pcb itself. This is a task knob, not a security boundary (the grader never
+    looks at how the files were produced)."""
+    try:
+        with open(os.path.join(_wd(), TOOLS), encoding="utf-8") as f:
+            mode = json.load(f).get("mode", "full")
+    except (OSError, ValueError, AttributeError):
+        return "full"
+    return mode if mode in MODES else "full"
+
+
+def _refuse_in_no_autoroute(cmd: str) -> int | None:
+    if tool_mode() == "no_autoroute":
+        print(f"error: `pcbtool {cmd}` is disabled in this task (tools.json mode = no_autoroute): edit the "
+              "tracks in board.kicad_pcb yourself (`pcbtool move`, `connect`, `disconnect`, `unroute` and the "
+              "read-only commands still work)", file=sys.stderr)
+        return 2
+    return None
 
 
 def save_design(d: dict) -> None:
@@ -253,7 +278,17 @@ def cmd_parts(a) -> int:
         if p is None:
             print(f"unknown part {a.part}; known: {', '.join(sorted(PARTS))}")
             return 1
-        print(p.datasheet.rstrip())
+        # the task's own copy of the datasheet (hard-tier tasks add a ratings section); identical to
+        # the library text for v1 tasks
+        local = os.path.join(_wd(), "parts", f"{p.name}.md")
+        text = p.datasheet
+        if os.path.isfile(local) and not os.path.islink(local) and os.path.getsize(local) < 200_000:
+            try:
+                with open(local, encoding="utf-8") as f:
+                    text = f.read()
+            except (OSError, UnicodeDecodeError):
+                text = p.datasheet
+        print(text.rstrip())
         print("\n## Pins (pcbenv)\n| Pin | Pad | Type | Required |\n|---|---|---|---|")
         for n, i in p.pins.items():
             print(f"| {n} | {i.pad} | {i.etype} | {'yes' if i.required else 'no'} |")
@@ -270,9 +305,9 @@ def cmd_parts(a) -> int:
     return 0
 
 
-def _layout_lines(d: dict, board, info) -> list[str]:
+def _layout_lines(d: dict, board, info, spec: dict | None = None) -> list[str]:
     from pcbenv import layout
-    spec = load_spec()
+    spec = load_spec() if spec is None else spec
     net_of = {p: n for n, pins in d["nets"].items() for p in pins}
     meta = {"power_nets": {}, "power_net_pins": {}, "decoupling": spec.get("decoupling", [])}
     out = []
@@ -514,6 +549,9 @@ def route_net(board, net: str, width: float) -> tuple[int, int]:
 
 
 def cmd_route(a) -> int:
+    refused = _refuse_in_no_autoroute("route")
+    if refused is not None:
+        return refused
     d = load_design()
     board = load_board()
     width = a.width if a.width is not None else _default_width(d, a.net)
@@ -524,6 +562,9 @@ def cmd_route(a) -> int:
 
 
 def cmd_sync(a) -> int:
+    refused = _refuse_in_no_autoroute("sync")
+    if refused is not None:
+        return refused
     from pcbenv import board as B
     d = load_design()
     board = load_board()

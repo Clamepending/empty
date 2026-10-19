@@ -9,7 +9,7 @@ How a candidate design is evaluated
 - DC operating points of the candidate are simulated (ngspice, reusing `sim.py`'s netlister and
   stimulus builder) under every DC stimulus condition the golden's own assertions use
   (`rules_context(golden)["scenarios"]`: supply / DC sources / loads / ground pin; AC magnitudes
-  are dropped, a released open-drain source is simulated in its held-low state). Stimuli come from
+  are dropped, a released open-drain source is simulated released, i.e. without a source). Stimuli come from
   the hidden meta, never from the agent's files.
 - Every pin of every non-connector part is current-sensed, so pin currents and node voltages are
   available to the rules below. A design that does not simulate fails the check.
@@ -26,7 +26,7 @@ Rules (code: limit; violations are reported with the measured value):
 - `led_current`       LED forward current <= 80 % of its package maximum (0603: 20 mA, 0805: 30 mA)
 - `led_reverse`       LED reverse voltage <= 5 V
 - `diode_ratings`     D_SCHOTTKY reverse voltage <= 40 V, forward current <= 1 A
-- `resistor_power`    R: I^2*R <= 50 % of the footprint's rating (0603 0.1 W, 0805 0.125 W, 1206 0.25 W)
+- `resistor_power`    R: I^2*R <= 50 % of the footprint's rating (0603 0.1 W, 0805 0.125 W, 1206 0.5 W)
 - `capacitor_voltage` C: |V| <= 80 % of the footprint's rated voltage (0603 10 V, 0805 25 V, 1206 50 V)
 - `flyback`           every inductive load (from the golden's assertions) has a D_SCHOTTKY directly
                       across it: cathode on the load's supply-side pin net, anode on its switched-pin net
@@ -43,7 +43,7 @@ RULES_VERSION = 1
 
 # ------------------------------------------------------------------ limits (stated in the addenda)
 R_POWER_W = {"Resistor_SMD:R_0603_1608Metric": 0.100, "Resistor_SMD:R_0805_2012Metric": 0.125,
-             "Resistor_SMD:R_1206_3216Metric": 0.250}
+             "Resistor_SMD:R_1206_3216Metric": 0.500}
 R_DERATING = 0.50
 C_VOLTAGE_V = {"Capacitor_SMD:C_0603_1608Metric": 10.0, "Capacitor_SMD:C_0805_2012Metric": 25.0,
                "Capacitor_SMD:C_1206_3216Metric": 50.0}
@@ -95,7 +95,7 @@ def _led_table() -> str:
 
 
 ADDENDA: dict[str, str] = {
-    "R": ("## Ratings by footprint (series used on this board)\n\n"
+    "R": ("## Ratings by footprint (high-power thick-film series used on this board)\n\n"
           "| Size | Rated power (70 C) | Design limit (50 % derating) |\n|---|---|---|\n" + _r_table() + "\n\n"
           "**Design rule:** the continuous dissipation P = I²·R of every resistor must not exceed 50 % of its\n"
           "footprint's rated power. Pick the footprint for the power, not just the value.\n"),
@@ -180,6 +180,8 @@ def _scenario(a: dict) -> dict:
     srcs = srcs if isinstance(srcs, list) else ([srcs] if srcs else [])
     out_src = []
     for s in srcs:
+        if s.get("kind") == "release":
+            continue  # an open-drain line released by the driver: DC = just the pull-up network
         s2 = {k: v for k, v in s.items() if k != "ac"}
         if s2.get("kind", "dc") == "dc" and "dc" not in s2:
             s2["dc"] = 0.0
@@ -188,8 +190,9 @@ def _scenario(a: dict) -> dict:
             "ground_pin": a.get("ground_pin")}
 
 
-def rules_context(golden) -> dict:
-    """Hidden rule context for a hard-tier task (derived from the golden; stored in meta["rules"])."""
+def rules_context(golden, only: list[str] | None = None) -> dict:
+    """Hidden rule context (derived from the golden). Hard tier: all rules, stored in meta["rules"].
+    `only` restricts it to a subset of rule codes (all tiers: meta["rules_power"], resistor power)."""
     scen, seen = [], set()
     for a in golden.assertions:
         if a.get("type") not in ("dc_voltage", "dc_current", "ac_gain", "cutoff", "rise_time"):
@@ -218,7 +221,10 @@ def rules_context(golden) -> dict:
             if net_of.get(pb) in ks and net_of.get(pa) not in ks:
                 pa, pb = pb, pa
             ind.append({"supply_pin": pa, "switched_pin": pb})
-    return {"version": RULES_VERSION, "scenarios": scen, "inductive_loads": ind}
+    ctx = {"version": RULES_VERSION, "scenarios": scen, "inductive_loads": ind}
+    if only:
+        ctx["only"] = sorted(only)
+    return ctx
 
 
 # ------------------------------------------------------------------ evaluation
@@ -420,6 +426,9 @@ def run_rules(design: dict, ctx: dict) -> list[Violation]:
             out += check_op(design, op, f"condition {k}")
     except Exception as e:  # noqa: BLE001
         out.append(Violation("error", f"rule evaluation error: {type(e).__name__}: {e}"[:300]))
+    only = ctx.get("only")
+    if only:  # a rule subset (e.g. the all-tier resistor power rule); evaluation failures always count
+        out = [x for x in out if x.code in only or x.code in ("simulation", "error")]
     # dedupe (same violation in several scenarios), keep first
     seen, uniq = set(), []
     for x in out:
@@ -436,7 +445,7 @@ C_SIZES = list(C_VOLTAGE_V)
 LED_SIZES = list(LED_IF_MAX_A)
 
 
-def harden(golden):
+def harden(golden, only: list[str] | None = None):
     """Hard-tier golden: the family golden with every resistor / capacitor / LED footprint upsized
     (smallest-first) until it meets the rules above. Topology and values are unchanged.
 
@@ -444,7 +453,7 @@ def harden(golden):
     still violates a rule (a family design that breaks a stated datasheet rule)."""
     from copy import deepcopy
     g = deepcopy(golden)
-    ctx = rules_context(g)
+    ctx = rules_context(g, only)
     changed: dict[str, list[str]] = {}
     for _ in range(4):
         viol = run_rules(g.design, ctx)

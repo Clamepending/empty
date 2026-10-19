@@ -3,12 +3,13 @@ from __future__ import annotations
 
 import random
 
-from pcbenv.families._common import BULK, DECOUPLING, E24, NRST_PULLUP, Bounds, Builder, golden, pick, series_values
+from pcbenv.families._common import (BULK, DECOUPLING, E24, NRST_PULLUP, RESET_CAP, Bounds, Builder, golden, parts_summary,
+                                     pick, series_values)
 from pcbenv.golden import Golden
-from pcbenv.parts_lib import MCU_PIN_C
+from pcbenv.parts_lib import I2C_K_RISE, I2C_RISE_LEVELS, I2C_SINK_MAX, I2C_VOL, MCU_PIN_C
 
 FAMILY = "mcu_i2c"
-K_RISE = 2.197  # 10-90 % rise = ln(9)·RC
+K_RISE = I2C_K_RISE  # I2C rise time per UM10204: 30 -> 70 % of VDD = ln(0.7/0.3)·RC
 
 
 def generate(seed: int) -> Golden:
@@ -19,7 +20,7 @@ def generate(seed: int) -> Golden:
         tr_max = 1000e-9 if mode == "standard" else 300e-9
         cbus = pick(rng, [30e-12, 50e-12, 100e-12, 150e-12, 200e-12, 300e-12, 400e-12])
         ctot = cbus + MCU_PIN_C
-        rmin = (vdd - 0.4) / 3e-3
+        rmin = (vdd - I2C_VOL) / I2C_SINK_MAX
         rmax_tr = tr_max / (K_RISE * ctot)
         cands = [r for r in series_values(E24, 100.0, 100e3) if max(rmin * 1.05, 0.55 * rmax_tr) <= r <= 0.85 * rmax_tr]
         if cands:
@@ -61,7 +62,7 @@ def generate(seed: int) -> Golden:
     ]
     for line, pin, r in (("sda", "U1.SDA", "R2"), ("scl", "U1.SCL", "R3")):
         assertions.append({"name": f"{line}_rise_time", "type": "rise_time", "net_pin": pin, "min": 0.0,
-                           "max": tr_max, "tstop": tstop, "supply": sup, "loads": bus,
+                           "max": tr_max, "levels": list(I2C_RISE_LEVELS), "tstop": tstop, "supply": sup, "loads": bus,
                            "source": {"pin": pin, "kind": "release", "r_on": 10.0}, "ground_pin": "J1.2"})
         assertions.append({"name": f"{line}_sink_current", "type": "dc_current", "element": r, "min": 0.0,
                            "max": 3e-3, "supply": sup, "source": {"pin": pin, "dc": 0.4, "r": 1e-3},
@@ -79,20 +80,28 @@ for off-board devices on the 4-pin bus header J2 (pin 1 = VDD, pin 2 = GND, pin 
   to VDD.
 
 Bus: {mode}-mode I2C with up to {cbus*1e12:.0f} pF of off-board bus capacitance per line (plus 5 pF
-MCU pin capacitance). Spec: 10–90 % rise time ≤ {tr_max*1e9:.0f} ns on both lines (nominal
-{tr_nom*1e9:.0f} ns), pull-up current ≤ 3 mA with a line held at VOL = 0.4 V, NRST ≥ 0.9·VDD.
-Component values: decoupling C1 47 nF–10 µF (100 nF typical); NRST pull-up R1 2.2 kΩ–100 kΩ{"; bulk C2 1 µF–22 µF" if bulk else ""}{"; reset delay C3 10 nF–1 µF" if rst_cap else ""}.
+MCU pin capacitance). Spec: I2C rise time (30–70 % of VDD, as defined by UM10204) ≤ {tr_max*1e9:.0f} ns
+on both lines (nominal {tr_nom*1e9:.0f} ns), pull-up current ≤ 3 mA with a line held at VOL = 0.4 V,
+NRST ≥ 0.9·VDD.
+Component values: decoupling C1 47 nF–10 µF (100 nF typical); NRST pull-up R1 2.2 kΩ–100 kΩ{"; bulk C2 1 µF–22 µF" if bulk else ""}{"; reset delay C3 10 nF–1 µF" if rst_cap else ""};
+I2C pull-ups R2, R3 anywhere in the datasheet range (VDD-0.4 V)/3 mA .. tr/(0.8473·Cbus) that meets the spec.
+
+{parts_summary([("supply connector", ["J1"]), ("MCU", ["U1"]), ("VDD decoupling", ["C1"] + (["C2"] if bulk else [])),
+                ("reset pull-up" + (" and power-on delay" if rst_cap else ""), ["R1"] + (["C3"] if rst_cap else [])),
+                ("I2C bus pull-ups", ["R2", "R3"]), ("I2C bus header", ["J2"])])}
 """
     params = {"vdd": vdd, "mode": mode, "cbus_pf": round(cbus * 1e12), "rpullup": rp,
               "tr_nominal_ns": round(tr_nom * 1e9, 1), "bulk_cap": bulk, "reset_cap": rst_cap}
     vb = Bounds(FAMILY, seed)
     vb.fixed("C1", *DECOUPLING)
     vb.fixed("R1", *NRST_PULLUP)
-    vb.spec("R2", rp)   # pull-ups pinned by rise-time (max R) and sink-current (min R) assertions
-    vb.spec("R3", rp)
+    # pull-ups pinned by rise-time (max R) and sink-current (min R) assertions; the bound always
+    # contains the whole datasheet range (QA F1)
+    vb.spec("R2", rp, ds_lo=rmin, ds_hi=rmax_tr)
+    vb.spec("R3", rp, ds_lo=rmin, ds_hi=rmax_tr)
     if bulk:
         vb.fixed("C2", *BULK)
     if rst_cap:
-        vb.fixed("C3", 10e-9, 1e-6)  # MCU8 datasheet: optional 100 nF; with R1 gives a 0.02..100 ms reset delay
+        vb.fixed("C3", *RESET_CAP)  # MCU8 datasheet: optional 10 nF..1 uF (100 nF typical)
     return golden(FAMILY, seed, b, assertions, {vnet: 0.3, "GND": 0.3},
                   [{"cap": "C1", "ic_pin": "U1.VDD", "max_mm": 5.0}], intent, params, big=True, value_bounds=vb.out)

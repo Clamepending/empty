@@ -1,0 +1,84 @@
+{
+  "assertions": [
+    {
+      "element": "D1",
+      "ground_pin": "J1.2",
+      "max": 0.0022,
+      "min": 0.0018,
+      "name": "string1_current",
+      "supply": {
+        "pin": "J1.1",
+        "volts": 12.0
+      },
+      "type": "dc_current"
+    },
+    {
+      "element": "D2",
+      "ground_pin": "J1.2",
+      "max": 0.022,
+      "min": 0.018,
+      "name": "string2_current",
+      "supply": {
+        "pin": "J1.1",
+        "volts": 12.0
+      },
+      "type": "dc_current"
+    },
+    {
+      "element": "D4",
+      "ground_pin": "J1.2",
+      "max": 0.011,
+      "min": 0.009,
+      "name": "string3_current",
+      "supply": {
+        "pin": "J1.1",
+        "volts": 12.0
+      },
+      "type": "dc_current"
+    },
+    {
+      "element": "D6",
+      "ground_pin": "J1.2",
+      "max": 0.0165,
+      "min": 0.0135,
+      "name": "string4_current",
+      "supply": {
+        "pin": "J1.1",
+        "volts": 12.0
+      },
+      "type": "dc_current"
+    }
+  ],
+  "decoupling": [],
+  "power_nets": [
+    {
+      "anchor_pin": "J1.2",
+      "min_width_mm": 0.3,
+      "net": "GND"
+    },
+    {
+      "anchor_pin": "J1.1",
+      "min_width_mm": 0.3,
+      "net": "VS"
+    }
+  ],
+  "title": "4-channel LED indicator board",
+  "value_bounds": {
+    "R1": [
+      390.0,
+      14000.0
+    ],
+    "R2": [
+      180.0,
+      1800.0
+    ],
+    "R3": [
+      220.0,
+      3000.0
+    ],
+    "R4": [
+      140.0,
+      1800.0
+    ]
+  }
+}

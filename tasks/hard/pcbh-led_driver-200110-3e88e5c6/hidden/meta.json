@@ -1,0 +1,213 @@
+{
+  "alt_partitions": [],
+  "assertions": [
+    {
+      "element": "D2",
+      "ground_pin": "J1.2",
+      "max": 0.0022,
+      "min": 0.0018,
+      "name": "string1_current",
+      "supply": {
+        "pin": "J1.1",
+        "volts": 12.0
+      },
+      "type": "dc_current"
+    },
+    {
+      "element": "D4",
+      "ground_pin": "J1.2",
+      "max": 0.022,
+      "min": 0.018,
+      "name": "string2_current",
+      "supply": {
+        "pin": "J1.1",
+        "volts": 12.0
+      },
+      "type": "dc_current"
+    }
+  ],
+  "board_h_mm": 35.0,
+  "board_seed": 0,
+  "board_w_mm": 43.0,
+  "decoupling": [],
+  "difficulty": {
+    "measured": null,
+    "predicted": "hard"
+  },
+  "family": "led_driver",
+  "faults": [
+    {
+      "category": "latent",
+      "data": {
+        "detected_by": "rules",
+        "evidence": "parts/R.md ratings by footprint + 50 % power derating rule; TASK.md Design rules",
+        "footprint": "Resistor_SMD:R_0805_2012Metric",
+        "footprints": {
+          "R2": [
+            "Resistor_SMD:R_1206_3216Metric",
+            "Resistor_SMD:R_0805_2012Metric"
+          ]
+        },
+        "golden_footprint": "Resistor_SMD:R_1206_3216Metric",
+        "latent": true,
+        "moves": {},
+        "needs_full_intent": false,
+        "ref": "R2",
+        "rule_codes": [
+          "resistor_power"
+        ],
+        "rule_violations": [
+          "resistor_power: R2 dissipates 159 mW > 62.5 mW (50 % of 0.125 W, R_0805_2012Metric) [condition 0]"
+        ],
+        "values": {}
+      },
+      "detail": "R2 resistor footprint downsized R_1206_3216Metric -> R_0805_2012Metric; it now exceeds the rating of the smaller part",
+      "invisible_to_drc_erc": true,
+      "targets": [
+        "R2"
+      ],
+      "type": "resistor_underrated"
+    },
+    {
+      "category": "latent",
+      "data": {
+        "detected_by": "rules",
+        "evidence": "parts/LED_*.md max IF by package + 80 % rule; LED current in the spec; TASK.md Design rules",
+        "footprint": "LED_SMD:LED_0603_1608Metric",
+        "footprints": {
+          "D4": [
+            "LED_SMD:LED_0805_2012Metric",
+            "LED_SMD:LED_0603_1608Metric"
+          ]
+        },
+        "golden_footprint": "LED_SMD:LED_0805_2012Metric",
+        "latent": true,
+        "moves": {},
+        "needs_full_intent": false,
+        "ref": "D4",
+        "rule_codes": [
+          "led_current"
+        ],
+        "rule_violations": [
+          "led_current: D4 forward current 20.2 mA > 16 mA (80 % of the LED_0603_1608Metric rating) [condition 0]"
+        ],
+        "values": {}
+      },
+      "detail": "D4 LED footprint downsized LED_0805_2012Metric -> LED_0603_1608Metric; it now exceeds the rating of the smaller part",
+      "invisible_to_drc_erc": true,
+      "targets": [
+        "D4"
+      ],
+      "type": "led_underrated"
+    },
+    {
+      "category": "value",
+      "data": {
+        "drc_after": {
+          "errors": [],
+          "unconnected": 0
+        },
+        "erc_after": [],
+        "golden_value": "3.9k",
+        "ref": "R1",
+        "value": "3.9M"
+      },
+      "detail": "R1 is 3.9M (unit slip), should be 3.9k",
+      "invisible_to_drc_erc": true,
+      "targets": [
+        "R1"
+      ],
+      "type": "magnitude_slip"
+    }
+  ],
+  "generator": "pcb-repair-hard-v0",
+  "hardened_footprints": {
+    "D3": [
+      "LED_SMD:LED_0603_1608Metric",
+      "LED_SMD:LED_0805_2012Metric"
+    ]
+  },
+  "hint_level": "symptom",
+  "intent": "reduced",
+  "params": {
+    "strings": [
+      {
+        "color": "GREEN",
+        "i_nominal": 0.002,
+        "i_target": 0.002,
+        "leds": [
+          "D1",
+          "D2"
+        ],
+        "n_series": 2,
+        "r": "R1"
+      },
+      {
+        "color": "RED",
+        "i_nominal": 0.020226,
+        "i_target": 0.02,
+        "leds": [
+          "D3",
+          "D4"
+        ],
+        "n_series": 2,
+        "r": "R2"
+      }
+    ],
+    "vs": 12.0
+  },
+  "power_net_pins": {
+    "GND": [
+      "D2.K",
+      "D4.K",
+      "J1.2"
+    ],
+    "VS": [
+      "J1.1",
+      "R1.1",
+      "R2.1"
+    ]
+  },
+  "power_nets": {
+    "GND": 0.3,
+    "VS": 0.3
+  },
+  "ref_parts": {
+    "D1": "LED_GREEN",
+    "D2": "LED_GREEN",
+    "D3": "LED_RED",
+    "D4": "LED_RED",
+    "J1": "CONN2",
+    "R1": "R",
+    "R2": "R"
+  },
+  "rules": {
+    "inductive_loads": [],
+    "scenarios": [
+      {
+        "ground_pin": "J1.2",
+        "loads": null,
+        "source": null,
+        "supply": {
+          "pin": "J1.1",
+          "volts": 12.0
+        }
+      }
+    ],
+    "version": 1
+  },
+  "seed": 200110,
+  "task_id": "pcbh-led_driver-200110-3e88e5c6",
+  "tier": "hard",
+  "tools_mode": "full",
+  "value_bounds": {
+    "R1": [
+      290.0,
+      13000.0
+    ],
+    "R2": [
+      99.0,
+      1300.0
+    ]
+  }
+}

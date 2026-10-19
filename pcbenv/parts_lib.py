@@ -166,6 +166,35 @@ register(Part(
 
 # --------------------------------------------------------------------------- LDO
 
+LDO_VREF = 0.8
+LDO_GAIN = 1e4        # error-amplifier DC gain (80 dB): regulation error 1/(gain*VREF/VOUT) <= 0.1 %
+LDO_ILIM = 0.5        # pass element current limit (A)
+LDO_RPASS = 0.8       # pass element small-signal resistance (ohm): ~0.25 V dropout at 300 mA
+
+
+def _softplus(z: str, k: float = 0.01) -> str:
+    """Smooth max(z, 0) for ngspice B sources (overflow-safe, C-infinity)."""
+    return f"(max({z},0)+{k:g}*ln(1+exp(-abs({z})/{k:g})))"
+
+
+# Behavioural LDO built for robust DC convergence: a finite-gain error amplifier (no hidden
+# integrator, no step-like transfer), smoothly clamped between 0 V and VIN, driving the output
+# through a smooth current-limited pass element I = ILIM*tanh(V/(ILIM*RPASS)). Every branch is
+# smooth with non-zero derivatives, so Newton converges from the default initial point. The loop
+# is algebraic (memoryless), so AC and transient analyses see an ideal fast regulator.
+LDO_MODEL = (
+    ".subckt PCB_LDO vin vss en fb vout\n"
+    "Rq vin vss 100k\n"
+    "Ren en vss 2Meg\n"
+    "Bena ena vss V=0.5*(1+tanh((v(en,vss)-1.2)/0.03))\n"
+    f"Bx x vss V={_softplus(f'{LDO_GAIN:g}*({LDO_VREF:g}-v(fb,vss))')}\n"
+    f"Btop top vss V={_softplus('v(vin,vss)')}\n"
+    f"Bo o vss V=v(ena,vss)*(v(top,vss)-{_softplus('v(top,vss)-v(x,vss)')})\n"
+    f"Bpass o vout I={LDO_ILIM:g}*tanh(v(o,vout)/{LDO_ILIM * LDO_RPASS:g})\n"
+    "Rdis vout vss 1Meg\n"
+    ".ends PCB_LDO"
+)
+
 register(Part(
     name="LDO_ADJ", description="adjustable 300 mA LDO regulator, SOT-23-5",
     pins={
@@ -175,15 +204,7 @@ register(Part(
     footprints=list(_SOT23_5),
     value_required=False,
     spice=lambda ref, n, v: f"X{ref} {n['VIN']} {n['GND']} {n['EN']} {n['FB']} {n['VOUT']} PCB_LDO",
-    models=(".subckt PCB_LDO vin vss en fb vout\n"
-            "Rq vin vss 100k\n"
-            "Ren en vss 2Meg\n"
-            "Rdo vin vi 0.6\n"
-            "Bena ena vss V=0.5*(1+tanh((v(en,vss)-1.2)/0.03))\n"
-            "Rena ena vss 1Meg\n"
-            "Bpass vi vout I=0.5*v(ena,vss)*0.5*(1+tanh(4000*(0.8-v(fb,vss))))*tanh(max(v(vi,vout),0)/0.05)\n"
-            "Rdis vout vss 1Meg\n"
-            ".ends PCB_LDO"),
+    models=LDO_MODEL,
     datasheet=(
         "# LDO_ADJ — adjustable 300 mA low-dropout regulator (SOT-23-5)\n\n"
         "## Pinout\n| Pin | Pad | Function |\n|---|---|---|\n"
@@ -195,8 +216,11 @@ register(Part(
         "- Quiescent current 50 µA; package dissipation max 0.5 W\n\n"
         "## Application notes\n- Output voltage is set by a divider from VOUT to FB (Rtop) and FB to GND (Rbot):\n"
         "  **VOUT = VREF × (1 + Rtop / Rbot)**. Rbot of 10k–50k is typical.\n"
-        "- Connect EN to VIN for always-on operation (or drive it from logic / a pull-up).\n"
-        "- Place a ≥1 µF ceramic input capacitor and a ≥1 µF ceramic output capacitor within\n"
+        "- Connect EN to VIN for always-on operation (or drive it from logic / a pull-up). A pull-up\n"
+        "  Rpu from VIN forms a divider with the internal 2 MΩ pull-down: VIN·2M/(Rpu + 2M) must exceed\n"
+        "  the 1.2 V threshold at the lowest VIN.\n"
+        "- Place a 1 µF–22 µF ceramic input capacitor and a 1 µF–22 µF ceramic output capacitor (the\n"
+        "  output capacitor range is the stability range of the regulation loop) within\n"
         "  5 mm of the VIN and VOUT pins respectively, returned to GND.\n"
         "- Power dissipation = (VIN - VOUT) × IOUT must stay below 0.5 W.\n"
     ),
@@ -221,10 +245,16 @@ register(Part(
             "Rcp inp vn 1e10\nRcm inm vn 1e10\n"
             "Rq vp vn 50k\n"
             "Bmid mid vn V=0.5*v(vp,vn)\n"
-            "G1 mid x inp inm 1\n"
+            # input stage: 1 S transconductance, smoothly limited at +-1 mA (internal node within
+            # +-100 V of mid, so Newton never sees an unbounded node); small-signal gain unchanged
+            "Bg1 mid x I=1e-3*tanh(v(inp,inm)/1e-3)\n"
             f"R1 x mid {OPAMP_A0:g}\n"
             f"C1 x mid {1 / (2 * math.pi * OPAMP_A0 * OPAMP_GBW / OPAMP_A0):.6g}\n"
-            "Bo o vn V=min(max(v(x,vn),0.005),max(v(vp,vn)-0.005,0.005))\n"
+            # rail-to-rail output: smooth clamp between V- + 5 mV and V+ - 5 mV (C-infinity, so the
+            # DC Jacobian never vanishes in saturation; v1 used a hard min/max)
+            f"Bhi hi vn V=0.005+{_softplus('v(vp,vn)-0.01', 0.002)}\n"
+            f"Blo c vn V=0.005+{_softplus('v(x,vn)-0.005', 0.002)}\n"
+            f"Bo o vn V=v(hi,vn)-{_softplus('v(hi,vn)-v(c,vn)', 0.002)}\n"
             "Ro o out 30\n"
             ".ends PCB_OPAMP"),
     datasheet=(
@@ -240,13 +270,30 @@ register(Part(
         "- Inverting gain: G = -Rf / Rin. In single-supply use bias IN+ at mid-supply (e.g. a\n"
         "  resistor divider from V+ bypassed with a capacitor) and AC-couple the input.\n"
         "- Closed-loop bandwidth ≈ 1 MHz / (noise gain).\n"
-        "- Decouple V+ with 100 nF ceramic to ground within 5 mm of the pin.\n"
+        "- Decouple V+ with 100 nF ceramic (47 nF–10 µF) to ground within 5 mm of the pin.\n"
     ),
 ))
 
 # --------------------------------------------------------------------------- MCU8
 
 MCU_PIN_C = 5e-12
+
+# Datasheet limits / recommended ranges, shared by the datasheet text above/below and the families'
+# value bounds (QA F1: a value bound must never be tighter than the datasheet's own range).
+LED_IMAX = 0.025                 # LED_*: max continuous forward current
+GPIO_IMAX = 8e-3                 # MCU8: max GPIO source/sink current
+I2C_SINK_MAX, I2C_VOL = 3e-3, 0.4  # MCU8 open-drain sink limit at VOL
+I2C_RISE_LEVELS = (0.3, 0.7)     # UM10204 rise-time definition
+# single-pole RC: t(level) = -RC ln(1 - level), so 30 -> 70 % takes ln(0.7/0.3) RC = 0.8473 RC
+I2C_K_RISE = math.log((1 - I2C_RISE_LEVELS[0]) / (1 - I2C_RISE_LEVELS[1]))
+MCU_DECOUPLING = (47e-9, 10e-6)  # MCU8 / OPAMP: 100 nF typical
+MCU_NRST_PULLUP = (2.2e3, 100e3)
+MCU_RESET_CAP = (10e-9, 1e-6)
+LDO_CAP = (1e-6, 22e-6)          # LDO_ADJ in/out capacitor (output: loop stability range)
+LDO_RBOT_TYP = (10e3, 50e3)
+NPN_BASE_PULLDOWN = (10e3, 100e3)
+NMOS_GATE_SERIES = (10.0, 100.0)
+NMOS_GATE_PULLDOWN = (10e3, 100e3)
 
 register(Part(
     name="MCU8", description="generic 8-pin microcontroller, SOIC-8",
@@ -265,19 +312,23 @@ register(Part(
     datasheet=(
         "# MCU8 — generic 8-pin microcontroller (SOIC-8)\n\n"
         "## Pinout\n| Pin | Pad | Function |\n|---|---|---|\n"
-        "| NRST | 1 | active-low reset input. **No internal pull-up**: needs an external 10k pull-up to VDD (optional 100 nF to GND) |\n"
-        "| PA1 | 2 | GPIO / XIN (crystal oscillator input) |\n| PA2 | 3 | GPIO / XOUT (crystal oscillator output) |\n"
-        "| GND | 4 | ground |\n| SDA | 5 | I2C data (open-drain) / GPIO |\n| PA0 | 6 | GPIO / PWM output |\n"
+        "| NRST | 1 | active-low reset input. **No internal pull-up**: needs an external pull-up to VDD, 2.2k–100k (10k typical); optional 10 nF–1 µF to GND (100 nF typical) for a power-on reset delay |\n"
+        "| PA1 | 2 | GPIO / ADC1 / XIN (crystal oscillator input) |\n| PA2 | 3 | GPIO / ADC2 / XOUT (crystal oscillator output) |\n"
+        "| GND | 4 | ground |\n| SDA | 5 | I2C data (open-drain) / GPIO |\n| PA0 | 6 | GPIO / PWM output / ADC0 |\n"
         "| SCL | 7 | I2C clock (open-drain) / GPIO |\n| VDD | 8 | supply 1.8–5.5 V |\n\n"
         "## Electrical characteristics\n- Supply current 1.5 mA typ at 3.3 V\n"
         "- GPIO output: VOH ≥ VDD - 0.4 V at 8 mA source (≈50 Ω output resistance); 8 mA max per pin\n"
         "- Open-drain I2C pins sink max 3 mA at VOL = 0.4 V; no internal I2C pull-ups\n"
+        "- ADC (PA0, PA1, PA2): 12-bit, full scale = VDD, input range 0..VDD (never above VDD); the pin\n"
+        "  is high impedance (5 pF), so an RC anti-alias filter at the pin sets the input bandwidth\n"
         f"- Pin capacitance {MCU_PIN_C*1e12:.0f} pF per I/O; idle / reset I/O pins are high-impedance (no pulls)\n"
         "- Crystal oscillator: 4–25 MHz fundamental crystal between XIN (PA1) and XOUT (PA2), each pin\n"
         "  with a load capacitor to GND\n\n"
-        "## Application notes\n- Decouple VDD with 100 nF ceramic to GND within 5 mm of the VDD pin.\n"
-        "- I2C pull-ups: Rp ≥ (VDD - 0.4 V) / 3 mA and Rp ≤ tr / (2.2 × Cbus) for a 10–90 % rise time tr\n"
-        "  (Cbus includes the 5 pF pin capacitance).\n"
+        "## Application notes\n- Decouple VDD with 100 nF ceramic (47 nF–10 µF) to GND within 5 mm of the VDD pin.\n"
+        "- I2C pull-ups: Rp ≥ (VDD - 0.4 V) / 3 mA (sink limit) and Rp ≤ tr / (0.8473 × Cbus) (rise time),\n"
+        "  where tr is the I2C rise time as defined by the I2C specification (UM10204): 30 % to 70 % of\n"
+        "  VDD, max 1000 ns standard-mode / 300 ns fast-mode; 0.8473 = ln(0.7/0.3). Cbus includes\n"
+        "  the 5 pF pin capacitance.\n"
         "- Crystal load caps: CL = C1·C2/(C1+C2) + Cstray, i.e. C1 = C2 = 2·(CL - Cstray).\n"
     ),
 ))

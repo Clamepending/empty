@@ -1,0 +1,254 @@
+{
+  "alt_partitions": [],
+  "assertions": [
+    {
+      "ground_pin": "J1.2",
+      "loads": [
+        {
+          "pin": "J2.1",
+          "r": 165.0
+        }
+      ],
+      "max": 3.399,
+      "min": 3.201,
+      "name": "vout_loaded",
+      "net_pin": "J2.1",
+      "supply": {
+        "pin": "J1.1",
+        "volts": 12.0
+      },
+      "type": "dc_voltage"
+    },
+    {
+      "ground_pin": "J1.2",
+      "loads": [
+        {
+          "pin": "J2.1",
+          "r": 165.0
+        }
+      ],
+      "max": 3.399,
+      "min": 3.201,
+      "name": "vout_low_vin",
+      "net_pin": "J2.1",
+      "supply": {
+        "pin": "J1.1",
+        "volts": 3.9
+      },
+      "type": "dc_voltage"
+    },
+    {
+      "element": "J2.1",
+      "ground_pin": "J1.2",
+      "loads": [
+        {
+          "pin": "J2.1",
+          "r": 165.0
+        }
+      ],
+      "max": 0.021,
+      "min": 0.019,
+      "name": "load_current",
+      "supply": {
+        "pin": "J1.1",
+        "volts": 12.0
+      },
+      "type": "dc_current"
+    }
+  ],
+  "board_h_mm": 38.0,
+  "board_seed": 0,
+  "board_w_mm": 46.0,
+  "decoupling": [
+    {
+      "cap": "C1",
+      "ic_pin": "U1.VIN",
+      "max_mm": 5.0
+    },
+    {
+      "cap": "C2",
+      "ic_pin": "U1.VOUT",
+      "max_mm": 5.0
+    }
+  ],
+  "difficulty": {
+    "measured": null,
+    "predicted": "hard"
+  },
+  "family": "ldo_reg",
+  "faults": [
+    {
+      "category": "latent",
+      "data": {
+        "caps": [
+          "C1",
+          "C2"
+        ],
+        "detected_by": "topology",
+        "evidence": "spec.json / TASK.md decoupling rules name each cap's IC pin (C1 at U1.VIN, C2 at U1.VOUT)",
+        "footprints": {},
+        "latent": true,
+        "moves": {
+          "C1.1": [
+            "VIN",
+            "+3V3"
+          ],
+          "C2.1": [
+            "+3V3",
+            "VIN"
+          ]
+        },
+        "needs_full_intent": false,
+        "rule_codes": [],
+        "rule_violations": [],
+        "values": {}
+      },
+      "detail": "C1 and C2 exchange rails: C1 sits at U1.VIN but decouples +3V3, C2 sits at U1.VOUT but decouples VIN",
+      "invisible_to_drc_erc": true,
+      "targets": [
+        "C1",
+        "C2",
+        "net:+3V3",
+        "net:VIN"
+      ],
+      "type": "decap_swapped"
+    },
+    {
+      "category": "connectivity",
+      "data": {
+        "drc_after": {
+          "errors": [],
+          "unconnected": 0
+        },
+        "erc_after": [
+          "single_pin_net",
+          "unconnected_required"
+        ],
+        "golden_net": "EN",
+        "moves": {
+          "U1.EN": [
+            "EN",
+            null
+          ]
+        },
+        "pin": "U1.EN"
+      },
+      "detail": "U1.EN left unconnected (should be on EN)",
+      "invisible_to_drc_erc": false,
+      "targets": [
+        "U1",
+        "net:EN"
+      ],
+      "type": "floating_pin"
+    }
+  ],
+  "generator": "pcb-repair-hard-v0",
+  "hardened_footprints": {},
+  "hint_level": "symptom",
+  "intent": "reduced",
+  "params": {
+    "en_mode": "pullup",
+    "iload": 0.02,
+    "indicator": false,
+    "vin": 12.0,
+    "vout": 3.3,
+    "vout_nominal": 3.2743
+  },
+  "power_net_pins": {
+    "+3V3": [
+      "C2.1",
+      "J2.1",
+      "R1.1",
+      "U1.VOUT"
+    ],
+    "GND": [
+      "C1.2",
+      "C2.2",
+      "J1.2",
+      "J2.2",
+      "R2.2",
+      "U1.GND"
+    ],
+    "VIN": [
+      "C1.1",
+      "J1.1",
+      "R3.1",
+      "U1.VIN"
+    ]
+  },
+  "power_nets": {
+    "+3V3": 0.3,
+    "GND": 0.3,
+    "VIN": 0.3
+  },
+  "ref_parts": {
+    "C1": "C",
+    "C2": "C",
+    "J1": "CONN2",
+    "J2": "CONN2",
+    "R1": "R",
+    "R2": "R",
+    "R3": "R",
+    "U1": "LDO_ADJ"
+  },
+  "rules": {
+    "inductive_loads": [],
+    "scenarios": [
+      {
+        "ground_pin": "J1.2",
+        "loads": [
+          {
+            "pin": "J2.1",
+            "r": 165.0
+          }
+        ],
+        "source": null,
+        "supply": {
+          "pin": "J1.1",
+          "volts": 12.0
+        }
+      },
+      {
+        "ground_pin": "J1.2",
+        "loads": [
+          {
+            "pin": "J2.1",
+            "r": 165.0
+          }
+        ],
+        "source": null,
+        "supply": {
+          "pin": "J1.1",
+          "volts": 3.9
+        }
+      }
+    ],
+    "version": 1
+  },
+  "seed": 200081,
+  "task_id": "pcbh-ldo_reg-200081-b98fde1f",
+  "tier": "hard",
+  "tools_mode": "full",
+  "value_bounds": {
+    "C1": [
+      1e-06,
+      2.2e-05
+    ],
+    "C2": [
+      1e-06,
+      2.2e-05
+    ],
+    "R1": [
+      10000.0,
+      470000.0
+    ],
+    "R2": [
+      3300.0,
+      150000.0
+    ],
+    "R3": [
+      1.0,
+      4500000.0
+    ]
+  }
+}

@@ -12,7 +12,9 @@ Trust boundary
   memory and could in principle crash on a hostile file).
 
 Hard gates (reward 0 if any fails): parse, components, topology, consistency, integrity.
-Checks (all must pass for reward 1): drc, erc, spec, values, layout. Reward is binary.
+Checks (all must pass for reward 1): drc, erc, spec, values, layout, and -- only for tasks whose
+meta carries a rule context (`rules` hard tier / `rules_power`) -- `rules` (`pcbenv/rules.py`,
+datasheet design rules that pcbtool does not run). Reward is binary.
 `values`: every ref in `meta["value_bounds"]` (ref -> [min, max]) has a design value inside its
 range (old tasks without the key: nothing to check, the check passes).
 
@@ -246,10 +248,25 @@ def _verify(workdir: str, task_dir: str, td: str) -> VerifyResult:
     from pcbenv.checks import value_violations
     _fail(res, "values", value_violations(design, meta.get("value_bounds") or {}), False)
 
-    _fail(res, "layout", [f"{i.code}: {i.detail}" for i in
-                          layout.run_layout_checks(info, meta, board=board, ref_parts=ref_parts)], False)
+    lay = layout.run_layout_checks(info, meta, board=board, ref_parts=ref_parts)
+    if not res.gates.get("topology"):
+        # a golden power net cannot be found by its pin set because the connectivity is wrong: that
+        # is the topology gate's finding, not a layout one (QA F9); reported as a skip, not a failure
+        skipped = [i for i in lay if i.code == "power_net_missing"]
+        if skipped:
+            res.detail["layout_skipped"] = [f"{i.detail} (connectivity differs: see topology)" for i in skipped][:20]
+        lay = [i for i in lay if i.code != "power_net_missing"]
+    _fail(res, "layout", [f"{i.code}: {i.detail}" for i in lay], False)
 
-    ok = all(res.gates.get(g) for g in GATES) and all(res.checks.get(c) for c in CHECKS)
+    # Datasheet design rules (`pcbenv/rules.py`): only for tasks whose hidden meta carries a rule
+    # context -- hard tier: all rules (`rules`); all-tier v2 tasks: resistor power (`rules_power`).
+    rctx = meta.get("rules") or meta.get("rules_power")
+    if rctx:
+        from pcbenv import rules as RL
+        _fail(res, "rules", [f"{v.code}: {v.detail}" for v in RL.run_rules(design, rctx)], False)
+
+    ok = (all(res.gates.get(g) for g in GATES) and all(res.checks.get(c) for c in CHECKS)
+          and all(res.checks.values()))
     res.reward = 1.0 if ok else 0.0
     return res
 
@@ -286,10 +303,21 @@ def verify(workdir: str, task_dir: str) -> VerifyResult:
         res.gates.setdefault(g, False)
     for c in CHECKS:
         res.checks.setdefault(c, False)
+    if "rules" not in res.checks and _has_rules(task_dir):
+        res.checks["rules"] = False
     if not (all(res.gates.values()) and all(res.checks.values())):
         res.reward = 0.0
     res.detail["seconds"] = round(time.monotonic() - t0, 3)
     return res
+
+
+def _has_rules(task_dir: str) -> bool:
+    try:
+        from pcbenv import taskio
+        m = taskio.load_meta(task_dir)
+        return bool(m.get("rules") or m.get("rules_power"))
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def verify_isolated(workdir: str, task_dir: str, timeout: float = 120.0) -> VerifyResult:

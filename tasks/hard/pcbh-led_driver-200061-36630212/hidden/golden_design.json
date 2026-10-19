@@ -1,0 +1,51 @@
+{
+  "components": {
+    "D1": {
+      "footprint": "LED_SMD:LED_0805_2012Metric",
+      "part": "LED_GREEN",
+      "value": ""
+    },
+    "D2": {
+      "footprint": "LED_SMD:LED_0805_2012Metric",
+      "part": "LED_GREEN",
+      "value": ""
+    },
+    "J1": {
+      "footprint": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
+      "part": "CONN2",
+      "value": ""
+    },
+    "R1": {
+      "footprint": "Resistor_SMD:R_1206_3216Metric",
+      "part": "R",
+      "value": "470"
+    },
+    "R2": {
+      "footprint": "Resistor_SMD:R_1206_3216Metric",
+      "part": "R",
+      "value": "470"
+    }
+  },
+  "nets": {
+    "CH1_0": [
+      "R1.2",
+      "D1.A"
+    ],
+    "CH2_0": [
+      "R2.2",
+      "D2.A"
+    ],
+    "GND": [
+      "J1.2",
+      "D1.K",
+      "D2.K"
+    ],
+    "VS": [
+      "J1.1",
+      "R1.1",
+      "R2.1"
+    ]
+  },
+  "schema": "pcbenv/design@1",
+  "title": "2-channel LED indicator board"
+}

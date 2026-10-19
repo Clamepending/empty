@@ -1,0 +1,306 @@
+{
+  "alt_partitions": [],
+  "assertions": [
+    {
+      "ground_pin": "J1.2",
+      "loads": [
+        {
+          "pin": "J2.1",
+          "r": 60.0
+        }
+      ],
+      "max": 3.09,
+      "min": 2.91,
+      "name": "vout_loaded",
+      "net_pin": "J2.1",
+      "supply": {
+        "pin": "J1.1",
+        "volts": 12.0
+      },
+      "type": "dc_voltage"
+    },
+    {
+      "ground_pin": "J1.2",
+      "loads": [
+        {
+          "pin": "J2.1",
+          "r": 60.0
+        }
+      ],
+      "max": 3.09,
+      "min": 2.91,
+      "name": "vout_low_vin",
+      "net_pin": "J2.1",
+      "supply": {
+        "pin": "J1.1",
+        "volts": 3.6
+      },
+      "type": "dc_voltage"
+    },
+    {
+      "element": "J2.1",
+      "ground_pin": "J1.2",
+      "loads": [
+        {
+          "pin": "J2.1",
+          "r": 60.0
+        }
+      ],
+      "max": 0.0525,
+      "min": 0.0475,
+      "name": "load_current",
+      "supply": {
+        "pin": "J1.1",
+        "volts": 12.0
+      },
+      "type": "dc_current"
+    }
+  ],
+  "board_h_mm": 35.0,
+  "board_seed": 0,
+  "board_w_mm": 43.0,
+  "decoupling": [
+    {
+      "cap": "C1",
+      "ic_pin": "U1.VIN",
+      "max_mm": 5.0
+    },
+    {
+      "cap": "C2",
+      "ic_pin": "U1.VOUT",
+      "max_mm": 5.0
+    }
+  ],
+  "difficulty": {
+    "measured": null,
+    "predicted": "hard"
+  },
+  "family": "ldo_reg",
+  "faults": [
+    {
+      "category": "latent",
+      "data": {
+        "detected_by": "rules",
+        "evidence": "parts/C.md voltage rating by footprint + 80 % rule; rail voltages in the intent; TASK.md Design rules",
+        "footprint": "Capacitor_SMD:C_0603_1608Metric",
+        "footprints": {
+          "C1": [
+            "Capacitor_SMD:C_1206_3216Metric",
+            "Capacitor_SMD:C_0603_1608Metric"
+          ]
+        },
+        "golden_footprint": "Capacitor_SMD:C_1206_3216Metric",
+        "latent": true,
+        "moves": {},
+        "needs_full_intent": false,
+        "ref": "C1",
+        "rule_codes": [
+          "capacitor_voltage"
+        ],
+        "rule_violations": [
+          "capacitor_voltage: C1 sees 12 V > 8 V (80 % of 10 V, C_0603_1608Metric) [condition 0]"
+        ],
+        "values": {}
+      },
+      "detail": "C1 capacitor footprint downsized C_1206_3216Metric -> C_0603_1608Metric; it now exceeds the rating of the smaller part",
+      "invisible_to_drc_erc": true,
+      "targets": [
+        "C1"
+      ],
+      "type": "capacitor_underrated"
+    },
+    {
+      "category": "connectivity",
+      "data": {
+        "drc_after": {
+          "errors": [],
+          "unconnected": 0
+        },
+        "erc_after": [
+          "unconnected_required"
+        ],
+        "golden_net": "VIN",
+        "moves": {
+          "U1.EN": [
+            "VIN",
+            null
+          ]
+        },
+        "pin": "U1.EN"
+      },
+      "detail": "U1.EN left unconnected (should be on VIN)",
+      "invisible_to_drc_erc": false,
+      "targets": [
+        "U1",
+        "net:VIN"
+      ],
+      "type": "floating_pin"
+    },
+    {
+      "category": "value",
+      "data": {
+        "drc_after": {
+          "errors": [],
+          "unconnected": 0
+        },
+        "erc_after": [
+          "unconnected_required"
+        ],
+        "golden_value": "57.6k",
+        "golden_values": {
+          "R1": "57.6k",
+          "R2": "21k"
+        },
+        "ref": "R1",
+        "refs": [
+          "R1",
+          "R2"
+        ],
+        "role": "feedback",
+        "value": "21k",
+        "values": {
+          "R1": "21k",
+          "R2": "57.6k"
+        }
+      },
+      "detail": "R1 and R2 values swapped (R1=21k, R2=57.6k)",
+      "invisible_to_drc_erc": true,
+      "targets": [
+        "R1",
+        "R2"
+      ],
+      "type": "wrong_feedback_resistor"
+    },
+    {
+      "category": "board",
+      "data": {
+        "drc_after": {
+          "errors": [],
+          "unconnected": 2
+        },
+        "erc_after": [
+          "unconnected_required"
+        ],
+        "footprint": "Capacitor_SMD:C_0805_2012Metric",
+        "golden_footprint": "Capacitor_SMD:C_1206_3216Metric",
+        "nets": [
+          "+3V",
+          "GND"
+        ],
+        "ref": "C2"
+      },
+      "detail": "C2 footprint changed to Capacitor_SMD:C_0805_2012Metric (was Capacitor_SMD:C_1206_3216Metric); tracks no longer fit",
+      "invisible_to_drc_erc": false,
+      "targets": [
+        "C2",
+        "net:+3V",
+        "net:GND"
+      ],
+      "type": "footprint_swap"
+    }
+  ],
+  "generator": "pcb-repair-hard-v0",
+  "hardened_footprints": {},
+  "hint_level": "symptom",
+  "intent": "reduced",
+  "params": {
+    "en_mode": "tie",
+    "iload": 0.05,
+    "indicator": false,
+    "vin": 12.0,
+    "vout": 3.0,
+    "vout_nominal": 2.9943
+  },
+  "power_net_pins": {
+    "+3V": [
+      "C2.1",
+      "J2.1",
+      "R1.1",
+      "U1.VOUT"
+    ],
+    "GND": [
+      "C1.2",
+      "C2.2",
+      "J1.2",
+      "J2.2",
+      "R2.2",
+      "U1.GND"
+    ],
+    "VIN": [
+      "C1.1",
+      "J1.1",
+      "U1.EN",
+      "U1.VIN"
+    ]
+  },
+  "power_nets": {
+    "+3V": 0.3,
+    "GND": 0.3,
+    "VIN": 0.3
+  },
+  "ref_parts": {
+    "C1": "C",
+    "C2": "C",
+    "J1": "CONN2",
+    "J2": "CONN2",
+    "R1": "R",
+    "R2": "R",
+    "U1": "LDO_ADJ"
+  },
+  "rules": {
+    "inductive_loads": [],
+    "scenarios": [
+      {
+        "ground_pin": "J1.2",
+        "loads": [
+          {
+            "pin": "J2.1",
+            "r": 60.0
+          }
+        ],
+        "source": null,
+        "supply": {
+          "pin": "J1.1",
+          "volts": 12.0
+        }
+      },
+      {
+        "ground_pin": "J1.2",
+        "loads": [
+          {
+            "pin": "J2.1",
+            "r": 60.0
+          }
+        ],
+        "source": null,
+        "supply": {
+          "pin": "J1.1",
+          "volts": 3.6
+        }
+      }
+    ],
+    "version": 1
+  },
+  "seed": 200053,
+  "task_id": "pcbh-ldo_reg-200053-c4d1882f",
+  "tier": "hard",
+  "tools_mode": "full",
+  "value_bounds": {
+    "C1": [
+      1e-06,
+      2.2e-05
+    ],
+    "C2": [
+      1e-06,
+      2.2e-05
+    ],
+    "R1": [
+      9100.0,
+      410000.0
+    ],
+    "R2": [
+      3300.0,
+      150000.0
+    ]
+  }
+}

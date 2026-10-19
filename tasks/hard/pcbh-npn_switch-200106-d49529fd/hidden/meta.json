@@ -1,0 +1,336 @@
+{
+  "alt_partitions": [],
+  "assertions": [
+    {
+      "element": "J2.2",
+      "ground_pin": "J1.2",
+      "loads": [
+        {
+          "l": 0.01,
+          "pin": "J2.1",
+          "r": 330.0,
+          "to": "J2.2"
+        }
+      ],
+      "max": 0.0115,
+      "min": 0.0085,
+      "name": "load_on_current",
+      "source": {
+        "dc": 3.3,
+        "pin": "U1.PA2",
+        "r": 50.0
+      },
+      "supply": {
+        "pin": "J1.1",
+        "volts": 3.3
+      },
+      "type": "dc_current"
+    },
+    {
+      "ground_pin": "J1.2",
+      "loads": [
+        {
+          "l": 0.01,
+          "pin": "J2.1",
+          "r": 330.0,
+          "to": "J2.2"
+        }
+      ],
+      "max": 0.3,
+      "min": 0.0,
+      "name": "vce_sat",
+      "net_pin": "Q1.C",
+      "source": {
+        "dc": 3.3,
+        "pin": "U1.PA2",
+        "r": 50.0
+      },
+      "supply": {
+        "pin": "J1.1",
+        "volts": 3.3
+      },
+      "type": "dc_voltage"
+    },
+    {
+      "element": "R2",
+      "ground_pin": "J1.2",
+      "loads": [
+        {
+          "l": 0.01,
+          "pin": "J2.1",
+          "r": 330.0,
+          "to": "J2.2"
+        }
+      ],
+      "max": 0.008,
+      "min": 0.0,
+      "name": "gpio_current",
+      "source": {
+        "dc": 3.3,
+        "pin": "U1.PA2",
+        "r": 50.0
+      },
+      "supply": {
+        "pin": "J1.1",
+        "volts": 3.3
+      },
+      "type": "dc_current"
+    },
+    {
+      "element": "J2.2",
+      "ground_pin": "J1.2",
+      "loads": [
+        {
+          "l": 0.01,
+          "pin": "J2.1",
+          "r": 330.0,
+          "to": "J2.2"
+        },
+        {
+          "pin": "Q1.B",
+          "r": 1000000.0,
+          "to": "J1.1"
+        }
+      ],
+      "max": 0.0001,
+      "min": 0.0,
+      "name": "load_off_current",
+      "supply": {
+        "pin": "J1.1",
+        "volts": 3.3
+      },
+      "type": "dc_current"
+    },
+    {
+      "ground_pin": "J1.2",
+      "max": 3.366,
+      "min": 3.234,
+      "name": "vdd",
+      "net_pin": "U1.VDD",
+      "ref_pin": "U1.GND",
+      "supply": {
+        "pin": "J1.1",
+        "volts": 3.3
+      },
+      "type": "dc_voltage"
+    },
+    {
+      "ground_pin": "J1.2",
+      "max": 3.333,
+      "min": 2.97,
+      "name": "nrst_high",
+      "net_pin": "U1.NRST",
+      "supply": {
+        "pin": "J1.1",
+        "volts": 3.3
+      },
+      "type": "dc_voltage"
+    }
+  ],
+  "board_h_mm": 45.0,
+  "board_seed": 0,
+  "board_w_mm": 50.0,
+  "decoupling": [
+    {
+      "cap": "C1",
+      "ic_pin": "U1.VDD",
+      "max_mm": 5.0
+    }
+  ],
+  "difficulty": {
+    "measured": null,
+    "predicted": "hard"
+  },
+  "family": "npn_switch",
+  "faults": [
+    {
+      "category": "latent",
+      "data": {
+        "detected_by": "rules",
+        "evidence": "parts/NPN.md forced-beta <= 20 switching rule (and the RB formula); load current in the spec",
+        "footprints": {},
+        "golden_value": "2.2k",
+        "latent": true,
+        "moves": {},
+        "needs_full_intent": false,
+        "ref": "R2",
+        "rule_codes": [
+          "npn_saturation"
+        ],
+        "rule_violations": [
+          "npn_saturation: Q1 saturated switch with forced beta IC/IB = 9.65 mA/320 uA = 30.2 > 20 [condition 0]"
+        ],
+        "value": "6.6k",
+        "values": {
+          "R2": [
+            "2.2k",
+            "6.6k"
+          ]
+        }
+      },
+      "detail": "R2 (base drive of Q1) is 6.6k, should be ~2.2k: Q1 only saturates thanks to typical hFE (forced beta > 20)",
+      "invisible_to_drc_erc": true,
+      "targets": [
+        "R2"
+      ],
+      "type": "weak_base_drive"
+    },
+    {
+      "category": "connectivity",
+      "data": {
+        "drc_after": {
+          "errors": [],
+          "unconnected": 0
+        },
+        "erc_after": [
+          "single_pin_net",
+          "unconnected_required"
+        ],
+        "golden_net": "NRST",
+        "moves": {
+          "U1.NRST": [
+            "NRST",
+            null
+          ]
+        },
+        "pin": "U1.NRST"
+      },
+      "detail": "U1.NRST left unconnected (should be on NRST)",
+      "invisible_to_drc_erc": false,
+      "targets": [
+        "U1",
+        "net:NRST"
+      ],
+      "type": "floating_pin"
+    }
+  ],
+  "generator": "pcb-repair-hard-v0",
+  "hardened_footprints": {},
+  "hint_level": "symptom",
+  "intent": "reduced",
+  "params": {
+    "gpio": "PA2",
+    "i_load": 0.01,
+    "l_coil": 0.01,
+    "load": "coil",
+    "r_coil": 330.0,
+    "vs": 3.3
+  },
+  "power_net_pins": {
+    "+3V3": [
+      "C1.1",
+      "D1.K",
+      "J1.1",
+      "J2.1",
+      "R1.1",
+      "U1.VDD"
+    ],
+    "GND": [
+      "C1.2",
+      "J1.2",
+      "Q1.E",
+      "R4.2",
+      "U1.GND"
+    ]
+  },
+  "power_nets": {
+    "+3V3": 0.3,
+    "GND": 0.3
+  },
+  "ref_parts": {
+    "C1": "C",
+    "D1": "D_SCHOTTKY",
+    "J1": "CONN2",
+    "J2": "CONN2",
+    "Q1": "NPN",
+    "R1": "R",
+    "R2": "R",
+    "R4": "R",
+    "U1": "MCU8"
+  },
+  "rules": {
+    "inductive_loads": [
+      {
+        "supply_pin": "J2.1",
+        "switched_pin": "J2.2"
+      }
+    ],
+    "scenarios": [
+      {
+        "ground_pin": "J1.2",
+        "loads": [
+          {
+            "l": 0.01,
+            "pin": "J2.1",
+            "r": 330.0,
+            "to": "J2.2"
+          }
+        ],
+        "source": [
+          {
+            "dc": 3.3,
+            "pin": "U1.PA2",
+            "r": 50.0
+          }
+        ],
+        "supply": {
+          "pin": "J1.1",
+          "volts": 3.3
+        }
+      },
+      {
+        "ground_pin": "J1.2",
+        "loads": [
+          {
+            "l": 0.01,
+            "pin": "J2.1",
+            "r": 330.0,
+            "to": "J2.2"
+          },
+          {
+            "pin": "Q1.B",
+            "r": 1000000.0,
+            "to": "J1.1"
+          }
+        ],
+        "source": null,
+        "supply": {
+          "pin": "J1.1",
+          "volts": 3.3
+        }
+      },
+      {
+        "ground_pin": "J1.2",
+        "loads": null,
+        "source": null,
+        "supply": {
+          "pin": "J1.1",
+          "volts": 3.3
+        }
+      }
+    ],
+    "version": 1
+  },
+  "seed": 200106,
+  "task_id": "pcbh-npn_switch-200106-d49529fd",
+  "tier": "hard",
+  "tools_mode": "no_autoroute",
+  "value_bounds": {
+    "C1": [
+      4.7e-08,
+      1e-05
+    ],
+    "R1": [
+      2200.0,
+      100000.0
+    ],
+    "R2": [
+      310.0,
+      8400.0
+    ],
+    "R4": [
+      4700.0,
+      220000.0
+    ]
+  }
+}

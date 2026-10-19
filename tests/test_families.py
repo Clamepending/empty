@@ -173,7 +173,7 @@ def test_disconnected_ground_fails(family):
 
 # ------------------------------------------------------------------ broad sweep
 # `python3 -m pcbenv.families.sweep --seeds 0:2000` checks every seed; here a spread sample of 200
-# seeds per family plus the ldo_reg seeds whose first draw does not converge in ngspice (redrawn).
+# seeds per family plus the ldo_reg seeds whose v1 first draw did not converge in ngspice.
 SWEEP_SEEDS = sorted(set(range(3, 2000, 10)) | {62, 450, 631, 1361, 1993})
 
 
@@ -183,8 +183,10 @@ def test_sweep_sample():
     assert not fails, fails[:5]
 
 
-def test_ldo_redraw_only_when_needed():
-    g = gen("ldo_reg", 631)
-    assert g.params.get("redraw", 0) >= 1 and g.seed == 631
-    assert all(r.passed for r in run_assertions(g.design, g.assertions))
-    assert "redraw" not in gen("ldo_reg", 1).params  # first draw passes -> untouched golden
+def test_ldo_never_redraws():
+    """v1 redrew ldo_reg parameters when ngspice failed to converge; v2's LDO model converges for
+    every first draw (see tests/test_sim_convergence.py), so there is no redraw at all."""
+    for s in (62, 450, 631, 1361, 1993):
+        g = gen("ldo_reg", s)
+        assert "redraw" not in g.params and g.seed == s
+        assert all(r.passed for r in run_assertions(g.design, g.assertions))

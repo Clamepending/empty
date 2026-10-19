@@ -1,0 +1,321 @@
+{
+  "alt_partitions": [],
+  "assertions": [
+    {
+      "element": "J2.2",
+      "ground_pin": "J1.2",
+      "loads": [
+        {
+          "l": 0.005,
+          "pin": "J2.1",
+          "r": 48.0,
+          "to": "J2.2"
+        }
+      ],
+      "max": 0.525,
+      "min": 0.475,
+      "name": "load_on_current",
+      "source": {
+        "dc": 5.0,
+        "pin": "J1.3",
+        "r": 50.0
+      },
+      "supply": {
+        "pin": "J1.1",
+        "volts": 24.0
+      },
+      "type": "dc_current"
+    },
+    {
+      "ground_pin": "J1.2",
+      "loads": [
+        {
+          "l": 0.005,
+          "pin": "J2.1",
+          "r": 48.0,
+          "to": "J2.2"
+        }
+      ],
+      "max": 0.2,
+      "min": 0.0,
+      "name": "vds_on",
+      "net_pin": "Q1.D",
+      "source": {
+        "dc": 5.0,
+        "pin": "J1.3",
+        "r": 50.0
+      },
+      "supply": {
+        "pin": "J1.1",
+        "volts": 24.0
+      },
+      "type": "dc_voltage"
+    },
+    {
+      "element": "J2.2",
+      "ground_pin": "J1.2",
+      "loads": [
+        {
+          "l": 0.005,
+          "pin": "J2.1",
+          "r": 48.0,
+          "to": "J2.2"
+        },
+        {
+          "pin": "Q1.G",
+          "r": 10000000.0,
+          "to": "J1.1"
+        }
+      ],
+      "max": 0.0001,
+      "min": 0.0,
+      "name": "load_off_current",
+      "supply": {
+        "pin": "J1.1",
+        "volts": 24.0
+      },
+      "type": "dc_current"
+    },
+    {
+      "element": "R1",
+      "ground_pin": "J1.2",
+      "loads": [
+        {
+          "l": 0.005,
+          "pin": "J2.1",
+          "r": 48.0,
+          "to": "J2.2"
+        }
+      ],
+      "max": 0.001,
+      "min": 0.0,
+      "name": "ctrl_current_on",
+      "source": {
+        "dc": 5.0,
+        "pin": "J1.3",
+        "r": 50.0
+      },
+      "supply": {
+        "pin": "J1.1",
+        "volts": 24.0
+      },
+      "type": "dc_current"
+    }
+  ],
+  "board_h_mm": 35.0,
+  "board_seed": 0,
+  "board_w_mm": 43.0,
+  "decoupling": [],
+  "difficulty": {
+    "measured": null,
+    "predicted": "hard"
+  },
+  "family": "nmos_switch",
+  "faults": [
+    {
+      "category": "latent",
+      "data": {
+        "detected_by": "rules+topology",
+        "diode": "D1",
+        "evidence": "parts/D_SCHOTTKY.md and NPN/NMOS application notes: flyback diode across the inductive load, cathode to supply; TASK.md Design rules",
+        "footprints": {},
+        "latent": true,
+        "moves": {
+          "D1.A": [
+            "SW",
+            "GND"
+          ],
+          "D1.K": [
+            "+24V",
+            "SW"
+          ]
+        },
+        "needs_full_intent": false,
+        "rule_codes": [
+          "flyback"
+        ],
+        "rule_violations": [
+          "flyback: inductive load J2.1-J2.2 has no flyback diode across it (cathode on J2.1's net, anode on J2.2's net)"
+        ],
+        "values": {},
+        "variant": "across_switch"
+      },
+      "detail": "D1 placed across the transistor (cathode on the switched node, anode on GND) instead of across the coil",
+      "invisible_to_drc_erc": true,
+      "targets": [
+        "D1",
+        "net:+24V",
+        "net:GND",
+        "net:SW"
+      ],
+      "type": "flyback_misplaced"
+    },
+    {
+      "category": "latent",
+      "data": {
+        "detected_by": "rules",
+        "evidence": "parts/C.md voltage rating by footprint + 80 % rule; rail voltages in the intent; TASK.md Design rules",
+        "footprint": "Capacitor_SMD:C_0805_2012Metric",
+        "footprints": {
+          "C1": [
+            "Capacitor_SMD:C_1206_3216Metric",
+            "Capacitor_SMD:C_0805_2012Metric"
+          ]
+        },
+        "golden_footprint": "Capacitor_SMD:C_1206_3216Metric",
+        "latent": true,
+        "moves": {},
+        "needs_full_intent": false,
+        "ref": "C1",
+        "rule_codes": [
+          "capacitor_voltage"
+        ],
+        "rule_violations": [
+          "capacitor_voltage: C1 sees 24 V > 20 V (80 % of 25 V, C_0805_2012Metric) [condition 0]"
+        ],
+        "values": {}
+      },
+      "detail": "C1 capacitor footprint downsized C_1206_3216Metric -> C_0805_2012Metric; it now exceeds the rating of the smaller part",
+      "invisible_to_drc_erc": true,
+      "targets": [
+        "C1"
+      ],
+      "type": "capacitor_underrated"
+    },
+    {
+      "category": "value",
+      "data": {
+        "drc_after": {
+          "errors": [],
+          "unconnected": 0
+        },
+        "erc_after": [],
+        "golden_value": "68",
+        "ref": "R1",
+        "value": "68k"
+      },
+      "detail": "R1 is 68k (unit slip), should be 68",
+      "invisible_to_drc_erc": true,
+      "targets": [
+        "R1"
+      ],
+      "type": "magnitude_slip"
+    }
+  ],
+  "generator": "pcb-repair-hard-v0",
+  "hardened_footprints": {},
+  "hint_level": "symptom",
+  "intent": "reduced",
+  "params": {
+    "iload": 0.5,
+    "kind": "inductive",
+    "rload": 48.0,
+    "vctrl": 5.0,
+    "vload": 24.0
+  },
+  "power_net_pins": {
+    "+24V": [
+      "C1.1",
+      "D1.K",
+      "J1.1",
+      "J2.1"
+    ],
+    "GND": [
+      "C1.2",
+      "J1.2",
+      "Q1.S",
+      "R2.2"
+    ],
+    "SW": [
+      "D1.A",
+      "J2.2",
+      "Q1.D"
+    ]
+  },
+  "power_nets": {
+    "+24V": 0.5,
+    "GND": 0.5,
+    "SW": 0.5
+  },
+  "ref_parts": {
+    "C1": "C",
+    "D1": "D_SCHOTTKY",
+    "J1": "CONN3",
+    "J2": "CONN2",
+    "Q1": "NMOS",
+    "R1": "R",
+    "R2": "R"
+  },
+  "rules": {
+    "inductive_loads": [
+      {
+        "supply_pin": "J2.1",
+        "switched_pin": "J2.2"
+      }
+    ],
+    "scenarios": [
+      {
+        "ground_pin": "J1.2",
+        "loads": [
+          {
+            "l": 0.005,
+            "pin": "J2.1",
+            "r": 48.0,
+            "to": "J2.2"
+          }
+        ],
+        "source": [
+          {
+            "dc": 5.0,
+            "pin": "J1.3",
+            "r": 50.0
+          }
+        ],
+        "supply": {
+          "pin": "J1.1",
+          "volts": 24.0
+        }
+      },
+      {
+        "ground_pin": "J1.2",
+        "loads": [
+          {
+            "l": 0.005,
+            "pin": "J2.1",
+            "r": 48.0,
+            "to": "J2.2"
+          },
+          {
+            "pin": "Q1.G",
+            "r": 10000000.0,
+            "to": "J1.1"
+          }
+        ],
+        "source": null,
+        "supply": {
+          "pin": "J1.1",
+          "volts": 24.0
+        }
+      }
+    ],
+    "version": 1
+  },
+  "seed": 200133,
+  "task_id": "pcbh-nmos_switch-200133-1724da1f",
+  "tier": "hard",
+  "tools_mode": "full",
+  "value_bounds": {
+    "C1": [
+      1e-06,
+      2.2e-05
+    ],
+    "R1": [
+      4.7,
+      220.0
+    ],
+    "R2": [
+      4700.0,
+      220000.0
+    ]
+  }
+}

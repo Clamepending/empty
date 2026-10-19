@@ -1,0 +1,86 @@
+{
+  "components": {
+    "C1": {
+      "footprint": "Capacitor_SMD:C_0805_2012Metric",
+      "part": "C",
+      "value": "100n"
+    },
+    "C2": {
+      "footprint": "Capacitor_SMD:C_0805_2012Metric",
+      "part": "C",
+      "value": "4.7u"
+    },
+    "C3": {
+      "footprint": "Capacitor_SMD:C_0805_2012Metric",
+      "part": "C",
+      "value": "100n"
+    },
+    "J1": {
+      "footprint": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
+      "part": "CONN2",
+      "value": ""
+    },
+    "J2": {
+      "footprint": "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical",
+      "part": "CONN4",
+      "value": ""
+    },
+    "R1": {
+      "footprint": "Resistor_SMD:R_0805_2012Metric",
+      "part": "R",
+      "value": "43k"
+    },
+    "R2": {
+      "footprint": "Resistor_SMD:R_0603_1608Metric",
+      "part": "R",
+      "value": "22k"
+    },
+    "R3": {
+      "footprint": "Resistor_SMD:R_0805_2012Metric",
+      "part": "R",
+      "value": "22k"
+    },
+    "U1": {
+      "footprint": "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm",
+      "part": "MCU8",
+      "value": ""
+    }
+  },
+  "nets": {
+    "+1V8": [
+      "J1.1",
+      "U1.VDD",
+      "C1.1",
+      "R1.1",
+      "R2.1",
+      "R3.1",
+      "J2.1",
+      "C2.1"
+    ],
+    "GND": [
+      "J1.2",
+      "U1.GND",
+      "C1.2",
+      "J2.2",
+      "C2.2",
+      "C3.2"
+    ],
+    "NRST": [
+      "R1.2",
+      "U1.NRST",
+      "C3.1"
+    ],
+    "SCL": [
+      "U1.SCL",
+      "R3.2",
+      "J2.4"
+    ],
+    "SDA": [
+      "U1.SDA",
+      "R2.2",
+      "J2.3"
+    ]
+  },
+  "schema": "pcbenv/design@1",
+  "title": "MCU with I2C bus (standard-mode)"
+}

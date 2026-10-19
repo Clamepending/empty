@@ -1,0 +1,109 @@
+{
+  "assertions": [
+    {
+      "ground_pin": "J1.2",
+      "max": 1.6995,
+      "min": 1.6005,
+      "name": "dc_bias_out",
+      "net_pin": "J3.1",
+      "source": {
+        "ac": 1.0,
+        "dc": 0.0,
+        "pin": "J2.1"
+      },
+      "supply": {
+        "pin": "J1.1",
+        "volts": 3.3
+      },
+      "type": "dc_voltage"
+    },
+    {
+      "freq": 1000.0,
+      "ground_pin": "J1.2",
+      "in_pin": "J2.1",
+      "max": 5.13233,
+      "min": 4.83336,
+      "name": "midband_gain",
+      "out_pin": "J3.1",
+      "source": {
+        "ac": 1.0,
+        "dc": 0.0,
+        "pin": "J2.1"
+      },
+      "supply": {
+        "pin": "J1.1",
+        "volts": 3.3
+      },
+      "type": "ac_gain"
+    },
+    {
+      "edge": "low",
+      "ground_pin": "J1.2",
+      "in_pin": "J2.1",
+      "max": 50.688,
+      "min": 37.465,
+      "name": "low_cutoff",
+      "out_pin": "J3.1",
+      "source": {
+        "ac": 1.0,
+        "dc": 0.0,
+        "pin": "J2.1"
+      },
+      "supply": {
+        "pin": "J1.1",
+        "volts": 3.3
+      },
+      "type": "cutoff"
+    }
+  ],
+  "decoupling": [
+    {
+      "cap": "C1",
+      "ic_pin": "U1.V+",
+      "max_mm": 5.0
+    }
+  ],
+  "power_nets": [
+    {
+      "anchor_pin": "J1.2",
+      "min_width_mm": 0.3,
+      "net": "GND"
+    },
+    {
+      "anchor_pin": "J1.1",
+      "min_width_mm": 0.3,
+      "net": "VCC"
+    }
+  ],
+  "title": "inverting x5 AC amplifier",
+  "value_bounds": {
+    "C1": [
+      4.7e-08,
+      1e-05
+    ],
+    "C2": [
+      1.8e-07,
+      1.5e-06
+    ],
+    "C3": [
+      4.7e-07,
+      4.7e-05
+    ],
+    "R1": [
+      2000.0,
+      20000.0
+    ],
+    "R2": [
+      14000.0,
+      140000.0
+    ],
+    "R3": [
+      4700.0,
+      470000.0
+    ],
+    "R4": [
+      4700.0,
+      470000.0
+    ]
+  }
+}

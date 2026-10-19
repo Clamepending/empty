@@ -43,9 +43,15 @@ NOTATION = {"value_sci", "value_plain", "value_units", "value_micro_sign", "valu
 LEGIT_SHIPPED = {
     "pcbtool_reroute_all": ROUTING,
     "pcbtool_sync": {"bom_mismatch", "board_pad_swap"},
-    "flip_part": ROUTING, "symmetric_pinswap": ROUTING, "other_footprint_size": ROUTING,
+    # these re-route the nets they touch at the power width -> genuine repair of routing faults
+    "flip_part": ROUTING, "symmetric_pinswap": ROUTING,
+    "other_footprint_size": ROUTING | {"bom_mismatch"},              # set-footprint re-pushes the design value
+    "polarity_and_symmetric": ROUTING | {"reversed_polarity"},       # A/K swap undoes a reversed diode
     "sync_design_from_board": {"bom_mismatch"},   # board value may be inside the published bound
     **{n: {"bom_mismatch"} for n in NOTATION},    # rewrites board value := design value
+    # round-1 value attacks also write design value (+ suffix) onto the board -> fixes bom_mismatch;
+    # the trailing-newline residue itself is RT59
+    "value_newline": {"bom_mismatch"}, "value_unit_suffix": {"bom_mismatch"},
 }
 ROOT = Path(__file__).resolve().parents[1]
 

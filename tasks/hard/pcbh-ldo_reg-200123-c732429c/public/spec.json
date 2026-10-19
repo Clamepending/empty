@@ -1,0 +1,106 @@
+{
+  "assertions": [
+    {
+      "ground_pin": "J1.2",
+      "loads": [
+        {
+          "pin": "J2.1",
+          "r": 165.0
+        }
+      ],
+      "max": 3.399,
+      "min": 3.201,
+      "name": "vout_loaded",
+      "net_pin": "J2.1",
+      "supply": {
+        "pin": "J1.1",
+        "volts": 9.0
+      },
+      "type": "dc_voltage"
+    },
+    {
+      "ground_pin": "J1.2",
+      "loads": [
+        {
+          "pin": "J2.1",
+          "r": 165.0
+        }
+      ],
+      "max": 3.399,
+      "min": 3.201,
+      "name": "vout_low_vin",
+      "net_pin": "J2.1",
+      "supply": {
+        "pin": "J1.1",
+        "volts": 3.9
+      },
+      "type": "dc_voltage"
+    },
+    {
+      "element": "J2.1",
+      "ground_pin": "J1.2",
+      "loads": [
+        {
+          "pin": "J2.1",
+          "r": 165.0
+        }
+      ],
+      "max": 0.021,
+      "min": 0.019,
+      "name": "load_current",
+      "supply": {
+        "pin": "J1.1",
+        "volts": 9.0
+      },
+      "type": "dc_current"
+    }
+  ],
+  "decoupling": [
+    {
+      "cap": "C1",
+      "ic_pin": "U1.VIN",
+      "max_mm": 5.0
+    },
+    {
+      "cap": "C2",
+      "ic_pin": "U1.VOUT",
+      "max_mm": 5.0
+    }
+  ],
+  "power_nets": [
+    {
+      "anchor_pin": "J2.1",
+      "min_width_mm": 0.3,
+      "net": "+3V3"
+    },
+    {
+      "anchor_pin": "J1.2",
+      "min_width_mm": 0.3,
+      "net": "GND"
+    },
+    {
+      "anchor_pin": "J1.1",
+      "min_width_mm": 0.3,
+      "net": "VIN"
+    }
+  ],
+  "title": "3.3 V LDO regulator",
+  "value_bounds": {
+    "C1": [
+      1e-06,
+      2.2e-05
+    ],
+    "C2": [
+      1e-06,
+      2.2e-05
+    ],
+    "R1": [
+      10000.0,
+      470000.0
+    ],
+    "R2": [
+      3300.0,
+      150000.0
+    ]
+  }
+}

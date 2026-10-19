@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import random
 
-from pcbenv.families._common import BULK, E6, E24, E96, Bounds, Builder, band, golden, nearest, pick, series_values
+from pcbenv.families._common import (BULK, E6, E24, E96, Bounds, Builder, band, golden, led_r_min, nearest, parts_summary,
+                                     pick, series_values, sig2_up)
 from pcbenv.golden import Golden
 from pcbenv.parts_lib import led_vf
 
@@ -11,27 +12,10 @@ FAMILY = "ldo_reg"
 VREF = 0.8
 
 
-MAX_REDRAWS = 20
-
-
 def generate(seed: int) -> Golden:
-    """Golden for `seed`. The LDO_ADJ SPICE model's regulation loop is stiff, and for a few value
-    combinations ngspice's DC operating point fails to converge (gmin + source stepping fail, the
-    transient-op fallback returns an unsettled point, e.g. seed 631: 1.06 V instead of 2.8 V), so
-    the golden would fail its own assertions. Such a draw is detected by simulating it, and only
-    then the parameters are redrawn from a derived RNG stream. Seeds whose first draw passes are
-    unchanged (shipped tasks depend on them)."""
-    from pcbenv.sim import run_assertions
-
-    g = _generate(seed, random.Random(seed))
-    redraw = 0
-    while not all(r.passed for r in run_assertions(g.design, g.assertions)):
-        redraw += 1
-        if redraw > MAX_REDRAWS:
-            raise RuntimeError(f"{FAMILY} seed {seed}: no self-consistent golden after {MAX_REDRAWS} redraws")
-        g = _generate(seed, random.Random(f"{FAMILY}/{seed}/redraw{redraw}"))
-        g.params["redraw"] = redraw
-    return g
+    """Golden for `seed`. (v1 redrew the parameters when ngspice failed to converge on the stiff
+    v1 LDO model; the v2 model converges for every draw, see tests/test_sim_convergence.py.)"""
+    return _generate(seed, random.Random(seed))
 
 
 def _generate(seed: int, rng: random.Random) -> Golden:
@@ -62,6 +46,7 @@ def _generate(seed: int, rng: random.Random) -> Golden:
         b.net(vin_net, "R3.1")
         b.net("EN", "R3.2", "U1.EN")
     led_i = 0.0
+    vf10 = 0.0
     if indicator:
         color = pick(rng, ["RED", "GREEN"])
         vf10 = 2.0 if color == "RED" else 2.2
@@ -98,10 +83,14 @@ def _generate(seed: int, rng: random.Random) -> Golden:
     k = vout / VREF - 1
     vb.fixed("R2", 3.3e3, 150e3)
     vb.fixed("R1", float(f"{3.3e3 * k:.2g}"), float(f"{150e3 * k:.2g}"))
+    vin_min = round(max(vout + 0.6, 2.5), 3)
+    en_rmax = 2e6 * (vin_min / 1.2 - 1)  # datasheet: VIN*2M/(Rpu+2M) > 1.2 V at the lowest VIN
     if "R3" in b.components:
-        vb.fixed("R3", 1e3, 1e6)  # EN pull-up: >= 1k (no needless current), <= 1M (vs 2M internal pull-down)
+        # EN pull-up: the datasheet allows EN tied straight to VIN (no lower limit); the upper limit
+        # follows from the internal 2 MOhm pull-down and is also pinned by vout_low_vin
+        vb.fixed("R3", 1.0, max(1e6, sig2_up(en_rmax)))
     if "R4" in b.components:
-        vb.spec("R4", b.val("R4"))  # LED current pinned by indicator_current
+        vb.spec("R4", b.val("R4"), ds_lo=led_r_min(vout, 1, vf10))  # LED current pinned by indicator_current
     en_txt = ("EN is tied directly to VIN so the regulator is always on." if en_mode == "tie" else
               "EN is pulled up to VIN through R3 so the regulator is on whenever input power is present.")
     intent = f"""
@@ -119,8 +108,12 @@ Converts a {vin:g} V input (J1: pin 1 = +{vin:g} V, pin 2 = GND) into a regulate
 
 Spec: output {vout:g} V ±3 % at {iload*1e3:.0f} mA load, for input voltages from {max(vout+0.6, 2.5):g} V up to {vin:g} V.
 Supply and ground traces carrying the load current must be at least {w} mm wide.
-Component values: C1 and C2 are 1 µF–22 µF ceramics (datasheet: ≥ 1 µF){"; the EN pull-up R3 is 1 kΩ–1 MΩ" if en_mode != "tie" else ""};
+Component values: C1 and C2 are 1 µF–22 µF ceramics (datasheet range){"; the EN pull-up R3 must keep EN above its 1.2 V threshold at the lowest input voltage (≤ %.3g MΩ)" % (max(1e6, sig2_up(en_rmax)) / 1e6) if en_mode != "tie" else ""};
 feedback divider Rbot (R2) 3.3 kΩ–150 kΩ (datasheet: 10k–50k typical) with R1 scaled to match.
+
+{parts_summary([("input connector", ["J1"]), ("regulator", ["U1"]), ("input/output capacitors", ["C1", "C2"]),
+                ("output-voltage feedback divider", ["R1", "R2"]), ("enable pull-up", [r for r in ["R3"] if r in b.components]),
+                ("output indicator LED", [r for r in ["D1", "R4"] if r in b.components]), ("output connector", ["J2"])])}
 """
     params = {"vout": vout, "vin": vin, "iload": iload, "en_mode": en_mode, "indicator": bool(led_i),
               "vout_nominal": round(vout_act, 4)}

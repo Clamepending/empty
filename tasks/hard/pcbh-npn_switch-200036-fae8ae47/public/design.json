@@ -1,0 +1,88 @@
+{
+  "components": {
+    "C1": {
+      "footprint": "Capacitor_SMD:C_1206_3216Metric",
+      "part": "C",
+      "value": "100n"
+    },
+    "D1": {
+      "footprint": "LED_SMD:LED_0805_2012Metric",
+      "part": "LED_GREEN",
+      "value": ""
+    },
+    "J1": {
+      "footprint": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
+      "part": "CONN2",
+      "value": ""
+    },
+    "Q1": {
+      "footprint": "Package_TO_SOT_SMD:SOT-23",
+      "part": "NPN",
+      "value": ""
+    },
+    "R1": {
+      "footprint": "Resistor_SMD:R_1206_3216Metric",
+      "part": "R",
+      "value": "47k"
+    },
+    "R2": {
+      "footprint": "Resistor_SMD:R_0805_2012Metric",
+      "part": "R",
+      "value": "11k"
+    },
+    "R3": {
+      "footprint": "Resistor_SMD:R_1206_3216Metric",
+      "part": "R",
+      "value": "62"
+    },
+    "R4": {
+      "footprint": "Resistor_SMD:R_1206_3216Metric",
+      "part": "R",
+      "value": "47k"
+    },
+    "U1": {
+      "footprint": "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm",
+      "part": "MCU8",
+      "value": ""
+    }
+  },
+  "nets": {
+    "+5V": [
+      "J1.1",
+      "U1.VDD",
+      "C1.1",
+      "R1.1",
+      "R3.1"
+    ],
+    "BASE": [
+      "R2.2",
+      "Q1.B",
+      "R4.1"
+    ],
+    "CTRL": [
+      "R2.1",
+      "U1.PA1"
+    ],
+    "GND": [
+      "J1.2",
+      "U1.GND",
+      "C1.2",
+      "Q1.E",
+      "R4.2"
+    ],
+    "LED_A": [
+      "R3.2",
+      "D1.A"
+    ],
+    "NRST": [
+      "R1.2",
+      "U1.NRST"
+    ],
+    "SW": [
+      "D1.K",
+      "Q1.C"
+    ]
+  },
+  "schema": "pcbenv/design@1",
+  "title": "MCU-controlled LED switch"
+}

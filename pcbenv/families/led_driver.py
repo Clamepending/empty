@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import random
 
-from pcbenv.families._common import E24, Bounds, Builder, band, golden, nearest, pick
+from pcbenv.families._common import E24, Bounds, Builder, band, golden, led_r_min, nearest, parts_summary, pick
 from pcbenv.golden import Golden
 from pcbenv.parts_lib import led_vf
 
@@ -68,9 +68,13 @@ current-limiting resistor; the resistor sets the current from (Vs - n*Vf)/R.
 
 Spec: each channel's LED current within ±10 % of its target. Resistors dissipating more than
 ~60 mW use a 1206 footprint.
+
+{parts_summary([("supply connector", ["J1"])] + [(f"channel {s} current-limiting resistor and LED string", [info["r"]] + info["leds"])
+                for s, info in enumerate(strings, 1)])}
 """
     params = {"vs": vs, "strings": strings}
     vb = Bounds(FAMILY, seed)
     for info in strings:
-        vb.spec(info["r"], b.val(info["r"]))  # each string current is pinned by its assertion
+        # each string current is pinned by its assertion; datasheet floor = 25 mA LED limit
+        vb.spec(info["r"], b.val(info["r"]), ds_lo=led_r_min(vs, info["n_series"], VF10[info["color"]]))
     return golden(FAMILY, seed, b, assertions, {supply: w, "GND": w}, [], intent, params, value_bounds=vb.out)

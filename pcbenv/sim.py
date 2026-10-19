@@ -177,9 +177,62 @@ def _stimulus_lines(nl: Netlist, a: dict, t0: float = 0.0, edge: float = 1e-9) -
 
 # --------------------------------------------------------------------------- ngspice
 
-def _run_deck(body: list[str], control: list[str], outfile: str) -> list[list[float]]:
-    deck = ["* pcbenv deck", ".options itl1=500 itl2=200 itl4=50 gmin=1e-13", *body,
-            ".control", "set wr_singlescale", "option numdgt=10", *control, "quit", ".endc", ".end", ""]
+class NonConvergence(SimError):
+    """The DC operating point could not be found reliably (never replaced by a guess)."""
+
+
+NOT_CONVERGED = "simulation did not converge"
+# Process-local counters (diagnostics/tests): how often the plain solve was rejected and the
+# robust re-derivation was needed / failed.
+STATS = {"rescued": 0, "not_converged": 0}
+# ngspice prints these when Newton, gmin stepping and source stepping all failed and it falls back
+# to a pseudo-transient "transient op". That point is not a DC solution (seen: LDO output 36 V
+# from a 12 V input), so it is never accepted.
+_FALLBACK_MARKERS = ("Transient op started", "transient op started")
+_BASE_OPTIONS = ".options itl1=500 itl2=200 itl4=50 gmin=1e-13"
+_RETRY_OPTIONS = ".options itl1=2000 itl2=500 itl4=100 gmin=1e-13 gminsteps=200 srcsteps=200"
+_SANITY_REL, _SANITY_ABS = 0.02, 0.05
+# Every 2-terminal stimulus-free node voltage of a DC solution lies within the span of the
+# stimulus voltages (and 0 V): the parts are passive or rail-limited (op-amp output within its
+# supply pins, LDO output within VIN). A point outside that span is a numerical artefact.
+
+
+def _deck_nodes(body: list[str]) -> list[str]:
+    """Top-level circuit nodes (every Netlist node has exactly one `Rzleak` line)."""
+    out = []
+    for line in body:
+        if line.startswith("Rzleak"):
+            parts = line.split()
+            if len(parts) >= 3 and parts[1] != "0":
+                out.append(parts[1])
+    return out
+
+
+_NUM_RE = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?")
+
+
+def _stimulus_span(body: list[str]) -> tuple[float, float]:
+    """(lowest, highest) voltage any stimulus source can apply (always includes 0 V)."""
+    lo = hi = 0.0
+    for line in body:
+        if not line.startswith(("Vzsup", "Vzsrc")):
+            continue
+        rest = line.split(None, 3)[3] if len(line.split(None, 3)) > 3 else ""
+        rest = re.sub(r"\bAC\s+\S+", "", rest)  # AC magnitude is small-signal, not a DC level
+        for tok in _NUM_RE.findall(rest):
+            v = float(tok)
+            lo, hi = min(lo, v), max(hi, v)
+    return lo, hi
+
+
+def _sane(values: list[float], span: tuple[float, float]) -> bool:
+    lo, hi = span
+    m = _SANITY_REL * (hi - lo) + _SANITY_ABS
+    return all(math.isfinite(v) and lo - m <= v <= hi + m for v in values)
+
+
+def _exec(deck: list[str], outfiles: list[str]) -> tuple[dict[str, str], str]:
+    """Run one deck; returns ({outfile: text} for the files that were written, log)."""
     with tempfile.TemporaryDirectory(prefix="pcbsim_") as td:
         Path(td, "deck.cir").write_text("\n".join(deck))
         try:
@@ -187,19 +240,167 @@ def _run_deck(body: list[str], control: list[str], outfile: str) -> list[list[fl
                                   text=True, timeout=NGSPICE_TIMEOUT_S)
         except subprocess.TimeoutExpired:
             raise SimError("ngspice timeout") from None
-        out = Path(td, outfile)
-        if not out.exists():
-            tail = (proc.stdout + proc.stderr).strip().splitlines()[-6:]
-            raise SimError("simulation failed: " + " | ".join(tail))
-        rows = []
-        for line in out.read_text().splitlines():
+        log = proc.stdout + proc.stderr
+        data = {f: Path(td, f).read_text() for f in outfiles if Path(td, f).exists()}
+    return data, log
+
+
+def _rows(text: str | None) -> list[list[float]] | None:
+    """Numeric rows of a `wrdata` file (non-numeric lines skipped); None if the file is missing."""
+    if text is None:
+        return None
+    rows = []
+    for line in text.splitlines():
+        parts = line.split()
+        if not parts:
+            continue
+        try:
+            rows.append([float(x) for x in parts])
+        except ValueError:
+            continue
+    return rows
+
+
+def _raw_voltages(text: str | None) -> dict[str, float] | None:
+    """All node voltages (top-level and subcircuit-internal) at the last point of an ASCII rawfile."""
+    if not text or "Values:" not in text:
+        return None
+    head, values = text.split("Values:", 1)
+    names: list[tuple[str, str]] = []
+    in_vars = False
+    for line in head.splitlines():
+        if line.startswith("Variables:"):
+            in_vars = True
+            continue
+        if in_vars:
             parts = line.split()
-            if not parts:
-                continue
-            try:
-                rows.append([float(x) for x in parts])
-            except ValueError:
-                continue
+            if len(parts) >= 3:
+                names.append((parts[1], parts[2]))
+    toks = values.split()
+    n = len(names)
+    if n == 0 or len(toks) < n + 1:
+        return None
+    last = toks[-(n + 1):]
+    try:
+        vals = [float(x.split(",")[0]) for x in last[1:]]
+    except ValueError:
+        return None
+    out = {}
+    for (name, kind), v in zip(names, vals):
+        if kind != "voltage" or not math.isfinite(v):
+            continue
+        name = name[2:-1] if name.lower().startswith("v(") and name.endswith(")") else name
+        out[name.lower()] = v
+    return out
+
+
+def _deck(body: list[str], control: list[str], options: str = _BASE_OPTIONS,
+          nodeset: dict[str, float] | None = None) -> list[str]:
+    ns = []
+    if nodeset:
+        ns = [".nodeset " + " ".join(f"v({n})={v:.9g}" for n, v in sorted(nodeset.items()))]
+    return ["* pcbenv deck", options, *body, *ns,
+            ".control", "set wr_singlescale", "set filetype=ascii", "option numdgt=10", *control, "quit", ".endc",
+            ".end", ""]
+
+
+def _fell_back(log: str) -> bool:
+    return any(m in log for m in _FALLBACK_MARKERS)
+
+
+def _op_all(body: list[str], nodes: list[str], span, options: str,
+            nodeset: dict[str, float] | None = None) -> dict[str, float] | None:
+    """Every node voltage of a trustworthy DC solution (converged Newton, no transient-op fallback,
+    top-level nodes within the stimulus span), or None."""
+    data, log = _exec(_deck(body, ["op", "write op.raw"], options, nodeset), ["op.raw"])
+    if _fell_back(log):
+        return None
+    allv = _raw_voltages(data.get("op.raw"))
+    if allv is None or any(n.lower() not in allv for n in nodes):
+        return None
+    if not _sane([allv[n.lower()] for n in nodes], span):
+        return None
+    return allv
+
+
+def _ramp_estimate(body: list[str]) -> dict[str, float] | None:
+    """All node voltages after a pseudo-transient power-up from 0 V (uic), used only as a
+    `.nodeset` starting point for a fresh Newton solve, never as a result."""
+    data, _ = _exec(_deck(body, ["tran 10u 50m 0 100u uic", "write ramp.raw"], _RETRY_OPTIONS), ["ramp.raw"])
+    return _raw_voltages(data.get("ramp.raw"))
+
+
+Solution = tuple[str, dict[str, float]]   # (options line, full nodeset) that reproduces a verified op
+
+
+def robust_nodeset(body: list[str]) -> Solution:
+    """A verified DC operating point, found by escalating strategies: (1) Newton with gmin/source
+    stepping, (2) the same with more steps, (3) a pseudo-transient power-up whose end state (all
+    nodes, subcircuit-internal ones included) seeds a `.nodeset` for a fresh Newton solve, (4) a
+    high-gmin solve used the same way. A candidate counts only if ngspice converged without its
+    transient-op fallback and every top-level node lies within the stimulus span. Returns the
+    options and the full node-voltage set, so the caller's analysis can be re-run from exactly
+    that point. Raises NonConvergence otherwise."""
+    nodes = _deck_nodes(body)
+    span = _stimulus_span(body)
+    for opts in (_BASE_OPTIONS, _RETRY_OPTIONS):
+        sol = _op_all(body, nodes, span, opts)
+        if sol is not None:
+            return opts, sol
+    seeds = []
+    ramp = _ramp_estimate(body)
+    if ramp is not None:
+        seeds.append(ramp)
+    loose = _op_all(body, [], (-math.inf, math.inf), _RETRY_OPTIONS.replace("gmin=1e-13", "gmin=1e-6"))
+    if loose is not None:
+        seeds.append(loose)
+    top = {n.lower() for n in nodes}
+    for seed in seeds:
+        ns = {n: (min(max(v, span[0]), span[1]) if n in top else v) for n, v in seed.items()}
+        sol = _op_all(body, nodes, span, _RETRY_OPTIONS, ns)
+        if sol is not None:
+            return _RETRY_OPTIONS, sol
+    raise NonConvergence(NOT_CONVERGED)
+
+
+def _run_deck(body: list[str], control: list[str], outfile: str) -> list[list[float]]:
+    """Run an analysis and return the rows of `outfile` (first column = scale).
+
+    The DC operating point (the `op` analysis itself, or the bias point of `ac` / `tran`) must be
+    a converged Newton solution: if ngspice falls back to its transient-op guess, or an `op`
+    result has a node voltage outside the stimulus span, the operating point is re-derived with
+    `robust_nodeset` and the analysis re-run from it; if that fails too, NonConvergence
+    ("simulation did not converge") is raised -- never a fabricated measurement."""
+    is_op = bool(control) and control[0].split()[0] == "op"
+    nodes = _deck_nodes(body)
+    span = _stimulus_span(body)
+    check = [f"wrdata zsanity.txt {' '.join(f'v({n})' for n in nodes)}"] if is_op and nodes else []
+    ctl = [control[0], *check, *control[1:]]
+
+    def attempt(options: str, nodeset: dict[str, float] | None) -> tuple[list[list[float]] | None, str, bool]:
+        data, log = _exec(_deck(body, ctl, options, nodeset), [outfile, "zsanity.txt"])
+        rows = _rows(data.get(outfile))
+        ok = rows is not None and not _fell_back(log)
+        if ok and check:
+            srows = _rows(data.get("zsanity.txt"))
+            ok = bool(srows) and _sane(srows[0][1:], span)
+        return rows, log, ok
+
+    rows, log, ok = attempt(_BASE_OPTIONS, None)
+    uses_uic = any(" uic" in c for c in control)
+    if not ok and not uses_uic:
+        try:
+            opts, ns = robust_nodeset(body)
+            rows, log, ok = attempt(opts, ns)
+        except NonConvergence:
+            ok = False
+        if not ok:
+            STATS["not_converged"] += 1
+            raise NonConvergence(NOT_CONVERGED)
+        STATS["rescued"] += 1
+    if rows is None:
+        tail = log.strip().splitlines()[-6:]
+        raise SimError("simulation failed: " + " | ".join(tail))
     if not rows:
         raise SimError("no simulation data")
     for r in rows:
@@ -332,12 +533,15 @@ def _run_ac(design: dict, ground: str, group: list[dict]) -> list[AssertionResul
             else:
                 fc = _cutoff([r[0] for r in rows], gains, a.get("edge", "high"))
                 res.append(_result(a, fc, "" if fc is not None else "no -3 dB crossing in sweep"))
+        except NonConvergence:
+            res.append(AssertionResult(assertion_name(a), False, None, _expected(a), NOT_CONVERGED))
         except SimError as e:
             res.append(AssertionResult(assertion_name(a), False, None, _expected(a), str(e)))
     return res
 
 
-def _transition_time(ts: list[float], vs: list[float], t0: float) -> float | None:
+def _transition_time(ts: list[float], vs: list[float], t0: float,
+                     levels: tuple[float, float] = (0.1, 0.9)) -> float | None:
     i0 = max(i for i, t in enumerate(ts) if t <= t0) if ts[0] <= t0 else 0
     v0, v1 = vs[i0], vs[-1]
     if abs(v1 - v0) < 1e-3:
@@ -352,10 +556,11 @@ def _transition_time(ts: list[float], vs: list[float], t0: float) -> float | Non
                 return t, i
         return None
 
-    c10 = cross(v0 + 0.1 * (v1 - v0), i0)
+    lo, hi = levels
+    c10 = cross(v0 + lo * (v1 - v0), i0)
     if c10 is None:
         return None
-    c90 = cross(v0 + 0.9 * (v1 - v0), c10[1])
+    c90 = cross(v0 + hi * (v1 - v0), c10[1])
     if c90 is None:
         return None
     return c90[0] - c10[0]
@@ -375,7 +580,17 @@ def _run_tran(design: dict, ground: str, group: list[dict]) -> list[AssertionRes
     rows = _run_deck(body, ctl, "out.txt")
     ts = [r[0] for r in rows]
     cols = _collect(rows, exprs, False)
-    return [_result(a, _transition_time(ts, col, t0)) for a, col in zip(group, cols)]
+    return [_result(a, _transition_time(ts, col, t0, _levels(a))) for a, col in zip(group, cols)]
+
+
+def _levels(a: dict) -> tuple[float, float]:
+    """Transition-time thresholds as fractions of the swing: `levels: [lo, hi]` (default 10-90 %;
+    I2C rise time per UM10204 uses [0.3, 0.7])."""
+    lv = a.get("levels") or (0.1, 0.9)
+    lo, hi = float(lv[0]), float(lv[1])
+    if not 0.0 <= lo < hi <= 1.0:
+        raise SimError(f"bad levels {lv!r}")
+    return lo, hi
 
 
 _RUNNERS = {"op": _run_op, "ac": _run_ac, "tran": _run_tran}
@@ -408,6 +623,8 @@ def run_assertions(design: dict, assertions: list[dict]) -> list[AssertionResult
         group = [assertions[i] for i in idx]
         try:
             res = _RUNNERS[analysis](design, ground, group)
+        except NonConvergence:
+            res = [AssertionResult(assertion_name(a), False, None, _expected(a), NOT_CONVERGED) for a in group]
         except Exception as e:  # noqa: BLE001
             res = [AssertionResult(assertion_name(a), False, None, _expected(a), f"sim error: {e}") for a in group]
         for i, r in zip(idx, res):

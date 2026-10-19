@@ -95,30 +95,77 @@ def board_size(n_components: int, big: bool = False) -> tuple[float, float]:
 #   golden value (the generator's own RNG stream is untouched).
 # - `fixed(ref, lo, hi)`: no assertion constrains the value; the range comes from datasheet /
 #   engineering practice and is also stated in the family's intent.
-DECOUPLING = (47e-9, 10e-6)      # MCU8 / OPAMP datasheets: 100 nF typical, 47 nF..10 uF acceptable
-NRST_PULLUP = (2.2e3, 100e3)     # MCU8 datasheet: 10k typical; 2.2k..100k keeps NRST high, low current
-BULK = (1e-6, 22e-6)             # ceramic bulk / LDO caps: >= 1 uF (datasheet), <= 22 uF practical MLCC
+from pcbenv.parts_lib import LDO_CAP, MCU_DECOUPLING, MCU_NRST_PULLUP, MCU_RESET_CAP  # noqa: E402
+
+DECOUPLING = MCU_DECOUPLING      # MCU8 / OPAMP datasheets: 100 nF typical, 47 nF..10 uF
+NRST_PULLUP = MCU_NRST_PULLUP    # MCU8 datasheet: 10k typical, 2.2k..100k
+RESET_CAP = MCU_RESET_CAP        # MCU8 datasheet: optional NRST cap 10 nF..1 uF
+BULK = LDO_CAP                   # ceramic bulk / LDO caps: 1 uF (datasheet min) .. 22 uF
 
 
 def _sig2(x: float) -> float:
     return float(f"{x:.2g}")
 
 
+def sig2_down(x: float) -> float:
+    """Largest 2-significant-digit number <= x."""
+    e = math.floor(math.log10(x)) - 1
+    return float(f"{math.floor(x / 10 ** e * (1 + 1e-12)) * 10 ** e:.2g}")
+
+
+def sig2_up(x: float) -> float:
+    """Smallest 2-significant-digit number >= x."""
+    e = math.floor(math.log10(x)) - 1
+    return float(f"{math.ceil(x / 10 ** e * (1 - 1e-12)) * 10 ** e:.2g}")
+
+
 class Bounds:
+    """Value bounds policy (SPEC §4 + QA F1).
+
+    - `spec(ref, v, ds_lo, ds_hi)`: the value is pinned by a spec assertion; the bound is a sanity
+      range around the golden, widened so that it always contains the datasheet-derived limits
+      (`ds_lo`/`ds_hi`, e.g. the I2C pull-up range (VDD-0.4)/3mA .. tr/(0.8473 Cbus)): a value the
+      datasheet and the spec allow is never rejected by the bound alone.
+    - `fixed(ref, lo, hi)`: no assertion constrains the value; the range is the datasheet's stated
+      range (or an engineering range where no datasheet states one), also stated in the intent.
+    - `exact(ref, v, rel)`: a stated requirement on the value itself (e.g. the crystal frequency).
+    `limits` records the datasheet-derived limits each bound was checked against (tests use it)."""
+
     def __init__(self, family: str, seed: int):
         self.family, self.seed = family, seed
         self.out: dict[str, list[float]] = {}
+        self.limits: dict[str, list[float | None]] = {}
 
-    def spec(self, ref: str, v: float) -> None:
+    def spec(self, ref: str, v: float, ds_lo: float | None = None, ds_hi: float | None = None) -> None:
         r = random.Random(f"value_bounds/{self.family}/{self.seed}/{ref}")
         lo, hi = 2.5 + 1.5 * r.random(), 2.5 + 1.5 * r.random()
-        self.out[ref] = [_sig2(v / lo), _sig2(v * hi)]
+        b = [_sig2(v / lo), _sig2(v * hi)]
+        if ds_lo is not None and ds_lo > 0:
+            b[0] = min(b[0], sig2_down(ds_lo))
+        if ds_hi is not None and ds_hi > 0:
+            b[1] = max(b[1], sig2_up(ds_hi))
+        self.out[ref] = b
+        if ds_lo is not None or ds_hi is not None:
+            self.limits[ref] = [ds_lo, ds_hi]
 
     def fixed(self, ref: str, lo: float, hi: float) -> None:
         self.out[ref] = [float(lo), float(hi)]
 
     def exact(self, ref: str, v: float, rel: float) -> None:
         self.out[ref] = [float(f"{v * (1 - rel):.9g}"), float(f"{v * (1 + rel):.9g}")]
+
+
+def led_r_min(v_supply: float, n_leds: int, vf10: float, v_switch: float = 0.0, i_max: float = 0.025) -> float:
+    """Smallest series resistor that keeps an LED string at or below `i_max` (datasheet 25 mA)."""
+    from pcbenv.parts_lib import led_vf
+    return max(1.0, (v_supply - n_leds * led_vf(vf10, i_max) - v_switch) / i_max)
+
+
+def parts_summary(groups: list[tuple[str, list[str]]]) -> str:
+    """One non-bullet paragraph naming every sub-circuit by purpose with its refs (QA F10: the
+    reduced intent of symptom/vague tasks keeps it, so no sub-circuit is left unmentioned)."""
+    items = [f"{purpose} ({', '.join(refs)})" for purpose, refs in groups if refs]
+    return "Sub-circuits by purpose: " + "; ".join(items) + "."
 
 
 def check_bounds(design: dict, bounds: dict[str, list[float]]) -> None:
@@ -181,5 +228,6 @@ def gain_at(h, f: float) -> float:
     return abs(h(2j * math.pi * f))
 
 
-__all__ = ["E6", "E12", "E24", "E96", "Builder", "Bounds", "DECOUPLING", "NRST_PULLUP", "BULK", "check_bounds", "cmath", "series_values", "nearest", "vstr", "pick",
+__all__ = ["E6", "E12", "E24", "E96", "Builder", "Bounds", "DECOUPLING", "NRST_PULLUP", "BULK", "RESET_CAP",
+           "led_r_min", "parts_summary", "sig2_down", "sig2_up", "check_bounds", "cmath", "series_values", "nearest", "vstr", "pick",
            "golden", "band", "rng_range", "cutoff_of", "par", "gain_at"]

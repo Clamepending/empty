@@ -4,7 +4,8 @@ from __future__ import annotations
 import math
 import random
 
-from pcbenv.families._common import DECOUPLING, E12, E96, Bounds, Builder, band, cutoff_of, gain_at, golden, nearest, pick, series_values
+from pcbenv.families._common import (DECOUPLING, E12, E96, Bounds, Builder, band, cutoff_of, gain_at, golden, nearest,
+                                     parts_summary, pick, series_values)
 from pcbenv.golden import Golden
 from pcbenv.parts_lib import OPAMP_A0, OPAMP_GBW
 
@@ -83,6 +84,11 @@ Spec: gain {gain:g} ±3 % at {f_test:g} Hz; -3 dB bandwidth {fc/1e3:.3g} kHz ±1
 (input {vin_dc:g} V DC -> output {g_nom*vin_dc:.3g} V).
 Component values: decoupling C1 47 nF–10 µF (100 nF typical); input bias resistor R3 47 kΩ–2.2 MΩ
 (sets the input impedance).
+
+{parts_summary([("supply connector", ["J1"]), ("op-amp with supply decoupling", ["U1", "C1"]),
+                ("input bias resistor", ["R3"]), ("gain-setting feedback divider", ["R1", "R2"])]
+               + ([("bandwidth-limiting feedback capacitor", ["C2"])] if cf else [])
+               + [("input connector", ["J2"]), ("output connector", ["J3"])])}
 """
     params = {"vcc": vcc, "gain": gain, "cf": bool(cf), "bandwidth_hz": round(fc, 1)}
     vb = Bounds(FAMILY, seed)

@@ -1,0 +1,1 @@
+500 dividers x 2 input voltages: worst |sim/analytic - 1| = 0.070 %, 0 outside 1 % or not converged; sim stats {'rescued': 0, 'not_converged': 0}

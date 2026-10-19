@@ -1,0 +1,351 @@
+{
+  "alt_partitions": [],
+  "assertions": [
+    {
+      "element": "D1",
+      "ground_pin": "J1.2",
+      "max": 0.00575,
+      "min": 0.00425,
+      "name": "load_on_current",
+      "source": {
+        "dc": 5.0,
+        "pin": "U1.PA1",
+        "r": 50.0
+      },
+      "supply": {
+        "pin": "J1.1",
+        "volts": 5.0
+      },
+      "type": "dc_current"
+    },
+    {
+      "ground_pin": "J1.2",
+      "max": 0.3,
+      "min": 0.0,
+      "name": "vce_sat",
+      "net_pin": "Q1.C",
+      "source": {
+        "dc": 5.0,
+        "pin": "U1.PA1",
+        "r": 50.0
+      },
+      "supply": {
+        "pin": "J1.1",
+        "volts": 5.0
+      },
+      "type": "dc_voltage"
+    },
+    {
+      "element": "R2",
+      "ground_pin": "J1.2",
+      "max": 0.008,
+      "min": 0.0,
+      "name": "gpio_current",
+      "source": {
+        "dc": 5.0,
+        "pin": "U1.PA1",
+        "r": 50.0
+      },
+      "supply": {
+        "pin": "J1.1",
+        "volts": 5.0
+      },
+      "type": "dc_current"
+    },
+    {
+      "element": "D1",
+      "ground_pin": "J1.2",
+      "loads": [
+        {
+          "pin": "Q1.B",
+          "r": 1000000.0,
+          "to": "J1.1"
+        }
+      ],
+      "max": 0.0001,
+      "min": 0.0,
+      "name": "load_off_current",
+      "supply": {
+        "pin": "J1.1",
+        "volts": 5.0
+      },
+      "type": "dc_current"
+    },
+    {
+      "ground_pin": "J1.2",
+      "max": 5.1,
+      "min": 4.9,
+      "name": "vdd",
+      "net_pin": "U1.VDD",
+      "ref_pin": "U1.GND",
+      "supply": {
+        "pin": "J1.1",
+        "volts": 5.0
+      },
+      "type": "dc_voltage"
+    },
+    {
+      "ground_pin": "J1.2",
+      "max": 5.05,
+      "min": 4.5,
+      "name": "nrst_high",
+      "net_pin": "U1.NRST",
+      "supply": {
+        "pin": "J1.1",
+        "volts": 5.0
+      },
+      "type": "dc_voltage"
+    }
+  ],
+  "board_h_mm": 45.0,
+  "board_seed": 0,
+  "board_w_mm": 50.0,
+  "decoupling": [
+    {
+      "cap": "C1",
+      "ic_pin": "U1.VDD",
+      "max_mm": 5.0
+    }
+  ],
+  "difficulty": {
+    "measured": null,
+    "predicted": "hard"
+  },
+  "family": "npn_switch",
+  "faults": [
+    {
+      "category": "latent",
+      "data": {
+        "detected_by": "rules",
+        "evidence": "parts/NPN.md forced-beta <= 20 switching rule (and the RB formula); load current in the spec",
+        "footprints": {},
+        "golden_value": "7.5k",
+        "latent": true,
+        "moves": {},
+        "needs_full_intent": false,
+        "ref": "R2",
+        "rule_codes": [
+          "npn_saturation"
+        ],
+        "rule_violations": [
+          "npn_saturation: Q1 saturated switch with forced beta IC/IB = 4.72 mA/107 uA = 44.2 > 20 [condition 0]"
+        ],
+        "value": "25k",
+        "values": {
+          "R2": [
+            "7.5k",
+            "25k"
+          ]
+        }
+      },
+      "detail": "R2 (base drive of Q1) is 25k, should be ~7.5k: Q1 only saturates thanks to typical hFE (forced beta > 20)",
+      "invisible_to_drc_erc": true,
+      "targets": [
+        "R2"
+      ],
+      "type": "weak_base_drive"
+    },
+    {
+      "category": "connectivity",
+      "data": {
+        "drc_after": {
+          "errors": [],
+          "unconnected": 0
+        },
+        "erc_after": [],
+        "golden_net": "BASE",
+        "moves": {
+          "Q1.B": [
+            "BASE",
+            "GND"
+          ]
+        },
+        "net": "GND",
+        "pin": "Q1.B"
+      },
+      "detail": "Q1.B tied to net GND instead of BASE",
+      "invisible_to_drc_erc": true,
+      "targets": [
+        "Q1",
+        "net:BASE",
+        "net:GND"
+      ],
+      "type": "pin_to_wrong_net"
+    },
+    {
+      "category": "connectivity",
+      "data": {
+        "drc_after": {
+          "errors": [],
+          "unconnected": 0
+        },
+        "erc_after": [],
+        "moves": {
+          "D1.A": [
+            "LED_A",
+            "SW"
+          ],
+          "D1.K": [
+            "SW",
+            "LED_A"
+          ]
+        },
+        "pins": [
+          "D1.A",
+          "D1.K"
+        ]
+      },
+      "detail": "D1 anode/cathode reversed",
+      "invisible_to_drc_erc": true,
+      "targets": [
+        "D1",
+        "net:LED_A",
+        "net:SW"
+      ],
+      "type": "reversed_polarity"
+    },
+    {
+      "category": "connectivity",
+      "data": {
+        "cap": "C1",
+        "drc_after": {
+          "errors": [],
+          "unconnected": 0
+        },
+        "erc_after": [
+          "unconnected_required"
+        ],
+        "golden_net": "+5V",
+        "moves": {
+          "C1.1": [
+            "+5V",
+            null
+          ]
+        },
+        "net": null,
+        "pin": "C1.1",
+        "variant": "disconnected"
+      },
+      "detail": "C1 supply-side pin C1.1 not connected (should be on +5V)",
+      "invisible_to_drc_erc": false,
+      "targets": [
+        "C1",
+        "net:+5V"
+      ],
+      "type": "decap_misconnected"
+    }
+  ],
+  "generator": "pcb-repair-hard-v0",
+  "hardened_footprints": {},
+  "hint_level": "vague",
+  "intent": "reduced",
+  "params": {
+    "color": "RED",
+    "gpio": "PA1",
+    "i_load": 0.005,
+    "load": "led",
+    "vs": 5.0
+  },
+  "power_net_pins": {
+    "+5V": [
+      "C1.1",
+      "J1.1",
+      "R1.1",
+      "R3.1",
+      "U1.VDD"
+    ],
+    "GND": [
+      "C1.2",
+      "J1.2",
+      "Q1.E",
+      "R4.2",
+      "U1.GND"
+    ]
+  },
+  "power_nets": {
+    "+5V": 0.3,
+    "GND": 0.3
+  },
+  "ref_parts": {
+    "C1": "C",
+    "D1": "LED_RED",
+    "J1": "CONN2",
+    "Q1": "NPN",
+    "R1": "R",
+    "R2": "R",
+    "R3": "R",
+    "R4": "R",
+    "U1": "MCU8"
+  },
+  "rules": {
+    "inductive_loads": [],
+    "scenarios": [
+      {
+        "ground_pin": "J1.2",
+        "loads": null,
+        "source": [
+          {
+            "dc": 5.0,
+            "pin": "U1.PA1",
+            "r": 50.0
+          }
+        ],
+        "supply": {
+          "pin": "J1.1",
+          "volts": 5.0
+        }
+      },
+      {
+        "ground_pin": "J1.2",
+        "loads": [
+          {
+            "pin": "Q1.B",
+            "r": 1000000.0,
+            "to": "J1.1"
+          }
+        ],
+        "source": null,
+        "supply": {
+          "pin": "J1.1",
+          "volts": 5.0
+        }
+      },
+      {
+        "ground_pin": "J1.2",
+        "loads": null,
+        "source": null,
+        "supply": {
+          "pin": "J1.1",
+          "volts": 5.0
+        }
+      }
+    ],
+    "version": 1
+  },
+  "seed": 200099,
+  "task_id": "pcbh-npn_switch-200099-833779b3",
+  "tier": "hard",
+  "tools_mode": "full",
+  "value_bounds": {
+    "C1": [
+      4.7e-08,
+      1e-05
+    ],
+    "R1": [
+      2200.0,
+      100000.0
+    ],
+    "R2": [
+      530.0,
+      28000.0
+    ],
+    "R3": [
+      110.0,
+      2400.0
+    ],
+    "R4": [
+      4700.0,
+      220000.0
+    ]
+  }
+}

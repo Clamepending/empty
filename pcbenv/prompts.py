@@ -136,7 +136,8 @@ def board_symptoms(golden: Golden, design: dict, board_path: str) -> list[str]:
             "decoupling": golden.decoupling}
     codes = {i.code for i in layout.run_layout_checks(info, meta, board=board_path, ref_parts=rp)}
     if "power_width" in codes:
-        out.append("Layout review: a supply trace is narrower than its required width (it runs hot at full load).")
+        out.append("Layout review: a track on a net with a required minimum width (see the layout rules) is narrower "
+                   "than that width.")
     if "decoupling" in codes:
         out.append("Layout review: a decoupling capacitor sits too far from the IC pin it decouples.")
     return out
@@ -228,3 +229,79 @@ def render(golden: Golden, level: str, records: list[dict], symptom_lines: list[
     full = level == "explicit" if full_intent is None else full_intent
     g = golden if full else replace(golden, intent=reduce_intent(golden.intent))
     return render_task_md(g, problem_text(level, golden, records, symptom_lines))
+
+
+# ------------------------------------------------------------------ hard tier (G12)
+import re as _re  # noqa: E402
+
+_INTERFACE_RE = _re.compile(r"\bJ\d+\b|\bpin \d+ =|\bU\d+\.[A-Z]|\b(PA[0-2]|SDA|SCL|XIN|XOUT)\b|"
+                            r"\d(\.\d+)? ?V\b")
+
+HARD_NO_AUTOROUTE_NOTE = """\
+**Tool mode for this task: `no_autoroute`** (`tools.json`). `pcbtool route` and `pcbtool sync` are
+disabled: after changing connectivity or footprints, edit the tracks (`segment` / `via` items) in
+`board.kicad_pcb` yourself, or move parts with `pcbtool move`. All other commands work.
+"""
+
+
+def interface_lines(intent: str) -> list[str]:
+    """Intent bullets that state an interface: connector pins, MCU pin assignments, rail voltages."""
+    out, cur = [], None
+    for line in intent.splitlines() + [""]:
+        if line.startswith("- "):
+            if cur:
+                out.append(cur)
+            cur = line
+        elif cur is not None and line.startswith("  ") and line.strip():
+            cur += " " + line.strip()
+        else:
+            if cur:
+                out.append(cur)
+            cur = None
+    return [b for b in out if _INTERFACE_RE.search(b)]
+
+
+def hard_intent(intent: str) -> str:
+    """Hard-tier reduced intent: purpose / interfaces / spec, plus every bullet that fixes a
+    connector pinout, an MCU pin assignment or a rail voltage (these must never be dropped)."""
+    red = reduce_intent(intent)
+    keep = interface_lines(intent)
+    if not keep:
+        return red
+    head, _, note = red.rpartition(REDUCED_NOTE)
+    return (head.rstrip() + "\n\nInterfaces and pin assignments (fixed):\n\n" + "\n".join(keep) + "\n\n"
+            + REDUCED_NOTE + note)
+
+
+def render_hard(golden: Golden, level: str, symptom_lines: list[str], full_intent: bool, mode: str) -> str:
+    """Hard-tier TASK.md: symptom / vague problem report (latent faults have no symptoms by
+    construction, so none are listed for them), full or hard-reduced intent, and the "Design
+    rules" section stating that pcbtool does not check them."""
+    from pcbenv.rules import DESIGN_RULES_MD
+    from pcbenv.taskio import TOOLS_TEXT
+    if level not in ("symptom", "vague"):
+        raise ValueError(level)
+    g = golden if full_intent else replace(golden, intent=hard_intent(golden.intent))
+    text = render_task_md(g, problem_text(level, golden, [], symptom_lines))
+    text = text.replace("\n## Deliverable\n", "\n" + DESIGN_RULES_MD + "\n## Deliverable\n", 1)
+    old = "- Grading is pass/fail: topology, consistency, DRC, ERC, spec, component values and layout "
+    if old in text:
+        text = text.replace(old, "- Grading is pass/fail: topology, consistency, DRC, ERC, spec, component values, "
+                                 "layout and the design rules above ", 1)
+    if mode == "no_autoroute":
+        text = text.replace(TOOLS_TEXT, TOOLS_TEXT.rstrip() + "\n\n" + HARD_NO_AUTOROUTE_NOTE, 1)
+    return text
+
+
+POWER_RULE_NOTE = """\
+Resistor power rule: every resistor's continuous dissipation I²·R must stay at or below 50 % of its
+footprint's rated power (0603 0.1 W, 0805 0.125 W, 1206 0.5 W; see `parts/R.md`). The grader checks
+this under the spec's operating conditions; `pcbtool` does not.
+"""
+
+
+def add_power_rule_note(text: str, golden: Golden) -> str:
+    """All-tier TASK.md note for the graded resistor power rule (QA F5)."""
+    if not any(c["part"] == "R" for c in golden.design["components"].values()):
+        return text
+    return text.replace("\nBoard rules: ", "\n" + POWER_RULE_NOTE + "\nBoard rules: ", 1)

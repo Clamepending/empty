@@ -66,6 +66,21 @@ def _fmt(x: float, unit: str) -> str:
 _UNITS = {"dc_voltage": "V", "dc_current": "A", "ac_gain": "", "cutoff": "Hz", "rise_time": "s"}
 
 
+def _source_kind(s: dict) -> str:
+    """Plain-English stimulus kind from the source's keys (QA F4: AC sources are not "dc")."""
+    kind = s.get("kind", "dc")
+    if kind == "release":
+        return "open-drain driver releasing the line"
+    if kind == "step":
+        return f"step {s.get('v0', 0)} V -> {s.get('v1')} V source"
+    ac, dc = s.get("ac"), s.get("dc")
+    if ac and dc:
+        return f"{dc} V DC + {ac} V AC source"
+    if ac:
+        return f"{ac} V AC source"
+    return f"{dc if dc is not None else 0} V DC source"
+
+
 def describe_assertion(a: dict) -> str:
     """One plain-English line for a spec assertion."""
     t = a.get("type")
@@ -90,8 +105,7 @@ def describe_assertion(a: dict) -> str:
     for s in (a.get("supply") if isinstance(a.get("supply"), list) else [a["supply"]] if a.get("supply") else []):
         cond.append(f"{s['pin']} supplied with {s['volts']} V")
     for s in (a.get("source") if isinstance(a.get("source"), list) else [a["source"]] if a.get("source") else []):
-        kind = s.get("kind", "dc")
-        cond.append(f"{kind} source on {s['pin']}")
+        cond.append(f"{_source_kind(s)} on {s['pin']}")
     for ld in a.get("loads") or []:
         parts = [f"{k.upper()}={ld[k]:g}" for k in ("r", "l", "c") if ld.get(k) is not None]
         cond.append(f"load {' '.join(parts)} from {ld['pin']} to {ld.get('to', 'ground')}")

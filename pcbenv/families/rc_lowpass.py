@@ -4,10 +4,14 @@ from __future__ import annotations
 import math
 import random
 
-from pcbenv.families._common import E6, E12, E24, Bounds, Builder, cutoff_of, gain_at, golden, nearest, pick, series_values
+from pcbenv.families._common import E6, E12, E24, Bounds, Builder, cutoff_of, gain_at, golden, nearest, parts_summary, pick, series_values
 from pcbenv.golden import Golden
 
 FAMILY = "rc_lowpass"
+# QA F7: no golden capacitor below ~100 pF (an ADC input or a probe would move the corner) and no
+# resistor above 220 kOhm; the bounds keep the R draw inside these.
+C_MIN = 105e-12
+R_MAX = 220e3
 
 
 def transfer(topo: str, v: dict):
@@ -34,14 +38,16 @@ def generate(seed: int) -> Golden:
     b.add("J2", "CONN2")
     b.net("GND", "J1.2", "J2.2")
     if topo == "rc1":
-        r = pick(rng, series_values(E24, 1e3, 100e3))
+        r = pick(rng, [x for x in series_values(E24, 1e3, 100e3) if 1 / (2 * math.pi * x * fc_t) >= C_MIN]
+                   or [1e3])
         b.add("R1", "R", r)
         b.add("C1", "C", nearest(E12, 1 / (2 * math.pi * r * fc_t)))
         b.net("IN", "J1.1", "R1.1")
         b.net("OUT", "R1.2", "C1.1", "J2.1")
         b.net("GND", "C1.2")
     elif topo == "rc2":
-        r = pick(rng, series_values(E24, 1e3, 22e3))
+        r = pick(rng, [x for x in series_values(E24, 1e3, 22e3) if 1 / (2 * math.pi * x * fc_t) / 15 >= C_MIN]
+                   or [1e3])
         b.add("R1", "R", r)
         b.add("R2", "R", nearest(E24, 10 * r))
         c = 1 / (2 * math.pi * r * fc_t) / 1.5   # rough: lightly-loaded 2-pole sections
@@ -94,6 +100,8 @@ Topology: {desc}
 
 Spec: order {order}; -3 dB corner {fc:.4g} Hz ±10 %; passband gain ≈ {g_pass:.3f} at fc/20;
 attenuation at 10·fc: gain {g_stop:.3g} ±25 %.
+
+{parts_summary([("input connector", ["J1"]), ("filter network", sorted(vals)), ("output connector", ["J2"])])}
 """
     params = {"topology": topo, "fc_hz": round(fc, 3), "order": order}
     vb = Bounds(FAMILY, seed)

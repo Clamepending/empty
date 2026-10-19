@@ -1,0 +1,97 @@
+{
+  "assertions": [
+    {
+      "freq": 100.0,
+      "ground_pin": "J1.2",
+      "in_pin": "J2.1",
+      "max": 10.3,
+      "min": 9.7,
+      "name": "gain",
+      "out_pin": "J3.1",
+      "source": {
+        "ac": 1.0,
+        "dc": 0.1986,
+        "pin": "J2.1"
+      },
+      "supply": {
+        "pin": "J1.1",
+        "volts": 5.0
+      },
+      "type": "ac_gain"
+    },
+    {
+      "ground_pin": "J1.2",
+      "max": 2.06506,
+      "min": 1.93506,
+      "name": "dc_out",
+      "net_pin": "J3.1",
+      "source": {
+        "ac": 1.0,
+        "dc": 0.1986,
+        "pin": "J2.1"
+      },
+      "supply": {
+        "pin": "J1.1",
+        "volts": 5.0
+      },
+      "type": "dc_voltage"
+    },
+    {
+      "edge": "high",
+      "ground_pin": "J1.2",
+      "in_pin": "J2.1",
+      "max": 109237.0,
+      "min": 89376.1,
+      "name": "bandwidth",
+      "out_pin": "J3.1",
+      "source": {
+        "ac": 1.0,
+        "dc": 0.1986,
+        "pin": "J2.1"
+      },
+      "supply": {
+        "pin": "J1.1",
+        "volts": 5.0
+      },
+      "type": "cutoff"
+    }
+  ],
+  "decoupling": [
+    {
+      "cap": "C1",
+      "ic_pin": "U1.V+",
+      "max_mm": 5.0
+    }
+  ],
+  "power_nets": [
+    {
+      "anchor_pin": "J1.2",
+      "min_width_mm": 0.3,
+      "net": "GND"
+    },
+    {
+      "anchor_pin": "J1.1",
+      "min_width_mm": 0.3,
+      "net": "VCC"
+    }
+  ],
+  "title": "x10 non-inverting amplifier",
+  "value_bounds": {
+    "C1": [
+      4.7e-08,
+      1e-05
+    ],
+    "R1": [
+      6900.0,
+      52000.0
+    ],
+    "R2": [
+      570.0,
+      8000.0
+    ],
+    "R3": [
+      47000.0,
+      2200000.0
+    ]
+  }
+}

@@ -207,6 +207,14 @@ def _build_one(seed: int, staging: str, log: list) -> dict:
 
     fam = family_order()[seed % len(family_order())]
     golden: Golden = FAMILIES[fam].generate(seed)
+    # all tiers (QA F5): the resistor power rule is stated (parts/R.md) and graded (meta rules_power);
+    # resistor footprints of the golden are upsized where the family's choice breaks it
+    from pcbenv import rules as RL
+    try:
+        golden, _ = RL.harden(golden, only=["resistor_power"])
+    except ValueError as e:
+        return {"ok": False, "reason": f"golden violates the resistor power rule: {e}"[:300], "family": fam}
+    power_ctx = RL.rules_context(golden, ["resistor_power"])
     rng = random.Random(f"pcbr-task:{seed}")
     n = _weighted(rng, N_FAULTS)
     hint = _weighted(rng, HINTS)
@@ -231,7 +239,10 @@ def _build_one(seed: int, staging: str, log: list) -> dict:
         gates["all_faults_present"] = all(still_present(r, design, fboard, golden) for r in records)
         # write the task (TASK.md is rewritten below once symptoms are known)
         taskio.write_task(tdir, golden, gboard, public_design=design, public_board=fboard,
-                          faults=[r.to_dict() for r in records], task_id=task_id, board_seed=BOARD_SEED)
+                          faults=[r.to_dict() for r in records], task_id=task_id, board_seed=BOARD_SEED,
+                          extra_meta={"rules_power": power_ctx})
+        if (Path(tdir) / "public" / "parts" / "R.md").exists():
+            (Path(tdir) / "public" / "parts" / "R.md").write_text(RL.hard_datasheet("R"), encoding="utf-8")
         # (c) each fault alone
         alone_rewards = []
         for rec, p in zip(records, plan):
@@ -260,8 +271,9 @@ def _build_one(seed: int, staging: str, log: list) -> dict:
         sym = prompts.symptoms(golden, design, fboard, silent) if hint != "vague" else []
         rec_dicts = [r.to_dict() for r in records]
         full_intent = prompts.needs_full_intent(hint, silent)
-        Path(tdir, "public", "TASK.md").write_text(prompts.render(golden, hint, rec_dicts, sym, full_intent),
-                                                   encoding="utf-8")
+        Path(tdir, "public", "TASK.md").write_text(
+            prompts.add_power_rule_note(prompts.render(golden, hint, rec_dicts, sym, full_intent), golden),
+            encoding="utf-8")
         n_inv = sum(r.invisible_to_drc_erc for r in records)
         meta = taskio.load_meta(tdir)
         meta.update(faults=rec_dicts, hint_level=hint, intent="full" if full_intent else "reduced",
@@ -549,7 +561,16 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--report", metavar="TASKS_ROOT", help="only render the G4 report for TASKS_ROOT")
     ap.add_argument("--refresh", help="refresh-run output dir to include in --report")
     ap.add_argument("--report-md", default="reports/g4_faults.md")
+    ap.add_argument("--tier", choices=("v1", "hard"), default="v1",
+                    help="hard: G12 hard tier (pcbenv/generate_hard.py); --out defaults to tasks/hard")
+    ap.add_argument("--holdout-out", default="tasks/hard_holdout", help="--tier hard: holdout split directory")
     a = ap.parse_args(argv)
+    if a.tier == "hard":
+        from pcbenv.generate_hard import generate_hard
+        out = a.out if a.out != "tasks" else "tasks/hard"
+        st = generate_hard(out, a.holdout_out, a.start, a.count, a.holdout_frac, a.workers)
+        print(json.dumps({k: v for k, v in st.items() if k != "dropped_tasks"}, indent=2))
+        return 0 if st["accepted"] else 1
     if a.report:
         Path(a.report_md).write_text(render_report(a.report, a.refresh, a.dist), encoding="utf-8")
         print(f"wrote {a.report_md}")
