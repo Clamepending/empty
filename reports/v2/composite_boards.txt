@@ -1,36 +1,5 @@
-sys_analog_frontend: 18/25 boards DRC-clean, verify 1.0 on 5/12; parts 24-27, assertions 9-9, boards 64x46..68x49 mm; build median 2.1 s max 8.1 s
-  FAIL sys_analog_frontend seed 0: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 0.57, 'wall_seconds': 0.671}
-  FAIL sys_analog_frontend seed 2: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 0.521, 'wall_seconds': 0.624}
-  FAIL sys_analog_frontend seed 4: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 0.626, 'wall_seconds': 0.778}
-  FAIL sys_analog_frontend seed 6: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 1.081, 'wall_seconds': 1.283}
-  FAIL sys_analog_frontend seed 7: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 0.872, 'wall_seconds': 1.081}
-  FAIL sys_analog_frontend seed 9: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 0.694, 'wall_seconds': 0.895}
-  FAIL sys_analog_frontend seed 10: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 0.784, 'wall_seconds': 0.94}
-sys_clocked_mcu: 13/25 boards DRC-clean, verify 1.0 on 0/12; parts 20-23, assertions 11-11, boards 58x42..62x45 mm; build median 1.5 s max 7.3 s
-  FAIL sys_clocked_mcu seed 0: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 0.723, 'wall_seconds': 0.832}
-  FAIL sys_clocked_mcu seed 1: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 0.728, 'wall_seconds': 0.867}
-  FAIL sys_clocked_mcu seed 2: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 0.72, 'wall_seconds': 0.82}
-  FAIL sys_clocked_mcu seed 3: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 0.704, 'wall_seconds': 0.807}
-  FAIL sys_clocked_mcu seed 4: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 1.153, 'wall_seconds': 1.286}
-  FAIL sys_clocked_mcu seed 5: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 1.31, 'wall_seconds': 1.502}
-  FAIL sys_clocked_mcu seed 6: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 0.944, 'wall_seconds': 1.097}
-  FAIL sys_clocked_mcu seed 7: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 1.099, 'wall_seconds': 1.286}
-  FAIL sys_clocked_mcu seed 8: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 1.105, 'wall_seconds': 1.369}
-  FAIL sys_clocked_mcu seed 9: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 1.05, 'wall_seconds': 1.223}
-  FAIL sys_clocked_mcu seed 10: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 1.151, 'wall_seconds': 1.39}
-  FAIL sys_clocked_mcu seed 11: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 1.131, 'wall_seconds': 1.339}
-sys_motor_ctrl: 25/25 boards DRC-clean, verify 1.0 on 12/12; parts 23-27, assertions 15-16, boards 66x47..72x51 mm; build median 1.9 s max 9.5 s
-sys_sensor_node: 13/25 boards DRC-clean, verify 1.0 on 0/12; parts 21-26, assertions 13-16, boards 60x43..67x48 mm; build median 1.8 s max 8.4 s
-  FAIL sys_sensor_node seed 0: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 0.786, 'wall_seconds': 0.93}
-  FAIL sys_sensor_node seed 1: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 0.772, 'wall_seconds': 0.877}
-  FAIL sys_sensor_node seed 2: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 0.786, 'wall_seconds': 0.893}
-  FAIL sys_sensor_node seed 3: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 0.94, 'wall_seconds': 1.103}
-  FAIL sys_sensor_node seed 4: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 0.902, 'wall_seconds': 1.093}
-  FAIL sys_sensor_node seed 5: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 1.097, 'wall_seconds': 1.248}
-  FAIL sys_sensor_node seed 6: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 1.051, 'wall_seconds': 1.169}
-  FAIL sys_sensor_node seed 7: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 1.043, 'wall_seconds': 1.272}
-  FAIL sys_sensor_node seed 8: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 1.121, 'wall_seconds': 1.319}
-  FAIL sys_sensor_node seed 9: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 1.17, 'wall_seconds': 1.336}
-  FAIL sys_sensor_node seed 10: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 1.037, 'wall_seconds': 1.293}
-  FAIL sys_sensor_node seed 11: verify reward 0.0: {'erc': ['no_supply: U1.VIN is a power input but its net has no power output or connector'], 'seconds': 1.223, 'wall_seconds': 1.487}
-EXIT 1
+sys_analog_frontend: 25/25 boards DRC-clean, verify 1.0 on 12/12; parts 24-27, assertions 9-9, boards 64x46..68x49 mm; build median 1.6 s max 11.9 s
+sys_clocked_mcu: 25/25 boards DRC-clean, verify 1.0 on 12/12; parts 20-23, assertions 11-11, boards 58x42..62x45 mm; build median 1.2 s max 6.9 s
+sys_motor_ctrl: 25/25 boards DRC-clean, verify 1.0 on 12/12; parts 23-27, assertions 15-16, boards 66x47..72x51 mm; build median 1.8 s max 6.9 s
+sys_sensor_node: 25/25 boards DRC-clean, verify 1.0 on 12/12; parts 21-26, assertions 13-16, boards 60x43..67x48 mm; build median 1.6 s max 8.9 s
+EXIT 0

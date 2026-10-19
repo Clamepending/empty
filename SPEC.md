@@ -73,13 +73,21 @@ class Golden:
 ```
 Deterministic in `seed`. Must pass all its own assertions.
 
+Hard tier (v2): composite multi-rail families (`sys_*`, module attribute `TIER = "hard"`, listed in
+`families.HARD_FAMILIES`; `families.V1_FAMILIES` are the others) — 20–40 parts, an LDO rail plus the
+input rail, several ICs, 40–90 mm boards; their intent carries connector and MCU pin-assignment
+tables (kept in the reduced intent) and `params["roles"]` lists refs per fault role.
+
 `value_bounds` covers **every component with a value** (enforced by `families._common.golden`,
 golden values must lie inside). Policy: a value that a spec assertion already pins down gets a
 wide sanity range (golden ÷2.5–4 … ×2.5–4, factors drawn per ref so the midpoint does not reveal
 the golden; or a datasheet range, e.g. the LDO divider) so alternative E-series repairs pass and
 the assertion does the real work; a value no assertion constrains (decoupling/bulk caps,
 pull-ups, gate/base resistors, crystal frequency, ...) gets a datasheet / engineering range,
-which the family also states in `intent`. Bounds are requirements, not secrets: they are
+which the family also states in `intent`. v2 (QA F1): a bound is never tighter than a limit the
+public datasheets imply (e.g. I²C pull-up ≥ (VDD−0.4 V)/3 mA and ≤ tr/(0.8473·Cbus), LED ≤ 25 mA,
+GPIO ≤ 8 mA): the sanity range is widened to contain it, and the limits used are recorded in
+`params["datasheet_limits"]`. Bounds are requirements, not secrets: they are
 published in `public/spec.json` and listed in TASK.md. Old goldens without the field load with `{}`.
 
 ## 5. Spec assertions (`pcbenv/sim.py`)
@@ -93,13 +101,18 @@ published in `public/spec.json` and listed in TASK.md. Old goldens without the f
 | `dc_current` | `element` (`REF`), `min`, `max` | DC current through a 2-terminal part (abs) |
 | `ac_gain` | `in_pin`, `out_pin`, `freq`, `min`, `max` | |Vout/Vin| linear at freq |
 | `cutoff` | `in_pin`, `out_pin`, `min`, `max` | −3 dB frequency (Hz) |
-| `rise_time` | `net_pin`, `min`, `max` | 10–90 % rise after a step (s) |
+| `rise_time` | `net_pin`, `min`, `max`, optional `levels` | transition time between `levels` = [lo, hi] fractions of the swing after a step (s); default [0.1, 0.9]; I²C rise times use [0.3, 0.7] (UM10204) |
 | `analytic` | `check`, params | non-SPICE check, e.g. crystal load capacitance |
 
 Nodes are resolved through the design's nets (assertions reference pins, not net names, so
 renaming nets cannot break or game them). Ground reference = net containing the pin named in
 the golden's `"ground_pin"` key of the assertion set (default: the net containing a pin named
 `GND` of the first IC, or `J1.2`). Simulation uses `ngspice -b` in a temp dir with a timeout.
+DC operating points must be converged Newton solutions: if ngspice falls back to its "transient op"
+guess (or an `op` node voltage lies outside the span of the stimulus voltages), the point is
+re-derived (more gmin/source steps; pseudo-transient power-up -> full `.nodeset` -> Newton) and
+the analysis re-run from it; failing that, the assertion fails with detail
+`simulation did not converge` (measured = null) — never a fabricated measurement (v2).
 Stimulus sources (supply, signal) are added by the assertion runner from assertion fields
 `supply: {"pin": "J1.1", "volts": 5.0}` and `source: {"pin": ..., "ac": 1}` — they are part of the
 golden assertion, never read from the agent's files.

@@ -95,7 +95,7 @@ def test_packet_033_pullup_now_accepted():
             continue
         hits += 1
         lo, hi = g.value_bounds["R3"]
-        assert lo <= 1533.4 and lo <= 2200 <= hi or 2200 > hi, (s, lo, hi)
+        assert lo <= (5.0 - 0.4) / 3e-3, (s, lo, hi)   # v1: 2.8k for packet 033
     assert hits
 
 
@@ -142,7 +142,7 @@ def test_ldo_en_pullup_bound_reaches_threshold_limit(family):
         en = _pin_nets(d, "LDO_ADJ", "EN")
         vins = _pin_nets(d, "LDO_ADJ", "VIN")
         for ref, n1, n2 in _two_terminal(d, "R"):
-            if {n1, n2} & en and {n1, n2} & vins:
+            if {n1, n2} & (en - vins) and {n1, n2} & vins:   # a pull-up, not EN tied to VIN
                 low = [a for a in g.assertions if re.search(r"low_vin$", a["name"])]
                 vin_min = min(a["supply"]["volts"] for a in low)
                 # a series protection diode (composites) only lowers VIN: the bound must reach the

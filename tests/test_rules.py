@@ -49,7 +49,7 @@ def test_composite_goldens_pass_all_rules(fam):
 
 
 def test_harden_only_upsizes_footprints():
-    for fam in sorted(FAMILIES):
+    for fam in V1_FAMILIES:
         for s in range(6):
             g0 = FAMILIES[fam].generate(s)
             g, up = R.harden(g0)

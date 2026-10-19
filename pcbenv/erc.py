@@ -4,7 +4,9 @@ Pin classes come from the parts library (`PinInfo.etype`, pin names of the part)
 - *ground pin*: a `power_in` pin whose part-level name is GND / V- / VSS / VEE.
 - *supply pin*: any other `power_in` pin (VIN, VDD, V+, ...).
 - *source pin*: a `power_out` pin, or any pin of a connector part (`CONN*`) -- connectors are
-  where external supplies attach.
+  where external supplies attach. A net is also *supplied* when a series Schottky diode
+  (`D_SCHOTTKY`, e.g. reverse-polarity protection) has its anode on a supplied net and its
+  cathode on it (propagated to a fixpoint).
 - *driver pin*: `output` or `power_out`.
 
 Errors (fail grading):
@@ -66,6 +68,7 @@ def run_erc(design: dict) -> list[ErcIssue]:
             if info.required and info.etype != "nc":
                 issues.append(ErcIssue("error", "unconnected_required", f"{pin} must be connected"))
 
+    supplied = _supplied_nets(design)
     for net, pins in sorted(design["nets"].items()):
         pins = sorted(set(pins))
         if not pins:
@@ -82,7 +85,7 @@ def run_erc(design: dict) -> list[ErcIssue]:
         if len(drivers) >= 2:
             issues.append(ErcIssue("error", "driver_conflict", f"{where}: several outputs drive it: {drivers}"))
         for p in pins:
-            if etypes[p] == "power_in" and not sources:
+            if etypes[p] == "power_in" and not sources and net not in supplied:
                 issues.append(ErcIssue("error", "no_supply",
                                        f"{p} is a power input but its net has no power output or connector"))
         if grounds:
@@ -94,6 +97,29 @@ def run_erc(design: dict) -> list[ErcIssue]:
         if len(pins) >= 2 and all(etypes[p] == "input" for p in pins):
             issues.append(ErcIssue("error", "undriven_input", f"{where}: only input pins, nothing drives it"))
     return issues
+
+
+def _supplied_nets(design: dict) -> set[str]:
+    """Nets with a source pin, plus nets fed from one through a series Schottky (anode -> cathode)."""
+    comps = design["components"]
+    net_of = {p: n for n, pins in design["nets"].items() for p in pins}
+    out = set()
+    for net, pins in design["nets"].items():
+        for p in pins:
+            part, _, info = _pin_info(design, p)
+            if info.etype == "power_out" or part.name.startswith("CONN"):
+                out.add(net)
+    changed = True
+    while changed:
+        changed = False
+        for ref, c in sorted(comps.items()):
+            if c["part"] != "D_SCHOTTKY":
+                continue
+            a, k = net_of.get(f"{ref}.A"), net_of.get(f"{ref}.K")
+            if a in out and k is not None and k not in out:
+                out.add(k)
+                changed = True
+    return out
 
 
 def errors(issues: list[ErcIssue]) -> list[ErcIssue]:
