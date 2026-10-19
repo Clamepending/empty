@@ -11,8 +11,30 @@ FAMILY = "ldo_reg"
 VREF = 0.8
 
 
+MAX_REDRAWS = 20
+
+
 def generate(seed: int) -> Golden:
-    rng = random.Random(seed)
+    """Golden for `seed`. The LDO_ADJ SPICE model's regulation loop is stiff, and for a few value
+    combinations ngspice's DC operating point fails to converge (gmin + source stepping fail, the
+    transient-op fallback returns an unsettled point, e.g. seed 631: 1.06 V instead of 2.8 V), so
+    the golden would fail its own assertions. Such a draw is detected by simulating it, and only
+    then the parameters are redrawn from a derived RNG stream. Seeds whose first draw passes are
+    unchanged (shipped tasks depend on them)."""
+    from pcbenv.sim import run_assertions
+
+    g = _generate(seed, random.Random(seed))
+    redraw = 0
+    while not all(r.passed for r in run_assertions(g.design, g.assertions)):
+        redraw += 1
+        if redraw > MAX_REDRAWS:
+            raise RuntimeError(f"{FAMILY} seed {seed}: no self-consistent golden after {MAX_REDRAWS} redraws")
+        g = _generate(seed, random.Random(f"{FAMILY}/{seed}/redraw{redraw}"))
+        g.params["redraw"] = redraw
+    return g
+
+
+def _generate(seed: int, rng: random.Random) -> Golden:
     vout = pick(rng, [1.2, 1.5, 1.8, 2.5, 2.8, 3.0, 3.3, 5.0])
     vin = pick(rng, [v for v in (3.3, 5.0, 9.0, 12.0) if v >= vout + 1.0])
     iload = pick(rng, [i for i in (0.02, 0.05, 0.1, 0.15, 0.2, 0.25) if (vin - vout) * i <= 0.45] or [0.02])

@@ -388,6 +388,68 @@ def canonicalize_uuids(path: str, salt: str) -> None:
         f.write(text)
 
 
+_TOP_RE = re.compile(r"^  \((\w+)")
+_UUID_STRIP_RE = re.compile(r"\((?:tstamp|uuid) [0-9a-fA-F-]{36}\)")
+_SORTABLE = {"footprint", "segment", "via", "arc", "gr_line", "gr_rect", "gr_circle", "gr_arc", "gr_poly", "gr_text"}
+
+
+def canonical_board_file(path: str, salt: str) -> None:
+    """Make a saved .kicad_pcb independent of the KiCad UUID generator's history.
+
+    KiCad sorts footprints / tracks by UUID when saving, and the UUIDs it hands out depend on
+    everything the process did before (library footprint loads consume generator draws), so
+    the same board can be saved in different item orders. Here every run of consecutive
+    top-level items of one kind is sorted by its UUID-free text, then UUIDs are renumbered in
+    order of appearance (`board.canonicalize_uuids`)."""
+    lines = open(path, encoding="utf-8").read().split("\n")
+    head, blocks, tail = [], [], []
+    i = 0
+    while i < len(lines) and not _TOP_RE.match(lines[i]):
+        head.append(lines[i])
+        i += 1
+    cur: list[str] | None = None
+    for line in lines[i:]:
+        if _TOP_RE.match(line):
+            cur = [line]
+            blocks.append(cur)
+        elif (line.startswith("  ") or not line.strip()) and cur is not None:
+            cur.append(line)
+        else:
+            tail.append(line)
+            cur = None
+    out: list[list[str]] = []
+    run: list[list[str]] = []
+    kind = None
+
+    def flush() -> None:
+        if kind in _SORTABLE:
+            run.sort(key=lambda b: _UUID_STRIP_RE.sub("", "\n".join(b)))
+        out.extend(run)
+
+    for b in blocks:
+        k = _TOP_RE.match(b[0]).group(1)
+        if k != kind:
+            flush()
+            run, kind = [], k
+        run.append(b)
+    flush()
+    body: list[str] = []
+    prev = None
+    for b in out:
+        while len(b) > 1 and not b[-1].strip():
+            b.pop()
+        k = _TOP_RE.match(b[0]).group(1)
+        if prev is not None and (k != prev or k == "footprint"):
+            body.append("")
+        body.extend(b)
+        prev = k
+    tail = [line for line in tail if line.strip()]
+    text = "\n".join(head + body + tail) + "\n"
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(text)
+    canonicalize_uuids(path, salt)
+
+
 def build_board(golden: Golden, out_path: str, seed: int, pitch: float = 0.1,
                 time_budget_s: float = 60.0) -> dict:
     """Build, route, DRC-check and save. Returns build stats. Raises BuildError."""
@@ -421,6 +483,11 @@ def build_board(golden: Golden, out_path: str, seed: int, pitch: float = 0.1,
                 errors.append(f"attempt {attempt}: DRC {len(res.errors)} errors "
                               f"{[e['type'] for e in res.errors][:5]}, {res.unconnected} unconnected")
                 continue
+            # UUIDs handed out above depend on the process history (library footprint loads draw
+            # from the generator, cached loads do not), and KiCad saves in UUID order: make the
+            # file depend only on (golden, seed). Same salt as the task generator's pass, which
+            # is idempotent on top of this one.
+            canonical_board_file(tmp, f"{golden.family}:{golden.seed}:{seed}")
             os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
             shutil.copyfile(tmp, out_path)
         return {"attempts": attempt + 1, "seconds": time.monotonic() - t0,

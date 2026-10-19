@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import os
 import functools
 import time
 
@@ -168,3 +169,22 @@ def test_disconnected_ground_fails(family):
             pins.remove("J1.2")
     res = run_assertions(d, g.assertions)
     assert not all(r.passed for r in res)
+
+
+# ------------------------------------------------------------------ broad sweep
+# `python3 -m pcbenv.families.sweep --seeds 0:2000` checks every seed; here a spread sample of 200
+# seeds per family plus the ldo_reg seeds whose first draw does not converge in ngspice (redrawn).
+SWEEP_SEEDS = sorted(set(range(3, 2000, 10)) | {62, 450, 631, 1361, 1993})
+
+
+def test_sweep_sample():
+    from pcbenv.families.sweep import sweep
+    fails = sweep(FAMS, SWEEP_SEEDS, workers=min(4, os.cpu_count() or 1))
+    assert not fails, fails[:5]
+
+
+def test_ldo_redraw_only_when_needed():
+    g = gen("ldo_reg", 631)
+    assert g.params.get("redraw", 0) >= 1 and g.seed == 631
+    assert all(r.passed for r in run_assertions(g.design, g.assertions))
+    assert "redraw" not in gen("ldo_reg", 1).params  # first draw passes -> untouched golden
