@@ -1,0 +1,15 @@
+family                 role        bounds   v1 min > datasheet min   v1 max < datasheet max
+ldo_reg                led_res         35                       35                        0
+led_driver             led_res        483                      210                        0
+mcu_i2c                pull           400                      240                        0
+npn_switch             base/led       330                      193                        0
+sys_analog_frontend    led_res        200                      200                        0
+sys_clocked_mcu        led_res        400                      241                        0
+sys_clocked_mcu        pull           400                      244                        0
+sys_motor_ctrl         led_res        294                      143                        0
+sys_motor_ctrl         pull           400                      197                        0
+sys_sensor_node        ?               97                       97                        0
+sys_sensor_node        led_res        400                      256                        0
+sys_sensor_node        pull           400                      210                        0
+xtal_osc               led_res        109                        0                        0
+total 3948 datasheet-limited bounds over 200 seeds/family; v1-style sanity range too tight in 2266 (min) + 0 (max) cases; v2 bounds still tight: 0

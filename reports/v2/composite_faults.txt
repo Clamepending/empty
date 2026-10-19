@@ -1,0 +1,21 @@
+board_pad_swap           {'ok': 12} pcbtool-repaired 12
+bom_mismatch             {'ok': 12} pcbtool-repaired 12
+broken_trace             {'ok': 12} pcbtool-repaired 12
+clearance_violation      {'ok': 12} pcbtool-repaired 12
+decap_misconnected       {'ok': 12} pcbtool-repaired 12
+decap_moved_far          {'ok': 12} pcbtool-repaired 12
+floating_pin             {'ok': 12} pcbtool-repaired 12
+footprint_swap           {'ok': 12} pcbtool-repaired 12
+magnitude_slip           {'ok': 12} pcbtool-repaired 12
+narrow_power_trace       {'ok': 12} pcbtool-repaired 12
+pin_to_wrong_net         {'ok': 12} pcbtool-repaired 8
+reversed_polarity        {'ok': 12} pcbtool-repaired 11
+short_between_nets       {'ok': 12} pcbtool-repaired 12
+swapped_ic_pins          {'ok': 12} pcbtool-repaired 11
+transistor_pinout        {'n/a': 6, 'ok': 6} pcbtool-repaired 6
+wrong_feedback_resistor  {'ok': 12} pcbtool-repaired 12
+wrong_filter_cap         {'ok': 12} pcbtool-repaired 12
+wrong_led_resistor       {'ok': 12} pcbtool-repaired 12
+wrong_pull_resistor      {'n/a': 2, 'ok': 10} pcbtool-repaired 10
+total applied 220, bad 0
+EXIT 0
