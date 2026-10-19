@@ -1,0 +1,111 @@
+### X1 footprint_swap: keep the swapped (allowed) footprint, re-route its nets
+## pcbr-led_driver-312-8e5d8552: D6 -> LED_SMD:LED_0603_1608Metric
+$ pcbtool set-footprint D6 LED_SMD:LED_0603_1608Metric
+D6 footprint = LED_SMD:LED_0603_1608Metric (same position; check tracks with `pcbtool drc`)
+$ pcbtool route CH4_0
+routed net CH4_0 at 0.25 mm: 2 segments, 0 vias
+$ pcbtool route GND
+routed net GND at 0.3 mm: 7 segments, 2 vias
+$ pcbtool drc
+DRC clean: 0 errors, 0 unconnected
+VERIFY reward 1.0 failing [] {}
+## pcbr-xtal_osc-369-22ead68b: Y1 -> Crystal:Crystal_SMD_2012-2Pin_2.0x1.2mm
+$ pcbtool set-footprint Y1 Crystal:Crystal_SMD_2012-2Pin_2.0x1.2mm
+Y1 footprint = Crystal:Crystal_SMD_2012-2Pin_2.0x1.2mm (same position; check tracks with `pcbtool drc`)
+$ pcbtool route XIN
+routed net XIN at 0.25 mm: 3 segments, 0 vias
+$ pcbtool route XOUT
+routed net XOUT at 0.25 mm: 7 segments, 2 vias
+$ pcbtool drc
+DRC clean: 0 errors, 0 unconnected
+VERIFY reward 1.0 failing [] {}
+## pcbr-nmos_switch-334-f9c88267: D1 -> Diode_SMD:D_SOD-123
+$ pcbtool set-footprint D1 Diode_SMD:D_SOD-123
+D1 footprint = Diode_SMD:D_SOD-123 (same position; check tracks with `pcbtool drc`)
+$ pcbtool route +9V
+routed net +9V at 0.5 mm: 4 segments, 0 vias
+$ pcbtool route SW
+routed net SW at 0.5 mm: 4 segments, 0 vias
+$ pcbtool drc
+DRC clean: 0 errors, 0 unconnected
+VERIFY reward 1.0 failing [] {}
+## pcbr-npn_switch-25-ffd8e224: R2 -> Resistor_SMD:R_0805_2012Metric
+$ pcbtool set-footprint R2 Resistor_SMD:R_0805_2012Metric
+R2 footprint = Resistor_SMD:R_0805_2012Metric (same position; check tracks with `pcbtool drc`)
+$ pcbtool route BASE
+routed net BASE at 0.25 mm: 3 segments, 0 vias
+$ pcbtool route CTRL
+routed net CTRL at 0.25 mm: 2 segments, 0 vias
+$ pcbtool drc
+DRC clean: 0 errors, 0 unconnected
+VERIFY reward 1.0 failing [] {}
+
+### X2 bom_mismatch: adopt the board value instead of the design value
+## pcbr-xtal_osc-369-22ead68b C3=47n (in 47n-10u decoupling range)
+$ pcbtool set-value C3 47n
+C3 value = 47n
+VERIFY reward 1.0 failing [] {}
+## pcbr-divider_adc-270-7afd5451 R1=24.9k (breaks the divider ratio)
+$ pcbtool set-value R1 24.9k
+R1 value = 24.9k
+VERIFY reward 0.0 failing ['spec'] {"spec": ["full_scale: measured 4.4999998536 expected [2.646, 2.754]", "half_scale: measured 2.2499999268 expected [1.323, 1.377]", "anti_alias_corner: measured 12.781320823372933 expected [8.24034, 10.0715]"]}
+
+### X3 decap_moved_far: a different placement within 5 mm instead of the golden spot
+## pcbr-ldo_reg-451-bec8f048 C1 at (119.0, 115.6, 0)
+$ pcbtool move C1 119.0 115.6 0
+C1 at (119.0, 115.6) rot 0.0 (tracks did not move; re-route its nets)
+$ pcbtool route VIN
+routed net VIN at 0.3 mm: 5 segments, 0 vias
+$ pcbtool route GND
+routed net GND at 0.3 mm: 13 segments, 1 vias
+$ pcbtool drc
+DRC clean: 0 errors, 0 unconnected
+VERIFY reward 1.0 failing [] {}
+## pcbr-ldo_reg-451-bec8f048 C1 at (120.5, 121.2, 90) (overlaps R3: must fail)
+$ pcbtool move C1 120.5 121.2 90
+C1 at (120.5, 121.2) rot 90.0 (tracks did not move; re-route its nets)
+$ pcbtool route VIN
+routed net VIN at 0.3 mm: 8 segments, 0 vias
+$ pcbtool route GND
+routed net GND at 0.3 mm: 13 segments, 1 vias
+$ pcbtool drc
+courtyards_overlap: Courtyards overlap @ (119.5, 123.5) Footprint R3; Footprint C1
+VERIFY reward 0.0 failing ['drc'] {"drc": ["courtyards_overlap: Courtyards overlap @ (119.5, 123.5)"]}
+
+### X4 value fault repaired on the OTHER resistor of the ratio
+## pcbr-ldo_reg-161-03db8610 keep R2=15.4k (faulted), R1 24.3k -> 32.4k
+$ pcbtool set-value R2 15.4k
+R2 value = 15.4k
+$ pcbtool set-value R1 32.4k
+R1 value = 32.4k
+VERIFY reward 1.0 failing [] {}
+## pcbr-opamp_noninv-757-b4064ecb keep R1=54.9k (faulted), R2 4.02k -> 6.04k
+$ pcbtool set-value R1 54.9k
+R1 value = 54.9k
+$ pcbtool set-value R2 6.04k
+R2 value = 6.04k
+VERIFY reward 1.0 failing [] {}
+
+### X5 led_driver: 78 mW resistor R1 (360 ohm) moved from 1206 to 0805 (TASK.md requires 1206 above ~60 mW)
+## pcbr-led_driver-112-138ee0cb
+$ pcbtool set-footprint R1 Resistor_SMD:R_0805_2012Metric
+R1 footprint = Resistor_SMD:R_0805_2012Metric (same position; check tracks with `pcbtool drc`)
+$ pcbtool route CH1_0
+routed net CH1_0 at 0.25 mm: 1 segments, 0 vias
+$ pcbtool route VS
+routed net VS at 0.3 mm: 5 segments, 1 vias
+$ pcbtool route CH2_1
+routed net CH2_1 at 0.25 mm: 2 segments, 0 vias
+$ pcbtool drc
+DRC clean: 0 errors, 0 unconnected
+VERIFY reward 1.0 failing [] {}
+
+### X6 mcu_i2c: SCL pull-up R3 = 2.2k at 5 V (I2C/datasheet minimum 1.53k), everything else golden
+## pcbr-mcu_i2c-153-bfc3eb79
+$ pcbtool set-value R3 2.2k
+R3 value = 2.2k
+$ pcbtool sim
+PASS scl_rise_time: measured 1.69182e-07, expected [0.0, 1e-06]
+PASS scl_sink_current: measured 0.00209091, expected [0.0, 0.003]
+FAIL value R3: value '2.2k' outside acceptable range [2800, 25000]
+VERIFY reward 0.0 failing ['values'] {"values": ["R3: value '2.2k' outside acceptable range [2800, 25000]"]}

@@ -1,0 +1,111 @@
+train tasks: 654
+
+## A. faults whose ONLY failing check (fault alone on the golden) is `values`
+  pcbr-npn_switch-25-ffd8e224        magnitude_slip       R1 = 20 (golden 20k), bounds [2200.0, 100000.0]
+  pcbr-ldo_reg-61-d464ec10           magnitude_slip       C2 = 4.7m (golden 4.7u), bounds [1e-06, 2.2e-05]
+  pcbr-nmos_switch-64-69d21334       wrong_pull_resistor  R2 = 390k (golden 82k), bounds [4700.0, 220000.0]
+  pcbr-xtal_osc-69-e69b09a2          magnitude_slip       R1 = 24M (golden 24k), bounds [2200.0, 100000.0]
+  pcbr-nmos_switch-74-f49b6551       magnitude_slip       R1 = 18m (golden 18), bounds [4.7, 220.0]
+  pcbr-ldo_reg-81-03395761           magnitude_slip       C1 = 2.2n (golden 2.2u), bounds [1e-06, 2.2e-05]
+  pcbr-npn_switch-95-01a07d7b        wrong_pull_resistor  R4 = 270k (golden 13k), bounds [4700.0, 220000.0]
+  pcbr-nmos_switch-104-96c94148      magnitude_slip       R1 = 10k (golden 10), bounds [4.7, 220.0]
+  pcbr-nmos_switch-124-8e35b38d      wrong_pull_resistor  R2 = 330k (golden 30k), bounds [4700.0, 220000.0]
+  pcbr-nmos_switch-144-91842059      magnitude_slip       C1 = 3.3n (golden 3.3u), bounds [1e-06, 2.2e-05]
+  pcbr-mcu_i2c-153-bfc3eb79          wrong_pull_resistor  R3 = 2.2k (golden 9.1k), bounds [2800.0, 25000.0]
+  pcbr-nmos_switch-164-a3e65927      wrong_pull_resistor  R2 = 270k (golden 13k), bounds [4700.0, 220000.0]
+  pcbr-npn_switch-165-4229b597       wrong_pull_resistor  R4 = 1.2k (golden 12k), bounds [4700.0, 220000.0]
+  pcbr-ldo_reg-171-f80c5a9d          wrong_pull_resistor  R3 = 2.2M (golden 22k), bounds [1000.0, 1000000.0]
+  pcbr-npn_switch-185-e13e0b22       wrong_pull_resistor  R4 = 3.9k (golden 36k), bounds [4700.0, 220000.0]
+  pcbr-opamp_inv-216-7e26f95c        magnitude_slip       C1 = 100p (golden 100n), bounds [4.7e-08, 1e-05]
+  pcbr-xtal_osc-259-1d707b0e         magnitude_slip       C3 = 100u (golden 100n), bounds [4.7e-08, 1e-05]
+  pcbr-mcu_i2c-283-45526988          magnitude_slip       C2 = 10m (golden 10u), bounds [1e-06, 2.2e-05]
+  pcbr-opamp_noninv-337-fc717415     magnitude_slip       R3 = 470 (golden 470k), bounds [47000.0, 2200000.0]
+  pcbr-nmos_switch-344-78cad8be      magnitude_slip       R1 = 24k (golden 24), bounds [4.7, 220.0]
+  pcbr-nmos_switch-354-293a8d7f      wrong_pull_resistor  R2 = 3.3k (golden 15k), bounds [4700.0, 220000.0]
+  pcbr-nmos_switch-394-470c02f2      wrong_pull_resistor  R2 = 1.2M (golden 27k), bounds [4700.0, 220000.0]
+  pcbr-ldo_reg-401-d1baad3c          magnitude_slip       C1 = 10n (golden 10u), bounds [1e-06, 2.2e-05]
+  pcbr-npn_switch-415-548689f6       magnitude_slip       C1 = 100p (golden 100n), bounds [4.7e-08, 1e-05]
+  pcbr-npn_switch-435-245c7665       magnitude_slip       C1 = 100p (golden 100n), bounds [4.7e-08, 1e-05]
+  pcbr-opamp_noninv-457-27e7f072     magnitude_slip       R3 = 470 (golden 470k), bounds [47000.0, 2200000.0]
+  pcbr-npn_switch-475-d98b5dec       wrong_pull_resistor  R4 = 2.7k (golden 12k), bounds [4700.0, 220000.0]
+  pcbr-nmos_switch-524-27776f84      magnitude_slip       C1 = 1.5m (golden 1.5u), bounds [1e-06, 2.2e-05]
+  pcbr-nmos_switch-524-27776f84      wrong_pull_resistor  R2 = 560k (golden 24k), bounds [4700.0, 220000.0]
+  pcbr-divider_adc-540-b8104a75      magnitude_slip       R3 = 100k (golden 100), bounds [47.0, 2200.0]
+  pcbr-ldo_reg-571-d4ab1bd8          wrong_pull_resistor  R3 = 2.2M (golden 22k), bounds [1000.0, 1000000.0]
+  pcbr-ldo_reg-571-d4ab1bd8          magnitude_slip       C1 = 1m (golden 1u), bounds [1e-06, 2.2e-05]
+  pcbr-rc_lowpass-588-d091b039       magnitude_slip       R1 = 130m (golden 130), bounds [38.0, 370.0]
+  pcbr-mcu_i2c-613-be064a56          magnitude_slip       R1 = 6.2 (golden 6.2k), bounds [2200.0, 100000.0]
+  pcbr-mcu_i2c-633-a24fc751          wrong_pull_resistor  R3 = 470 (golden 2.2k), bounds [840.0, 6800.0]
+  pcbr-nmos_switch-704-6991ea83      magnitude_slip       R1 = 16k (golden 16), bounds [4.7, 220.0]
+  pcbr-nmos_switch-714-f12c92f4      wrong_pull_resistor  R2 = 270k (golden 12k), bounds [4700.0, 220000.0]
+  pcbr-opamp_noninv-817-b7f45449     magnitude_slip       R3 = 470 (golden 470k), bounds [47000.0, 2200000.0]
+  total 38: {'magnitude_slip': 23, 'wrong_pull_resistor': 15}
+
+## B. mcu_i2c SDA/SCL pull-ups: value_bounds minimum vs datasheet minimum (VDD-0.4)/3mA
+  pcbr-mcu_i2c-3-ab3955a1 R2: datasheet min 700 ohm, bound min 950 ohm (values in between pass the spec but fail `values`)
+  pcbr-mcu_i2c-3-ab3955a1 R3: datasheet min 700 ohm, bound min 1000 ohm (values in between pass the spec but fail `values`)
+  pcbr-mcu_i2c-23-ff6a4d8c R2: datasheet min 967 ohm, bound min 4200 ohm (values in between pass the spec but fail `values`)
+  pcbr-mcu_i2c-23-ff6a4d8c R3: datasheet min 967 ohm, bound min 4300 ohm (values in between pass the spec but fail `values`)
+  pcbr-mcu_i2c-53-ccfc5a33 R2: datasheet min 467 ohm, bound min 920 ohm (values in between pass the spec but fail `values`)
+  pcbr-mcu_i2c-53-ccfc5a33 R3: datasheet min 467 ohm, bound min 840 ohm (values in between pass the spec but fail `values`)
+  pcbr-mcu_i2c-113-f904c866 R2: datasheet min 467 ohm, bound min 880 ohm (values in between pass the spec but fail `values`)
+  pcbr-mcu_i2c-113-f904c866 R3: datasheet min 467 ohm, bound min 770 ohm (values in between pass the spec but fail `values`)
+  43/126 pull-ups have a bound minimum > 1.05x the datasheet minimum
+
+## C. narrow_power_trace faults by family and net
+   11 divider_adc    GND
+    1 ldo_reg        +2V8
+    1 ldo_reg        +3V3
+    4 ldo_reg        GND
+    1 led_driver     +3V3
+    6 led_driver     GND
+    5 led_driver     VS
+    1 mcu_i2c        +3V3
+    3 mcu_i2c        GND
+    1 nmos_switch    +24V
+    1 nmos_switch    +5V
+    1 nmos_switch    +9V
+    4 nmos_switch    GND
+    2 nmos_switch    SW
+    1 npn_switch     +3V3
+    4 npn_switch     GND
+    4 opamp_inv      GND
+    4 opamp_inv      VCC
+    2 opamp_noninv   GND
+    3 opamp_noninv   VCC
+   17 rc_lowpass     GND
+    3 xtal_osc       +3V3
+    4 xtal_osc       +5V
+    2 xtal_osc       GND
+  on signal-level families (divider_adc, rc_lowpass): 28
+
+## D. AC stimuli described as 'dc source' in TASK.md
+  tasks with an AC-stimulus assertion: 259; TASK.md says 'dc source on ...' for it: 259
+
+## E. value faults applied alone: relative violation of the worst spec window
+  value faults: 271; spec-clean (caught only by `values`): 38; violation 0-5 %: 0; 5-15 %: 8
+  8.4% pcbr-opamp_noninv-317-80d55dc4 R2 (gain/divider-setting resistor) is 15k, should be 10k
+  11.8% pcbr-ldo_reg-751-fc5223c9 R1 (gain/divider-setting resistor) is 12.4k, should be 9.31k
+  12.5% pcbr-ldo_reg-801-180f30f5 R1 (gain/divider-setting resistor) is 7.5k, should be 11k
+  12.6% pcbr-ldo_reg-91-9987ecbe R1 (gain/divider-setting resistor) is 23.7k, should be 34.8k
+  13.3% pcbr-opamp_noninv-167-7d6234dd R1 (gain/divider-setting resistor) is 4.87k, should be 3.65k
+  13.4% pcbr-divider_adc-420-b8222353 R1 and R2 values swapped (R1=75k, R2=63.4k)
+
+## F. nearest-two E24 values to the golden value of each value-faulted ref (rest golden)
+  at least one passes: 244; none passes: 8
+   ('pcbr-divider_adc-0-419e2fe1', 'R1', '191k', ['200k', '180k'])
+   ('pcbr-divider_adc-20-91fa7e32', 'R2', '13.3k', ['13k', '12k'])
+   ('pcbr-divider_adc-310-56324bbb', 'R2', '16.2k', ['16k', '15k'])
+   ('pcbr-divider_adc-650-38bc0849', 'R2', '78.7k', ['82k', '75k'])
+   ('pcbr-opamp_noninv-697-40bd6065', 'R2', '2.26k', ['2.2k', '2.4k'])
+   ('pcbr-opamp_noninv-717-1c431e4a', 'R1', '86.6k', ['91k', '82k'])
+   ('pcbr-divider_adc-780-17eead48', 'R2', '19.1k', ['20k', '18k'])
+   ('pcbr-opamp_noninv-807-61e6fb64', 'R2', '1.65k', ['1.6k', '1.8k'])
+
+## G. led_driver: resistors over 60 mW (TASK.md: 'Resistors dissipating more than ~60 mW use a 1206 footprint')
+  resistors > 60 mW: 29; golden not on 1206: 0; faulted public design not on 1206: 0
+  (the verifier has no footprint-power check: see self_review.md finding F5 for a 1.0-scoring 0805 repair)
+
+## H. electrically equivalent LED-string rewirings vs the topology gate (pcbr-led_driver-312-8e5d8552)
+  channel 2 resistor moved to the low side: spec all pass = True; topology gate accepts = False
+  channel 3 LEDs D4/D5 (both LED_RED) swapped: spec all pass = True; topology gate accepts = False

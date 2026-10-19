@@ -647,7 +647,7 @@ def _verdict_table(fres: dict, gres: dict) -> list[str]:
     return lines
 
 
-def build_packet(row: dict, task_dir: Path, out_dir: Path, nn: int, reasons: list[str]) -> dict:
+def build_packet(row: dict, task_dir: Path, out_dir: Path, nn: int, reasons: list[str], width: int = 2) -> dict:
     """Write one packet dir. Returns a summary row for the index."""
     task_dir = Path(task_dir)
     if "holdout" in task_dir.resolve().parts:
@@ -656,7 +656,8 @@ def build_packet(row: dict, task_dir: Path, out_dir: Path, nn: int, reasons: lis
     fdesign = json.loads((task_dir / "public" / "design.json").read_text(encoding="utf-8"))
     gdesign = json.loads((task_dir / "hidden" / "golden_design.json").read_text(encoding="utf-8"))
     task_md = (task_dir / "public" / "TASK.md").read_text(encoding="utf-8")
-    name = f"{nn:02d}-{row['id']}"
+    num = f"{nn:0{width}d}"
+    name = f"{num}-{row['id']}"
     pdir = out_dir / name
     if pdir.exists():
         shutil.rmtree(pdir)
@@ -678,7 +679,7 @@ def build_packet(row: dict, task_dir: Path, out_dir: Path, nn: int, reasons: lis
     bdiff = board_diff(fgeo, ggeo)
     rel = os.path.relpath(task_dir, pdir)
 
-    L: list[str] = [f"# QA packet {nn:02d}: `{row['id']}`", "",
+    L: list[str] = [f"# QA packet {num}: `{row['id']}`", "",
                     "| family | seed | hint level | intent in TASK.md | faults | predicted difficulty |",
                     "|---|---|---|---|---|---|",
                     f"| {row['family']} | {row['seed']} | {row['hint_level']} | {row.get('intent', '')} | "
@@ -775,8 +776,8 @@ def build_packet(row: dict, task_dir: Path, out_dir: Path, nn: int, reasons: lis
 
 
 def _build_job(args: tuple) -> dict:
-    row, task_dir, out_dir, nn, reasons = args
-    return build_packet(row, Path(task_dir), Path(out_dir), nn, reasons)
+    row, task_dir, out_dir, nn, reasons, width = args
+    return build_packet(row, Path(task_dir), Path(out_dir), nn, reasons, width)
 
 
 def render_index(summaries: list[dict], n: int, seed: int) -> str:
@@ -819,8 +820,9 @@ def render_index(summaries: list[dict], n: int, seed: int) -> str:
          "affected tasks and packets, and the disputing reviewer re-reviews them. No task ships with an open dispute.",
          f"- The {AGREEMENT_MIN:.0%} threshold is not yet in `thresholds.yaml` (orchestrator-owned); "
          "proposed key `qa.ee_verifier_agreement_min: 0.95`.",
-         "- Human sign-off is founder-owned. `qa/self_review.md` is an automated pre-screen by the packaging "
-         "agent, not a substitute.", "",
+         "- Human sign-off is founder-owned. [`self_review.md`](self_review.md) is a pre-screen of 15 packets by "
+         "the packaging agent (not a substitute); read its findings before starting, they list the cases most "
+         "likely to be disputed.", "",
          "## Sample composition", "",
          "| family | packets |", "|---|---|"] + [f"| {k} | {v} |" for k, v in sorted(fams.items())] + [
          "", "| hint level | packets |", "|---|---|"] + [f"| {k} | {v} |" for k, v in sorted(hints.items())] + [
@@ -830,7 +832,7 @@ def render_index(summaries: list[dict], n: int, seed: int) -> str:
          "", "## Packets", "",
          "| # | task | family | faults | hint | why sampled | packet |", "|---|---|---|---|---|---|---|"]
     for s in summaries:
-        L.append(f"| {s['packet'][:2]} | `{s['id']}` | {s['family']} | {', '.join(s['faults'])} | {s['hint']} | "
+        L.append(f"| {s['packet'].split('-', 1)[0]} | `{s['id']}` | {s['family']} | {', '.join(s['faults'])} | {s['hint']} | "
                  f"{_md_escape('; '.join(s['reasons'])) or 'coverage'} | [README](packets/{s['packet']}/README.md) |")
     return "\n".join(L) + "\n"
 
@@ -846,7 +848,8 @@ def build(n: int, out: Path, seed: int, manifest: Path, tasks_root: Path, worker
     for old in out.iterdir():
         if old.is_dir() and re.match(r"\d\d+-pcbr-", old.name):
             shutil.rmtree(old)
-    jobs = [(r, str(tasks_root / "train" / r["id"]), str(out), i + 1, task_features(r, metas[r["id"]])["reasons"])
+    width = max(2, len(str(len(chosen))))
+    jobs = [(r, str(tasks_root / "train" / r["id"]), str(out), i + 1, task_features(r, metas[r["id"]])["reasons"], width)
             for i, r in enumerate(chosen)]
     if workers > 1 and len(jobs) > 1:
         import multiprocessing as mp
