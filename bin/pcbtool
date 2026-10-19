@@ -1,0 +1,5 @@
+#!/bin/sh
+# pcbtool: agent-facing PCB-Repair CLI (see pcbenv/tool.py). Run inside a task workdir.
+# -P: do not put the CWD (the agent's workdir) on sys.path, so files there cannot shadow pcbenv.
+ROOT="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}" exec python3 -P -m pcbenv.tool "$@"

@@ -156,7 +156,7 @@ def library_footprint(fpid: str) -> "pcbnew.FOOTPRINT | None":
         if ":" in fpid:
             lib, name = fpid.split(":", 1)
             path = os.path.join(FOOTPRINT_ROOT, lib + ".pretty")
-            if "/" not in name and os.path.isfile(os.path.join(path, name + ".kicad_mod")):
+            if "/" not in name and "/" not in lib and ".." not in lib and os.path.isfile(os.path.join(path, name + ".kicad_mod")):
                 if _PLUGIN is None:
                     _PLUGIN = pcbnew.PCB_PLUGIN()
                 proto = _PLUGIN.FootprintLoad(path, name)
