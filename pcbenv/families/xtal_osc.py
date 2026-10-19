@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import random
 
-from pcbenv.families._common import E24, Builder, golden, nearest, pick, series_values
+from pcbenv.families._common import DECOUPLING, E24, NRST_PULLUP, Bounds, Builder, golden, nearest, pick, series_values
 from pcbenv.golden import Golden
 from pcbenv.parts import PARTS
 
@@ -70,8 +70,19 @@ powered from {vdd:g} V on J1 (pin 1 = +{vdd:g} V, pin 2 = GND).
 
 Spec: effective crystal load CL_eff = C1·C2/(C1+C2) + Cstray within ±10 % of {cl*1e12:.0f} pF
 (golden: {cl_eff*1e12:.1f} pF); NRST ≥ 0.9·VDD.
+Clock: Y1 must be a {freq}Hz crystal (value `{freq}`, ±0.1 %): the firmware's clock tree assumes exactly
+this frequency, and MCU8 only supports 4–25 MHz crystals.
+Component values: decoupling C3 47 nF–10 µF (100 nF typical); NRST pull-up R1 2.2 kΩ–100 kΩ.
 """
     params = {"xtal": xtal, "freq": freq, "cl_pf": cl * 1e12, "cstray_pf": cstray * 1e12, "c_load": c,
               "vdd": vdd, "status_led": led}
+    vb = Bounds(FAMILY, seed)
+    vb.exact("Y1", b.val("Y1"), 1e-3)  # frequency is a requirement (firmware clock); no assertion sees it
+    vb.spec("C1", c)                   # load caps pinned by xtal_load; per-cap range stops C1/C2 imbalance
+    vb.spec("C2", c)
+    vb.fixed("C3", *DECOUPLING)
+    vb.fixed("R1", *NRST_PULLUP)
+    if led:
+        vb.spec("R2", b.val("R2"))     # LED current pinned by led_current
     return golden(FAMILY, seed, b, assertions, {vnet: 0.3, "GND": 0.3},
-                  [{"cap": "C3", "ic_pin": "U1.VDD", "max_mm": 5.0}], intent, params, big=True)
+                  [{"cap": "C3", "ic_pin": "U1.VDD", "max_mm": 5.0}], intent, params, big=True, value_bounds=vb.out)

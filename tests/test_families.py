@@ -61,6 +61,9 @@ def test_golden_structure(family):
     for s in SEEDS:
         g = gen(family, s)
         d = g.design
+        # every valued component has an acceptable range containing the golden value
+        assert set(g.value_bounds) == {r for r, c in d["components"].items() if c["value"]}, s
+        assert all(lo <= parse_value(d["components"][r]["value"]) <= hi for r, (lo, hi) in g.value_bounds.items())
         connected = {p for pins in d["nets"].values() for p in pins}
         all_pins = set()
         for ref, c in d["components"].items():

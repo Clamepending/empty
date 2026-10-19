@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import random
 
-from pcbenv.families._common import E24, Builder, band, golden, nearest, pick, series_values
+from pcbenv.families._common import DECOUPLING, E24, NRST_PULLUP, Bounds, Builder, band, golden, nearest, pick, series_values
 from pcbenv.golden import Golden
 from pcbenv.parts_lib import led_vf
 
@@ -90,8 +90,17 @@ on J1 (pin 1 = +{vs:g} V, pin 2 = GND); the MCU runs from the same rail.
 
 Spec: with {gpio} driven high the load current is {ic*1e3:.1f} mA ±15 % and Q1 is saturated (VCE ≤ 0.3 V);
 with {gpio} high-impedance the load stays off even with 1 MΩ of leakage from the supply into the base.
+Component values: decoupling C1 47 nF–10 µF (100 nF typical); NRST pull-up R1 2.2 kΩ–100 kΩ;
+base pull-down R4 4.7 kΩ–220 kΩ (datasheet: 10k–100k).
 """
     params["i_load"] = round(ic, 6)
+    vb = Bounds(FAMILY, seed)
+    vb.fixed("C1", *DECOUPLING)
+    vb.fixed("R1", *NRST_PULLUP)
+    vb.spec("R2", b.val("R2"))  # base drive pinned by load_on_current / vce_sat / gpio_current
+    if "R3" in b.components:
+        vb.spec("R3", b.val("R3"))  # LED current pinned by load_on_current
+    vb.fixed("R4", 4.7e3, 220e3)  # NPN datasheet: base pull-down 10k-100k (x2 slack)
     power_nets = {vnet: 0.3, "GND": 0.3}
     decoupling = [{"cap": "C1", "ic_pin": "U1.VDD", "max_mm": 5.0}]
-    return golden(FAMILY, seed, b, assertions, power_nets, decoupling, intent, params, big=True)
+    return golden(FAMILY, seed, b, assertions, power_nets, decoupling, intent, params, big=True, value_bounds=vb.out)

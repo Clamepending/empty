@@ -86,11 +86,63 @@ def board_size(n_components: int, big: bool = False) -> tuple[float, float]:
     return float(round(w)), float(round(h))
 
 
+# ----------------------------------------------------------------------------- value bounds
+# Acceptable component value ranges ([min, max], SI units) graded by the verifier's `values` check
+# and published in spec.json / TASK.md. Two kinds:
+# - `spec(ref, v)`: the value is already pinned by a spec assertion, so the bound is only a sanity
+#   range (golden / 2.5..4 to golden x 2.5..4) that leaves room for alternative E-series repairs. The
+#   two factors are drawn per ref from a separate RNG so the range's midpoint does not reveal the
+#   golden value (the generator's own RNG stream is untouched).
+# - `fixed(ref, lo, hi)`: no assertion constrains the value; the range comes from datasheet /
+#   engineering practice and is also stated in the family's intent.
+DECOUPLING = (47e-9, 10e-6)      # MCU8 / OPAMP datasheets: 100 nF typical, 47 nF..10 uF acceptable
+NRST_PULLUP = (2.2e3, 100e3)     # MCU8 datasheet: 10k typical; 2.2k..100k keeps NRST high, low current
+BULK = (1e-6, 22e-6)             # ceramic bulk / LDO caps: >= 1 uF (datasheet), <= 22 uF practical MLCC
+
+
+def _sig2(x: float) -> float:
+    return float(f"{x:.2g}")
+
+
+class Bounds:
+    def __init__(self, family: str, seed: int):
+        self.family, self.seed = family, seed
+        self.out: dict[str, list[float]] = {}
+
+    def spec(self, ref: str, v: float) -> None:
+        r = random.Random(f"value_bounds/{self.family}/{self.seed}/{ref}")
+        lo, hi = 2.5 + 1.5 * r.random(), 2.5 + 1.5 * r.random()
+        self.out[ref] = [_sig2(v / lo), _sig2(v * hi)]
+
+    def fixed(self, ref: str, lo: float, hi: float) -> None:
+        self.out[ref] = [float(lo), float(hi)]
+
+    def exact(self, ref: str, v: float, rel: float) -> None:
+        self.out[ref] = [float(f"{v * (1 - rel):.9g}"), float(f"{v * (1 + rel):.9g}")]
+
+
+def check_bounds(design: dict, bounds: dict[str, list[float]]) -> None:
+    """Every component with a value has a bound and its golden value lies inside it."""
+    for ref, c in design["components"].items():
+        if not c.get("value"):
+            continue
+        if ref not in bounds:
+            raise ValueError(f"no value bound for {ref}")
+        lo, hi = bounds[ref]
+        if not lo <= parse_value(c["value"]) <= hi:
+            raise ValueError(f"golden {ref}={c['value']} outside its bound {bounds[ref]}")
+
+
 def golden(family: str, seed: int, b: Builder, assertions: list[dict], power_nets: dict[str, float],
-           decoupling: list[dict], intent: str, params: dict, big: bool = False) -> Golden:
+           decoupling: list[dict], intent: str, params: dict, big: bool = False,
+           value_bounds: dict[str, list[float]] | None = None) -> Golden:
     w, h = board_size(len(b.components), big)
-    return Golden(family=family, seed=seed, design=b.design(), assertions=assertions, power_nets=power_nets,
-                  decoupling=decoupling, intent=intent.strip() + "\n", params=params, board_w_mm=w, board_h_mm=h)
+    design = b.design()
+    vb = {k: list(v) for k, v in sorted((value_bounds or {}).items())}
+    check_bounds(design, vb)
+    return Golden(family=family, seed=seed, design=design, assertions=assertions, power_nets=power_nets,
+                  decoupling=decoupling, intent=intent.strip() + "\n", params=params, board_w_mm=w, board_h_mm=h,
+                  value_bounds=vb)
 
 
 def rng_range(lo: float, hi: float, slack: float) -> dict:
@@ -129,5 +181,5 @@ def gain_at(h, f: float) -> float:
     return abs(h(2j * math.pi * f))
 
 
-__all__ = ["E6", "E12", "E24", "E96", "Builder", "cmath", "series_values", "nearest", "vstr", "pick",
+__all__ = ["E6", "E12", "E24", "E96", "Builder", "Bounds", "DECOUPLING", "NRST_PULLUP", "BULK", "check_bounds", "cmath", "series_values", "nearest", "vstr", "pick",
            "golden", "band", "rng_range", "cutoff_of", "par", "gain_at"]

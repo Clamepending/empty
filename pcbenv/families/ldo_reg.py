@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import random
 
-from pcbenv.families._common import E6, E24, E96, Builder, band, golden, nearest, pick, series_values
+from pcbenv.families._common import BULK, E6, E24, E96, Bounds, Builder, band, golden, nearest, pick, series_values
 from pcbenv.golden import Golden
 from pcbenv.parts_lib import led_vf
 
@@ -68,6 +68,18 @@ def generate(seed: int) -> Golden:
     w = 0.5 if iload >= 0.1 else 0.3
     power_nets = {vin_net: w, vout_net: w, "GND": w}
     decoupling = [{"cap": "C1", "ic_pin": "U1.VIN", "max_mm": 5.0}, {"cap": "C2", "ic_pin": "U1.VOUT", "max_mm": 5.0}]
+    vb = Bounds(FAMILY, seed)
+    vb.fixed("C1", *BULK)   # LDO_ADJ datasheet: >= 1 uF ceramic in/out caps; <= 22 uF practical MLCC
+    vb.fixed("C2", *BULK)
+    # divider ratio is pinned by the vout assertions; the scale follows the datasheet (Rbot 10k-50k
+    # typical, x3 slack either way) so any datasheet-style divider is accepted
+    k = vout / VREF - 1
+    vb.fixed("R2", 3.3e3, 150e3)
+    vb.fixed("R1", float(f"{3.3e3 * k:.2g}"), float(f"{150e3 * k:.2g}"))
+    if "R3" in b.components:
+        vb.fixed("R3", 1e3, 1e6)  # EN pull-up: >= 1k (no needless current), <= 1M (vs 2M internal pull-down)
+    if "R4" in b.components:
+        vb.spec("R4", b.val("R4"))  # LED current pinned by indicator_current
     en_txt = ("EN is tied directly to VIN so the regulator is always on." if en_mode == "tie" else
               "EN is pulled up to VIN through R3 so the regulator is on whenever input power is present.")
     intent = f"""
@@ -85,7 +97,9 @@ Converts a {vin:g} V input (J1: pin 1 = +{vin:g} V, pin 2 = GND) into a regulate
 
 Spec: output {vout:g} V ±3 % at {iload*1e3:.0f} mA load, for input voltages from {max(vout+0.6, 2.5):g} V up to {vin:g} V.
 Supply and ground traces carrying the load current must be at least {w} mm wide.
+Component values: C1 and C2 are 1 µF–22 µF ceramics (datasheet: ≥ 1 µF){"; the EN pull-up R3 is 1 kΩ–1 MΩ" if en_mode != "tie" else ""};
+feedback divider Rbot (R2) 3.3 kΩ–150 kΩ (datasheet: 10k–50k typical) with R1 scaled to match.
 """
     params = {"vout": vout, "vin": vin, "iload": iload, "en_mode": en_mode, "indicator": bool(led_i),
               "vout_nominal": round(vout_act, 4)}
-    return golden(FAMILY, seed, b, assertions, power_nets, decoupling, intent, params)
+    return golden(FAMILY, seed, b, assertions, power_nets, decoupling, intent, params, value_bounds=vb.out)

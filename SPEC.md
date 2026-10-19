@@ -69,8 +69,18 @@ class Golden:
     params: dict                 # sampled parameters (targets etc.)
     board_w_mm: float
     board_h_mm: float
+    value_bounds: dict[str, list[float]] = {}  # ref -> [min, max] acceptable value, SI units
 ```
 Deterministic in `seed`. Must pass all its own assertions.
+
+`value_bounds` covers **every component with a value** (enforced by `families._common.golden`,
+golden values must lie inside). Policy: a value that a spec assertion already pins down gets a
+wide sanity range (golden ÷2.5–4 … ×2.5–4, factors drawn per ref so the midpoint does not reveal
+the golden; or a datasheet range, e.g. the LDO divider) so alternative E-series repairs pass and
+the assertion does the real work; a value no assertion constrains (decoupling/bulk caps,
+pull-ups, gate/base resistors, crystal frequency, ...) gets a datasheet / engineering range,
+which the family also states in `intent`. Bounds are requirements, not secrets: they are
+published in `public/spec.json` and listed in TASK.md. Old goldens without the field load with `{}`.
 
 ## 5. Spec assertions (`pcbenv/sim.py`)
 
@@ -130,7 +140,9 @@ Checks (all must pass for reward 1.0):
 7. `erc` — `pcbenv/erc.py` finds no errors (required pins connected, no output-output conflicts,
    no single-pin nets, power_in pins on a net with a power_out/supply connector pin, ...).
 8. `spec` — all golden assertions pass on the candidate design (values matter here).
-9. `layout` — power nets (matched to golden by pin set) have min track width ≥ required; decoupling
+9. `values` — every ref in `hidden/meta.json:"value_bounds"` has a design value that parses to a
+   finite number in [min, max] (inclusive). Tasks without `value_bounds` skip it (passes).
+10. `layout` — power nets (matched to golden by pin set) have min track width ≥ required; decoupling
    caps within max distance of their IC pin.
 
 **Reward is binary**: 1.0 iff all gates and checks pass, else 0.0. `checks` carries the per-check
@@ -144,11 +156,13 @@ tasks/<split>/<task_id>/
   hidden/   golden_design.json  golden_board.kicad_pcb  meta.json
 ```
 `meta.json`: `task_id, family, seed, params, faults: [{type, detail}], assertions, power_nets,
-decoupling, alt_partitions, difficulty (measured|predicted)`. Splits: `train`, `holdout`.
+decoupling, value_bounds, alt_partitions, difficulty (measured|predicted)`. `public/spec.json`:
+`title, assertions, power_nets (net, anchor_pin, min_width_mm), decoupling, value_bounds`. Splits: `train`, `holdout`.
 
 ## 9. Agent-facing tool (`pcbtool`, `pcbenv/tool.py`)
 
 Run inside the workdir. Read-only: `show`, `netlist`, `drc`, `erc`, `sim` (runs the assertions
-listed in TASK.md — these are public), `parts <PART>`. Mutating (keeps design.json and board in
+listed in TASK.md — these are public — and the
+`value_bounds` of spec.json; `check` reports both), `parts <PART>`. Mutating (keeps design.json and board in
 sync): `set-value REF VAL`, `set-footprint REF FP`, `connect REF.PIN NET`, `disconnect REF.PIN`,
 `move REF X Y ROT`, `route NET [--width W]`, `unroute NET`, `sync`. Agents may also edit files directly.

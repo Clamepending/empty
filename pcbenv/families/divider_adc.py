@@ -4,7 +4,7 @@ from __future__ import annotations
 import math
 import random
 
-from pcbenv.families._common import E12, E96, Builder, band, cutoff_of, golden, nearest, pick, series_values
+from pcbenv.families._common import E12, E96, Bounds, Builder, band, cutoff_of, golden, nearest, pick, series_values
 from pcbenv.golden import Golden
 
 FAMILY = "divider_adc"
@@ -61,7 +61,14 @@ Scales a 0–{vmax:g} V signal on J1 (pin 1 = sensed voltage, pin 2 = GND) down 
 {"- R3 is a small series resistor from the divider node to the ADC pin (protection/isolation)." if series_r else "- The divider node goes directly to J2 pin 1."}
 
 Spec: ADC voltage = {ratio_t:.4f} × input ±2 %; anti-alias -3 dB corner {fc:.4g} Hz ±10 %.
+{"Component values: series resistor R3 47 Ω–2.2 kΩ (low enough for the ADC's sampling input)." if series_r else ""}
 """
     params = {"vmax": vmax, "vfs": vfs, "ratio": round(ratio, 6), "f_aa": f_aa, "fc_hz": round(fc, 3),
               "series_r": series_r}
-    return golden(FAMILY, seed, b, assertions, {"GND": 0.3}, [], intent, params)
+    vb = Bounds(FAMILY, seed)
+    vb.spec("R1", r1)   # ratio pinned by full/half_scale, scale by the anti-alias corner with C1
+    vb.spec("R2", r2)
+    vb.spec("C1", c1)
+    if series_r:
+        vb.fixed("R3", 47.0, 2.2e3)  # protection resistor: >= 47 ohm useful, <= 2.2k ADC source impedance
+    return golden(FAMILY, seed, b, assertions, {"GND": 0.3}, [], intent, params, value_bounds=vb.out)

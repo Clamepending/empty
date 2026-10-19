@@ -4,7 +4,7 @@ from __future__ import annotations
 import math
 import random
 
-from pcbenv.families._common import E6, E12, E24, Builder, cutoff_of, gain_at, golden, nearest, pick, series_values
+from pcbenv.families._common import E6, E12, E24, Bounds, Builder, cutoff_of, gain_at, golden, nearest, pick, series_values
 from pcbenv.golden import Golden
 
 FAMILY = "rc_lowpass"
@@ -96,4 +96,7 @@ Spec: order {order}; -3 dB corner {fc:.4g} Hz ±10 %; passband gain ≈ {g_pass:
 attenuation at 10·fc: gain {g_stop:.3g} ±25 %.
 """
     params = {"topology": topo, "fc_hz": round(fc, 3), "order": order}
-    return golden(FAMILY, seed, b, assertions, {"GND": 0.3}, [], intent, params)
+    vb = Bounds(FAMILY, seed)
+    for ref, val in sorted(vals.items()):
+        vb.spec(ref, val)  # every R/L/C sets fc / passband / stopband: sanity range only (bounds R-vs-C scaling)
+    return golden(FAMILY, seed, b, assertions, {"GND": 0.3}, [], intent, params, value_bounds=vb.out)

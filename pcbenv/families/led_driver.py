@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import random
 
-from pcbenv.families._common import E24, Builder, band, golden, nearest, pick
+from pcbenv.families._common import E24, Bounds, Builder, band, golden, nearest, pick
 from pcbenv.golden import Golden
 from pcbenv.parts_lib import led_vf
 
@@ -70,4 +70,7 @@ Spec: each channel's LED current within ±10 % of its target. Resistors dissipat
 ~60 mW use a 1206 footprint.
 """
     params = {"vs": vs, "strings": strings}
-    return golden(FAMILY, seed, b, assertions, {supply: w, "GND": w}, [], intent, params)
+    vb = Bounds(FAMILY, seed)
+    for info in strings:
+        vb.spec(info["r"], b.val(info["r"]))  # each string current is pinned by its assertion
+    return golden(FAMILY, seed, b, assertions, {supply: w, "GND": w}, [], intent, params, value_bounds=vb.out)

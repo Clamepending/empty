@@ -230,10 +230,20 @@ def _sim_lines(d: dict) -> tuple[list[str], int]:
     return lines, sum(not r.passed for r in res)
 
 
+def _value_lines(d: dict) -> list[str]:
+    """Component values outside spec.json `value_bounds`."""
+    from pcbenv.checks import value_violations
+    return value_violations(d, load_spec().get("value_bounds") or {})
+
+
 def cmd_sim(a) -> int:
-    lines, nfail = _sim_lines(load_design())
+    d = load_design()
+    lines, nfail = _sim_lines(d)
+    vlines = _value_lines(d)
     print("\n".join(lines) if lines else "no assertions in spec.json")
-    return 1 if nfail else 0
+    if load_spec().get("value_bounds"):
+        print("\n".join(f"FAIL value {s}" for s in vlines) if vlines else "PASS values: all within value_bounds")
+    return 1 if nfail or vlines else 0
 
 
 def cmd_parts(a) -> int:
@@ -286,6 +296,7 @@ def cmd_check(a) -> int:
                 ("erc", _erc_lines(d)[0])]
     sim_lines, nfail = _sim_lines(d)
     sections.append(("spec (sim)", [s for s in sim_lines if s.startswith("FAIL")]))
+    sections.append(("component values (value_bounds)", _value_lines(d)))
     sections.append(("layout", _layout_lines(d, board, info)))
     bad = 0
     for title, lines in sections:

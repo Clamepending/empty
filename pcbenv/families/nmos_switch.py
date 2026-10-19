@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import random
 
-from pcbenv.families._common import E6, E24, Builder, band, golden, pick, series_values
+from pcbenv.families._common import BULK, E6, E24, Bounds, Builder, band, golden, pick, series_values
 from pcbenv.golden import Golden
 
 FAMILY = "nmos_switch"
@@ -65,7 +65,13 @@ The load is {load_txt}.
 Spec: CTRL = {vctrl:g} V -> load current {iload:g} A ±5 % with VDS ≤ {vds_max:g} V; CTRL floating ->
 load off (< 0.1 mA) even with 10 MΩ of leakage from the supply to the gate. Load-current
 traces (supply, switched node, GND) at least 0.5 mm wide.
+Component values: gate series R1 4.7 Ω–220 Ω (datasheet: 10–100 Ω); gate pull-down R2 4.7 kΩ–220 kΩ
+(datasheet: 10k–100k); bulk C1 1 µF–22 µF.
 """
     params = {"vload": vload, "iload": iload, "vctrl": vctrl, "kind": kind, "rload": rload}
     power_nets = {vnet: 0.5, "SW": 0.5, "GND": 0.5}
-    return golden(FAMILY, seed, b, assertions, power_nets, [], intent, params)
+    vb = Bounds(FAMILY, seed)
+    vb.fixed("R1", 4.7, 220.0)    # NMOS datasheet: gate series 10-100 ohm; >220 ohm slows the ~300 pF gate
+    vb.fixed("R2", 4.7e3, 220e3)  # NMOS datasheet: gate pull-down 10k-100k (x2 slack)
+    vb.fixed("C1", *BULK)         # bulk across the load supply: 1-22 uF ceramic (1206)
+    return golden(FAMILY, seed, b, assertions, power_nets, [], intent, params, value_bounds=vb.out)

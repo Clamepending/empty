@@ -139,6 +139,11 @@ def m_value(wd):
     edit_board(wd, lambda b: b.FindFootprintByReference(ref).SetValue(new))
 
 
+def m_decap_out_of_bounds(wd):  # LDO output cap 100 uF: in spec (DC), outside value_bounds [1u, 22u]
+    edit_design(wd, lambda d: d["components"]["C2"].update(value="100u"))
+    edit_board(wd, lambda b: b.FindFootprintByReference("C2").SetValue("100u"))
+
+
 def _swap_pads(b, ref, p1, p2):
     a, c = pad_of(b, ref, p1), pad_of(b, ref, p2)
     na, nc = a.GetNet(), c.GetNet()
@@ -361,7 +366,8 @@ def m_rules_files_only(wd):
 # name -> (mutation, expected reward, {key: expected bool} for keys whose value is asserted)
 OK = {k: True for k in ALL_KEYS}
 MUTATIONS = {
-    "value_changed": (m_value, 0.0, {**OK, "spec": False}),
+    "value_changed": (m_value, 0.0, {**{k: True for k in ALL_KEYS if k != "values"}, "spec": False}),
+    "decap_out_of_bounds": (m_decap_out_of_bounds, 0.0, {**OK, "values": False}),
     "swap_fb_en": (m_swap_fb_en, 0.0, {"parse": True, "components": True, "topology": False, "consistency": True,
                                        "integrity": True, "drc": False}),
     "swap_symmetric_resistor": (m_swap_resistor, 0.0, {"components": True, "topology": True, "consistency": True,

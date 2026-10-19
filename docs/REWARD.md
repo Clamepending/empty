@@ -4,7 +4,7 @@ The verifier is `pcbenv/verify.py`: `verify(workdir, task_dir) -> VerifyResult(r
 `verify_isolated` runs the same function in a fresh `python3 -I` subprocess, and is the default
 used by `pcbenv.api.verify`, the harness and the adapters.
 
-**Reward is binary: 1.0 if and only if all 5 gates and all 4 checks pass.** The per-stage
+**Reward is binary: 1.0 if and only if all 5 gates and all 5 checks pass.** The per-stage
 booleans and the `detail` messages are diagnostics. They are useful for failure taxonomies and
 reward shaping experiments, but they are not part of the reward. Any exception inside the
 verifier gives reward 0, with the message in `detail.error`. The verifier is deterministic: in
@@ -39,12 +39,13 @@ G3, 10 reruns of the same input produced identical results (`reports/g3_verify_r
 | `drc` | `pcbnew.WriteDRCReport` under the canonical rules: zero errors and zero unconnected items. Warnings are ignored, as are `lib_footprint_*` items, which depend on the host's library table | clearance violations, shorts, unrouted nets, tracks that are too thin, copper too close to the edge, overlapping courtyards (when KiCad reports them with severity error) |
 | `erc` | `pcbenv/erc.py` on design.json: unconnected required pins, single-pin nets, driver conflicts, `power_in` without a source, supply or output shorted to ground, nets of inputs only | floating enables or feedback pins, regulator outputs tied together, missing supply connections |
 | `spec` | every golden assertion (`dc_voltage`, `dc_current`, `ac_gain`, `cutoff`, `rise_time`, `analytic` crystal load) passes when the candidate design is simulated with ngspice. Stimuli and loads come from the hidden assertion, never from the agent's files | wrong component values, wrong value magnitude (k vs M), wrong crystal load caps. This is the main detector for faults that DRC and ERC cannot see |
+| `values` | every component listed in `meta.value_bounds` (ref → [min, max], SI units; also public in `spec.json` and TASK.md) has a design value inside its range. Values that assertions pin down get a wide sanity range; values no assertion sees get a datasheet range (decoupling 47 nF–10 µF, NRST pull-up 2.2k–100k, gate/base pull-downs, bulk caps, crystal frequency ±0.1 %, ...). Tasks without `value_bounds` pass trivially | values the spec cannot see: a crystal at the wrong frequency (RT01), a decoupling cap ×100, a 430 Ω gate resistor, a pull-down that no longer holds the switch off; absurd R-vs-C rescaling that keeps a corner frequency |
 | `layout` | each golden power net, identified on the board by its pin set and never by name, has every track ≥ the required width; each decoupling cap's pads are within `max_mm` of its IC pin pad | undersized power traces; decoupling caps moved away from the IC |
 
 ## Known limitations
 
 - **The spec check is only as strong as the golden assertions.** A value change that stays inside
-  every assertion's tolerance window passes. That is intended (any in-spec value is correct), but
+  every assertion's tolerance window, and inside its `value_bounds` range, passes. That is intended (any in-spec value is correct), but
   it means a fault can only be detected if it moves a measured quantity outside its window. The
   fault injector (G4) keeps only faults the verifier detects (≥ 99 % per type).
 - **SPICE models are behavioural.** The op-amp, LDO, MCU and transistor models are simplified

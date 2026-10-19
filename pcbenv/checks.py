@@ -7,8 +7,14 @@ Checks
     exactly the nets of these pins (either orientation).
     Each crystal pin's load C = sum of capacitors (part `C`) with one pin on that pin's net and the
     other on the ground net. CL_eff = Ca*Cb/(Ca+Cb) + cstray must be within tol of CL.
+
+Value bounds (`value_violations`, the verifier's `values` check and `pcbtool sim/check`):
+every ref in `bounds` (ref -> [min, max], SI) must exist with a value that parses to a finite
+number within [min, max] (inclusive, 1e-9 relative slack for float formatting).
 """
 from __future__ import annotations
+
+import math
 
 from pcbenv.parts import PARTS, parse_value
 
@@ -75,3 +81,24 @@ def run_check(design: dict, a: dict):
         return fn(design, a)
     except Exception as e:  # noqa: BLE001 - checks must never raise
         return AssertionResult(assertion_name(a), False, None, "", f"check error: {e}")
+
+
+def value_violations(design: dict, bounds: dict) -> list[str]:
+    """Messages for every component whose value is missing or outside its [min, max] bound."""
+    out = []
+    comps = design.get("components", {})
+    for ref, b in sorted((bounds or {}).items()):
+        lo, hi = float(b[0]), float(b[1])
+        rng = f"[{lo:.6g}, {hi:.6g}]"
+        c = comps.get(ref)
+        if c is None:
+            out.append(f"{ref}: missing (value must be in {rng})")
+            continue
+        raw = c.get("value", "")
+        try:
+            x = parse_value(raw)
+        except Exception:  # noqa: BLE001
+            x = float("nan")
+        if not (math.isfinite(x) and lo * (1 - 1e-9) <= x <= hi * (1 + 1e-9)):
+            out.append(f"{ref}: value {raw!r} outside acceptable range {rng}")
+    return out

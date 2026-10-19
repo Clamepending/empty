@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import random
 
-from pcbenv.families._common import E24, Builder, golden, pick, series_values
+from pcbenv.families._common import BULK, DECOUPLING, E24, NRST_PULLUP, Bounds, Builder, golden, pick, series_values
 from pcbenv.golden import Golden
 from pcbenv.parts_lib import MCU_PIN_C
 
@@ -81,8 +81,18 @@ for off-board devices on the 4-pin bus header J2 (pin 1 = VDD, pin 2 = GND, pin 
 Bus: {mode}-mode I2C with up to {cbus*1e12:.0f} pF of off-board bus capacitance per line (plus 5 pF
 MCU pin capacitance). Spec: 10–90 % rise time ≤ {tr_max*1e9:.0f} ns on both lines (nominal
 {tr_nom*1e9:.0f} ns), pull-up current ≤ 3 mA with a line held at VOL = 0.4 V, NRST ≥ 0.9·VDD.
+Component values: decoupling C1 47 nF–10 µF (100 nF typical); NRST pull-up R1 2.2 kΩ–100 kΩ{"; bulk C2 1 µF–22 µF" if bulk else ""}{"; reset delay C3 10 nF–1 µF" if rst_cap else ""}.
 """
     params = {"vdd": vdd, "mode": mode, "cbus_pf": round(cbus * 1e12), "rpullup": rp,
               "tr_nominal_ns": round(tr_nom * 1e9, 1), "bulk_cap": bulk, "reset_cap": rst_cap}
+    vb = Bounds(FAMILY, seed)
+    vb.fixed("C1", *DECOUPLING)
+    vb.fixed("R1", *NRST_PULLUP)
+    vb.spec("R2", rp)   # pull-ups pinned by rise-time (max R) and sink-current (min R) assertions
+    vb.spec("R3", rp)
+    if bulk:
+        vb.fixed("C2", *BULK)
+    if rst_cap:
+        vb.fixed("C3", 10e-9, 1e-6)  # MCU8 datasheet: optional 100 nF; with R1 gives a 0.02..100 ms reset delay
     return golden(FAMILY, seed, b, assertions, {vnet: 0.3, "GND": 0.3},
-                  [{"cap": "C1", "ic_pin": "U1.VDD", "max_mm": 5.0}], intent, params, big=True)
+                  [{"cap": "C1", "ic_pin": "U1.VDD", "max_mm": 5.0}], intent, params, big=True, value_bounds=vb.out)

@@ -4,7 +4,7 @@ from __future__ import annotations
 import math
 import random
 
-from pcbenv.families._common import E6, E24, E96, Builder, band, cutoff_of, gain_at, golden, nearest, pick, series_values
+from pcbenv.families._common import DECOUPLING, E6, E24, E96, Bounds, Builder, band, cutoff_of, gain_at, golden, nearest, pick, series_values
 from pcbenv.golden import Golden
 from pcbenv.parts_lib import OPAMP_A0, OPAMP_GBW
 
@@ -75,7 +75,17 @@ J3 (pin 1 = output, pin 2 = GND), centred at mid-supply. Single {vcc:g} V supply
   Gain = -R2/R1; the coupling capacitor sets the low cut-off 1/(2π·R1·C2) ≈ {f_hp:g} Hz.
 
 Spec: output DC level VCC/2 ±3 %; |gain| {g_mid:.3g} ±3 % at 1 kHz; low -3 dB corner {fc_low:.3g} Hz ±15 %.
+Component values: decoupling C1 47 nF–10 µF (100 nF typical); bias divider R3, R4 4.7 kΩ–470 kΩ each;
+VMID bypass C3 470 nF–47 µF.
 """
     params = {"vcc": vcc, "gain": gain, "f_hp": f_hp, "fc_low_hz": round(fc_low, 3)}
+    vb = Bounds(FAMILY, seed)
+    vb.fixed("C1", *DECOUPLING)
+    vb.spec("R1", rin_v)            # gain and low cut-off pinned by assertions
+    vb.spec("R2", rf_v)
+    vb.spec("C2", cin_v)
+    vb.fixed("R3", 4.7e3, 470e3)    # mid-supply divider: ratio pinned by dc_bias_out, scale is not;
+    vb.fixed("R4", 4.7e3, 470e3)    # 4.7k..470k = 0.35..5 mA at 5 V down to stiff-enough-for-IN+
+    vb.fixed("C3", 470e-9, 47e-6)   # VMID bypass: corner with R3||R4 well below the signal band
     return golden(FAMILY, seed, b, assertions, {"VCC": 0.3, "GND": 0.3},
-                  [{"cap": "C1", "ic_pin": "U1.V+", "max_mm": 5.0}], intent, params, big=True)
+                  [{"cap": "C1", "ic_pin": "U1.V+", "max_mm": 5.0}], intent, params, big=True, value_bounds=vb.out)

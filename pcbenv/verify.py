@@ -6,13 +6,15 @@ Trust boundary
   fresh temp dir and everything is parsed from there. Nothing in `workdir` is imported,
   executed, or used as configuration (DRC rules are canonical, see `drc.py`).
 - Everything else -- the golden design/board, ref->part map, assertions, power nets,
-  decoupling, alt partitions -- comes from `task_dir/hidden/`.
+  decoupling, value bounds, alt partitions -- comes from `task_dir/hidden/`.
 - Any exception inside `verify` gives reward 0 with the error in `detail["error"]`.
   `verify_isolated` additionally runs it in a fresh subprocess (KiCad's SWIG layer leaks
   memory and could in principle crash on a hostile file).
 
 Hard gates (reward 0 if any fails): parse, components, topology, consistency, integrity.
-Checks (all must pass for reward 1): drc, erc, spec, layout. Reward is binary.
+Checks (all must pass for reward 1): drc, erc, spec, values, layout. Reward is binary.
+`values`: every ref in `meta["value_bounds"]` (ref -> [min, max]) has a design value inside its
+range (old tasks without the key: nothing to check, the check passes).
 
 Topology is compared up to swapping the two pins of symmetric parts (R, C, L, crystals);
 see `layout.same_topology`. Board pads are named through the GOLDEN ref->part map.
@@ -32,7 +34,7 @@ from pathlib import Path
 MAX_FILE_BYTES = 5 * 1024 * 1024
 DELIVERABLES = ("design.json", "board.kicad_pcb")
 GATES = ("parse", "components", "topology", "consistency", "integrity")
-CHECKS = ("drc", "erc", "spec", "layout")
+CHECKS = ("drc", "erc", "spec", "values", "layout")
 ROOT = str(Path(__file__).resolve().parent.parent)
 _MARK = "PCBENV_VERIFY_JSON:"
 
@@ -240,6 +242,9 @@ def _verify(workdir: str, task_dir: str, td: str) -> VerifyResult:
     except Exception as e:  # noqa: BLE001
         msgs = [f"simulation error: {e}"]
     _fail(res, "spec", msgs, False)
+
+    from pcbenv.checks import value_violations
+    _fail(res, "values", value_violations(design, meta.get("value_bounds") or {}), False)
 
     _fail(res, "layout", [f"{i.code}: {i.detail}" for i in
                           layout.run_layout_checks(info, meta, board=board, ref_parts=ref_parts)], False)

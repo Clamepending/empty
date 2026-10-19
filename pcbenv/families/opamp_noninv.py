@@ -4,7 +4,7 @@ from __future__ import annotations
 import math
 import random
 
-from pcbenv.families._common import E12, E96, Builder, band, cutoff_of, gain_at, golden, nearest, pick, series_values
+from pcbenv.families._common import DECOUPLING, E12, E96, Bounds, Builder, band, cutoff_of, gain_at, golden, nearest, pick, series_values
 from pcbenv.golden import Golden
 from pcbenv.parts_lib import OPAMP_A0, OPAMP_GBW
 
@@ -81,10 +81,19 @@ Amplifies the signal on J2 (pin 1 = input, pin 2 = GND) by {gain:g} and presents
 
 Spec: gain {gain:g} ±3 % at {f_test:g} Hz; -3 dB bandwidth {fc/1e3:.3g} kHz ±10 %; DC-coupled
 (input {vin_dc:g} V DC -> output {g_nom*vin_dc:.3g} V).
+Component values: decoupling C1 47 nF–10 µF (100 nF typical); input bias resistor R3 47 kΩ–2.2 MΩ
+(sets the input impedance).
 """
     params = {"vcc": vcc, "gain": gain, "cf": bool(cf), "bandwidth_hz": round(fc, 1)}
+    vb = Bounds(FAMILY, seed)
+    vb.fixed("C1", *DECOUPLING)
+    vb.spec("R1", rf)            # gain (and bandwidth with C2) pinned by assertions
+    vb.spec("R2", rg)
+    vb.fixed("R3", 47e3, 2.2e6)  # input bias resistor = input impedance; 47k..2.2M is sane
+    if cf:
+        vb.spec("C2", cf)        # pinned by the bandwidth assertion
     return golden(FAMILY, seed, b, assertions, {"VCC": 0.3, "GND": 0.3},
-                  [{"cap": "C1", "ic_pin": "U1.V+", "max_mm": 5.0}], intent, params)
+                  [{"cap": "C1", "ic_pin": "U1.V+", "max_mm": 5.0}], intent, params, value_bounds=vb.out)
 
 
 __all__ = ["generate", "transfer", "gain_at"]

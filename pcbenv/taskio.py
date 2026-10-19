@@ -6,9 +6,10 @@
   hidden/   golden_design.json  golden_board.kicad_pcb  meta.json
 ```
 `public/spec.json` holds what the agent is allowed to know about the spec: the assertions
-(they are spec, not secret), the required power-net widths and the decoupling rules.
+(they are spec, not secret), the required power-net widths, the decoupling rules and the
+acceptable value range of every valued component (`value_bounds`: ref -> [min, max], SI units).
 `hidden/meta.json` is what the grader trusts: task_id, family, seed, board_seed, params,
-faults, assertions, power_nets, power_net_pins, decoupling, alt_partitions, ref_parts
+faults, assertions, power_nets, power_net_pins, decoupling, value_bounds, alt_partitions, ref_parts
 (golden ref -> part name, used to name board pads), difficulty.
 
 `write_task` is the generic writer (the fault injector passes a faulted public design/board);
@@ -116,7 +117,21 @@ def public_spec(golden: Golden) -> dict:
         "power_nets": [{"net": n, "anchor_pin": anchor_pin(nets.get(n, [])), "min_width_mm": w}
                        for n, w in sorted(golden.power_nets.items())],
         "decoupling": golden.decoupling,
+        "value_bounds": golden.value_bounds,
     }
+
+
+_VALUE_UNITS = {"R": "Ω", "C": "F", "L": "H"}
+
+
+def value_bound_lines(design: dict, bounds: dict) -> list[str]:
+    """`- R1 (R): 3.3 kΩ … 30 kΩ` lines for TASK.md."""
+    out = []
+    for ref, (lo, hi) in sorted(bounds.items()):
+        part = design["components"].get(ref, {}).get("part", "")
+        unit = _VALUE_UNITS.get(part, "Hz" if part.startswith("XTAL") else "")
+        out.append(f"- {ref} ({part}): {_fmt(lo, unit)} … {_fmt(hi, unit)}")
+    return out
 
 
 def render_task_md(golden: Golden, problem: str | None = None) -> str:
@@ -140,6 +155,11 @@ def render_task_md(golden: Golden, problem: str | None = None) -> str:
     if spec["decoupling"]:
         lines += ["", "Decoupling: every pad of each capacitor within the given distance of the IC pin's pad:", ""]
         lines += [f"- {d['cap']} within {d['max_mm']} mm of {d['ic_pin']}" for d in spec["decoupling"]]
+    if spec["value_bounds"]:
+        lines += ["", "Component values: each value must lie in its acceptable range (inclusive; `value_bounds` in "
+                  "`spec.json`). Ranges come from the datasheets and the design intent; values the assertions "
+                  "already pin down get a wide sanity range, and the assertions still apply:", ""]
+        lines += value_bound_lines(golden.design, spec["value_bounds"])
     lines += ["", "Board rules: 2 copper layers, clearance 0.2 mm, min track 0.2 mm, vias 0.6/0.3 mm, "
               "copper-to-edge 0.3 mm. DRC must be clean with no unconnected items.", "",
               "## Deliverable", "",
@@ -149,7 +169,8 @@ def render_task_md(golden: Golden, problem: str | None = None) -> str:
               "- Do not change the board outline, add zones, or add DRC exclusions.",
               "- Footprints must be unmodified library footprints from the part's allowed list "
               "(see `parts/<PART>.md`).",
-              "- Grading is pass/fail: topology, consistency, DRC, ERC, spec and layout must all pass.", "",
+              "- Grading is pass/fail: topology, consistency, DRC, ERC, spec, component values and layout "
+              "must all pass.", "",
               TOOLS_TEXT]
     return "\n".join(lines)
 
@@ -187,7 +208,8 @@ def write_task(task_dir: str | os.PathLike, golden: Golden, golden_board: str,
         "params": golden.params, "faults": faults or [],
         "assertions": golden.assertions, "power_nets": golden.power_nets,
         "power_net_pins": {n: sorted(golden.design["nets"].get(n, [])) for n in golden.power_nets},
-        "decoupling": golden.decoupling, "alt_partitions": alt_partitions or [],
+        "decoupling": golden.decoupling, "value_bounds": golden.value_bounds,
+        "alt_partitions": alt_partitions or [],
         "ref_parts": {ref: c["part"] for ref, c in sorted(golden.design["components"].items())},
         "board_w_mm": golden.board_w_mm, "board_h_mm": golden.board_h_mm,
         "difficulty": difficulty or {"measured": None, "predicted": None},
