@@ -61,7 +61,9 @@ def test_list_tasks_scan_and_split(troot):
     assert {r.family for r in refs} == {"ldo_reg", "rc_lowpass"}
     assert [r.task_id for r in api.list_tasks(troot, split="holdout")] == ["rc_golden"]
     assert [r.task_id for r in api.list_tasks(troot / "train")] == ["ldo_golden", "ldo_value_fault"]
-    assert [r.task_id for r in api.list_tasks(troot / "train" / "ldo_golden")] == ["ldo_golden"]
+    one = api.list_tasks(troot / "train" / "ldo_golden")
+    assert [(r.task_id, r.split) for r in one] == [("ldo_golden", None)]
+    assert [r.split for r in api.list_tasks(troot / "train")] == ["train", "train"]
     assert api.list_tasks(troot / "nope") == []
 
 
@@ -120,6 +122,12 @@ def test_extract_tasks_roundtrip(troot, tmp_path):
         tf.add(troot, arcname="pcb-repair-v1/tasks")
     refs = api.extract_tasks(tb, tmp_path / "out")
     assert sorted(r.task_id for r in refs) == ["ldo_golden", "ldo_value_fault", "rc_golden"]
+    # bundles usually wrap a top-level dir: listing the extraction root must still find everything
+    assert [(r.split, r.task_id) for r in api.list_tasks(tmp_path / "out", split="train")] == [
+        ("train", "ldo_golden"), ("train", "ldo_value_fault")]
+    (tmp_path / "out" / "pcb-repair-v1" / "tasks" / "manifest.jsonl").write_text(
+        json.dumps({"task_id": "rc_golden", "split": "holdout", "difficulty": "hard"}) + "\n")
+    assert [(r.task_id, r.difficulty) for r in api.list_tasks(tmp_path / "out")] == [("rc_golden", "hard")]
     g = next(r for r in refs if r.task_id == "ldo_golden")
     assert api.verify(Path(g.path) / "public", g.path).reward == 1.0
 

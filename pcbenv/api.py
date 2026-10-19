@@ -81,22 +81,52 @@ def _resolve(root: Path, row: dict) -> Path | None:
     return None
 
 
+MAX_SCAN_DEPTH = 4
+
+
+def _find_manifest(root: Path) -> Path | None:
+    """root/manifest.jsonl, else the single manifest up to 2 levels below (bundles often wrap
+    everything in a top-level dir)."""
+    if (root / MANIFEST).is_file():
+        return root / MANIFEST
+    found = sorted(root.glob(f"*/{MANIFEST}")) or sorted(root.glob(f"*/*/{MANIFEST}"))
+    return found[0] if len(found) == 1 else None
+
+
+def _scan(root: Path) -> list[Path]:
+    if _is_task_dir(root):
+        return [root]
+    out, frontier = [], [root]
+    for _ in range(MAX_SCAN_DEPTH):
+        nxt = []
+        for d in frontier:
+            for c in sorted(p for p in d.iterdir() if p.is_dir() and not p.is_symlink()) if d.is_dir() else []:
+                if _is_task_dir(c):
+                    out.append(c)
+                elif c.name not in (PUBLIC_DIR, HIDDEN_DIR):
+                    nxt.append(c)
+        frontier = nxt
+    return out
+
+
 def list_tasks(root: str | os.PathLike = "tasks", split: str | None = None) -> list[TaskRef]:
-    """Tasks under `root`, sorted by task_id. Uses `root/manifest.jsonl` when present (rows need a
-    `task_id` and either `path` or `split`); otherwise scans `root/<split>/<task_id>/public/TASK.md`
-    (also accepts `root` being a split dir or a single task dir). Manifest rows whose directory is
-    missing are skipped."""
+    """Tasks under `root`, sorted by (split, task_id). Uses `manifest.jsonl` when present (rows need
+    a `task_id` and either `path` or `split`; also found one or two levels down); otherwise scans
+    for `*/public/TASK.md` up to 4 levels deep, taking the split from the task's parent dir name
+    (`root/<split>/<task_id>`; also accepts `root` being a split dir or a single task dir).
+    Manifest rows whose directory is missing are skipped."""
     rootp = Path(root)
     refs: list[TaskRef] = []
-    man = rootp / MANIFEST
-    if man.is_file():
+    man = _find_manifest(rootp) if rootp.is_dir() else None
+    if man is not None:
+        mroot = man.parent
         for line in man.read_text(encoding="utf-8").splitlines():
             if not line.strip():
                 continue
             row = json.loads(line)
             if split is not None and row.get("split") != split:
                 continue
-            p = _resolve(rootp, row)
+            p = _resolve(mroot, row)
             if p is None:
                 continue
             known = {"task_id", "id", "path", "task_dir", "dir", "split", "family", "difficulty"}
@@ -105,14 +135,9 @@ def list_tasks(root: str | os.PathLike = "tasks", split: str | None = None) -> l
                                 difficulty=row.get("difficulty"),
                                 extra={k: v for k, v in row.items() if k not in known}))
     else:
-        if _is_task_dir(rootp):
-            found = [(None, rootp)]
-        else:
-            found = [(None, d) for d in sorted(rootp.glob("*")) if _is_task_dir(d)]
-            found += [(s.name, d) for s in sorted(rootp.glob("*")) if s.is_dir()
-                      for d in sorted(s.glob("*")) if _is_task_dir(d)]
-        for sp, d in found:
-            if split is not None and sp != split and not (sp is None and d.parent.name == split):
+        for d in _scan(rootp):
+            sp = d.parent.name if d != rootp else None
+            if split is not None and sp != split:
                 continue
             family = difficulty = None
             mp = d / HIDDEN_DIR / "meta.json"
@@ -122,7 +147,7 @@ def list_tasks(root: str | os.PathLike = "tasks", split: str | None = None) -> l
                     family, difficulty = m.get("family"), m.get("difficulty")
                 except ValueError:
                     pass
-            refs.append(TaskRef(task_id=d.name, path=str(d.resolve()), split=sp or d.parent.name,
+            refs.append(TaskRef(task_id=d.name, path=str(d.resolve()), split=sp,
                                 family=family, difficulty=difficulty))
     return sorted(refs, key=lambda r: (r.split or "", r.task_id))
 
@@ -195,20 +220,7 @@ def extract_tasks(tarball: str | os.PathLike, dest: str | os.PathLike) -> list[T
             if target != root and root not in target.parents:
                 raise UnsafeArchive(f"member escapes destination: {m.name!r}")
         tf.extractall(dest_p, members=members, filter="data")
-    return list_tasks(dest_p) or _find_nested(dest_p)
-
-
-def _find_nested(dest: Path) -> list[TaskRef]:
-    """Bundles may wrap everything in one top-level dir (e.g. `pcb-repair-v1/tasks/...`)."""
-    for man in sorted(dest.rglob(MANIFEST)):
-        refs = list_tasks(man.parent)
-        if refs:
-            return refs
-    for sub in sorted(p for p in dest.rglob("*") if p.is_dir()):
-        refs = list_tasks(sub)
-        if refs:
-            return refs
-    return []
+    return list_tasks(dest_p)
 
 
 # ------------------------------------------------------------------ CLI

@@ -2,14 +2,16 @@
 
 Design and board carry the same wrong value (the schematic of record is wrong), except
 `bom_mismatch`, where only the board's footprint value differs from design.json.
-Every value fault (except bom_mismatch) is checked to make at least one spec assertion fail;
-all of them are invisible to DRC and ERC.
+Every value fault (except bom_mismatch) is checked to make at least one spec assertion fail or
+to leave the golden's published `value_bounds` (when the golden has them); all of them are
+invisible to DRC and ERC.
 """
 from __future__ import annotations
 
+import json
 import random
 
-from pcbenv.faults.common import (FaultRecord, NotApplicable, free, set_board_values, spec_fails, valued_refs)
+from pcbenv.faults.common import (FaultRecord, NotApplicable, free, set_board_values, valued_refs, value_detectable)
 from pcbenv.families._common import E12, E24, E96, nearest
 from pcbenv.golden import Golden
 from pcbenv.parts import format_value, parse_value
@@ -47,15 +49,21 @@ def _apply(golden: Golden, design: dict, board_path: str, salt: str, changes: di
     set_board_values(board_path, changes, salt)
 
 
+def _detectable_alone(golden: Golden, changes: dict[str, str]) -> bool:
+    """Judge a value change on the golden design with only this change applied, so the choice does
+    not depend on other faults of the same task (which may already break the spec)."""
+    d = json.loads(json.dumps(golden.design))
+    for ref, v in changes.items():
+        d["components"][ref]["value"] = v
+    return value_detectable(d, golden)
+
+
 def _first_failing(golden: Golden, design: dict, ref: str, cands: list[str]) -> str | None:
     old = design["components"][ref]["value"]
     for v in cands:
         if v == old or parse_value(v) == parse_value(old):
             continue
-        design["components"][ref]["value"] = v
-        bad = spec_fails(design, golden)
-        design["components"][ref]["value"] = old
-        if bad:
+        if _detectable_alone(golden, {ref: v}):
             return v
     return None
 
@@ -88,10 +96,7 @@ def wrong_feedback_resistor(golden, design, board_path, rng, exclude=frozenset()
         a, b = refs
         va, vb = design["components"][a]["value"], design["components"][b]["value"]
         if abs(parse_value(va) / parse_value(vb) - 1) > 0.1:
-            design["components"][a]["value"], design["components"][b]["value"] = vb, va
-            bad = spec_fails(design, golden)
-            design["components"][a]["value"], design["components"][b]["value"] = va, vb
-            if bad:
+            if _detectable_alone(golden, {a: vb, b: va}):
                 _apply(golden, design, board_path, salt, {a: vb, b: va})
                 return FaultRecord("wrong_feedback_resistor", "value",
                                    f"{a} and {b} values swapped ({a}={vb}, {b}={va})", True, [a, b],

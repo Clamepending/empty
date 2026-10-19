@@ -29,13 +29,16 @@ from pcbenv.golden import Golden
 from pcbenv.parts import PARTS
 
 
-def _save_checked(board, board_path: str, salt: str, accept) -> bool:
-    """Save `board` to a temp file, DRC it; copy over board_path iff accept(DrcResult)."""
+def _save_checked(board, board_path: str, salt: str, accept, before) -> bool:
+    """Save `board` to a temp file, DRC it; copy over board_path iff accept(before, after).
+
+    Acceptance is judged on the DRC *delta* against the state before this fault, so the choice
+    does not depend on other faults of the same task."""
     with tempfile.TemporaryDirectory(prefix="pcbfault_") as td:
         tmp = os.path.join(td, "board.kicad_pcb")
         save_board(board, tmp, salt)
         res = drc_result(tmp)
-        if not accept(res):
+        if not accept(before, res):
             return False
         shutil.copyfile(tmp, board_path)
     return True
@@ -43,6 +46,18 @@ def _save_checked(board, board_path: str, salt: str, accept) -> bool:
 
 def _types(res) -> set[str]:
     return {e["type"] for e in res.errors}
+
+
+def _not_worse(b, a) -> bool:
+    return len(a.errors) <= len(b.errors) and a.unconnected <= b.unconnected
+
+
+def _worse(b, a) -> bool:
+    return len(a.errors) > len(b.errors) or a.unconnected > b.unconnected
+
+
+def _n_touch(res) -> int:
+    return sum(_is_touch(e) for e in res.errors)
 
 
 def _is_touch(e: dict) -> bool:
@@ -115,6 +130,7 @@ def _near_candidates(board, exclude: set[str], lo: float, hi: float) -> list[tup
 def _stub_fault(ftype: str, golden, design, board_path, rng, exclude, salt, touch: bool) -> FaultRecord | None:
     exclude = set(exclude)
     board = load_board(board_path)
+    before = drc_result(board_path)
     cands = _near_candidates(board, exclude, 0.3, 2.0)
     rng.shuffle(cands)
     for na, layer, P, Q, wa, wb, nb in cands[:10]:
@@ -131,15 +147,13 @@ def _stub_fault(ftype: str, golden, design, board_path, rng, exclude, salt, touc
             E = (Q[0] + dx * k, Q[1] + dy * k)
         add_track(board, na, layer, P[0], P[1], E[0], E[1], wa)
 
-        def accept(res):
-            t = _types(res)
-            if res.unconnected:
+        def accept(b, a):
+            if a.unconnected > b.unconnected:
                 return False
-            touching = any(_is_touch(e) for e in res.errors)
             if touch:
-                return touching
-            return "clearance" in t and not touching
-        if not _save_checked(board, board_path, salt, accept):
+                return _n_touch(a) > _n_touch(b)
+            return _n_touch(a) == _n_touch(b) and len(a.errors) > len(b.errors)
+        if not _save_checked(board, board_path, salt, accept, before):
             continue
         lay = "F.Cu" if layer == 0 else "B.Cu"
         if touch:
@@ -163,6 +177,7 @@ def short_between_nets(golden, design, board_path, rng, exclude=frozenset(), sal
 def broken_trace(golden, design, board_path, rng, exclude=frozenset(), salt="") -> FaultRecord | None:
     exclude = set(exclude)
     board = load_board(board_path)
+    before = drc_result(board_path)
     cands = []
     for net in _routed_nets(board, exclude):
         for t in tracks_of(board, net):
@@ -191,7 +206,7 @@ def broken_trace(golden, design, board_path, rng, exclude=frozenset(), salt="") 
         board.Delete(victim)
         add_track(board, net, layer, x1, y1, a[0], a[1], w)
         add_track(board, net, layer, b[0], b[1], x2, y2, w)
-        if not _save_checked(board, board_path, salt, lambda r: r.unconnected > 0 and not r.errors):
+        if not _save_checked(board, board_path, salt, lambda b, a: a.unconnected > b.unconnected and len(a.errors) <= len(b.errors), before):
             continue
         lay = "F.Cu" if layer == 0 else "B.Cu"
         return FaultRecord("broken_trace", "board", f"track of net {net} on {lay} cut near ({mx:.2f}, {my:.2f})",
@@ -202,6 +217,7 @@ def broken_trace(golden, design, board_path, rng, exclude=frozenset(), salt="") 
 def narrow_power_trace(golden, design, board_path, rng, exclude=frozenset(), salt="") -> FaultRecord | None:
     exclude = set(exclude)
     board = load_board(board_path)
+    before = drc_result(board_path)
     nets = [n for n, w in sorted(golden.power_nets.items()) if w > 0.2 + 1e-9 and free(exclude, f"net:{n}")
             and tracks_of(board, n)]
     rng.shuffle(nets)
@@ -216,7 +232,7 @@ def narrow_power_trace(golden, design, board_path, rng, exclude=frozenset(), sal
         new_w = 0.2 if req <= 0.3 else [0.2, 0.25, 0.3][rng.randrange(3)]
         for i in pick:
             longish[i][1].SetWidth(int(round(new_w * MM)))
-        if not _save_checked(board, board_path, salt, lambda r: r.clean):
+        if not _save_checked(board, board_path, salt, _not_worse, before):
             continue
         return FaultRecord("narrow_power_trace", "board",
                            f"{k} segment(s) of power net {net} are {new_w} mm wide (required {req} mm)", True,
@@ -253,6 +269,7 @@ def decap_moved_far(golden, design, board_path, rng, exclude=frozenset(), salt="
     rp = {r: c["part"] for r, c in design["components"].items()}
     dcs = [dc for dc in golden.decoupling if dc["cap"] in design["components"]]
     rng.shuffle(dcs)
+    before = drc_result(board_path)
     for dc in dcs:
         cap = dc["cap"]
         board = load_board(board_path)
@@ -272,7 +289,10 @@ def decap_moved_far(golden, design, board_path, rng, exclude=frozenset(), salt="
         rel = (box[0] - cx, box[1] - cy, box[2] - cx, box[3] - cy)
         pad_rel = [(p.GetPosition().x / MM - cx, p.GetPosition().y / MM - cy) for p in fp.Pads()]
         others = [_fp_box(f) for f in board.GetFootprints() if f.GetReference() != cap]
-        obst = [_bbox(t) for t in board.GetTracks() if t.GetNetname() not in cap_nets]
+        # only copper of nets no other fault touched: the spot list is then the same whether this
+        # fault is applied alone or after others (conflicts with other copper are caught by DRC)
+        obst = [_bbox(t) for t in board.GetTracks()
+                if t.GetNetname() not in cap_nets and free(exclude, f"net:{t.GetNetname()}")]
         x0, y0 = ORIGIN
         W, H = golden.board_w_mm, golden.board_h_mm
         lim = dc["max_mm"]
@@ -301,7 +321,7 @@ def decap_moved_far(golden, design, board_path, rng, exclude=frozenset(), salt="
                 reroute(board, golden, cap_nets)
             except NotApplicable:
                 continue
-            if not _save_checked(board, board_path, salt, lambda r: r.clean):
+            if not _save_checked(board, board_path, salt, _not_worse, before):
                 continue
             d = min(math.hypot(x + dx - ip[0], y + dy - ip[1]) for dx, dy in pad_rel)
             return FaultRecord("decap_moved_far", "board",
@@ -327,12 +347,13 @@ def footprint_swap(golden, design, board_path, rng, exclude=frozenset(), salt=""
             if fpid != c["footprint"]:
                 cands.append((ref, fpid, tuple(nets)))
     rng.shuffle(cands)
+    before = drc_result(board_path)
     for ref, fpid, nets in cands[:6]:
         board = load_board(board_path)
         seed_kiid(salt + "fpswap")
         old = design["components"][ref]["footprint"]
         _replace_footprint(board, ref, fpid, design["components"][ref].get("value", ""))
-        if not _save_checked(board, board_path, salt, lambda r: not r.clean):
+        if not _save_checked(board, board_path, salt, _worse, before):
             continue
         design["components"][ref]["footprint"] = fpid
         return FaultRecord("footprint_swap", "board",

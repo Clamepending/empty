@@ -11,6 +11,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import shutil
 import tempfile
 from dataclasses import asdict, dataclass, field
@@ -22,7 +23,7 @@ from pcbenv import design as D
 from pcbenv.board import canonicalize_uuids, design_pad_nets
 from pcbenv.golden import Golden
 from pcbenv.layout import SYMMETRIC_PARTS, same_topology
-from pcbenv.parts import PARTS
+from pcbenv.parts import PARTS, parse_value
 
 MM = 1_000_000
 DEFAULT_WIDTH = drc.RULES["default_track_width"]
@@ -97,6 +98,29 @@ def spec_fails(design: dict, golden: Golden) -> bool:
     return not all(r.passed for r in sim.run_assertions(design, golden.assertions))
 
 
+def out_of_bounds(design: dict, golden: Golden) -> list[str]:
+    """Refs whose value lies outside the golden's `value_bounds` (empty if the golden has none)."""
+    vb = getattr(golden, "value_bounds", None) or {}
+    out = []
+    for ref, (lo, hi) in sorted(vb.items()):
+        c = design["components"].get(ref)
+        if not c or not c.get("value"):
+            continue
+        try:
+            v = parse_value(c["value"])
+        except ValueError:
+            out.append(ref)
+            continue
+        if not lo * (1 - 1e-9) <= v <= hi * (1 + 1e-9):
+            out.append(ref)
+    return out
+
+
+def value_detectable(design: dict, golden: Golden) -> bool:
+    """A value change is gradeable: it breaks a spec assertion or leaves the published bounds."""
+    return bool(out_of_bounds(design, golden)) or spec_fails(design, golden)
+
+
 def erc_codes(design: dict) -> list[str]:
     return sorted(i.code for i in erc.errors(erc.run_erc(design)))
 
@@ -130,11 +154,73 @@ def load_board(path: str) -> "pcbnew.BOARD":
     return b
 
 
+_TOP_RE = re.compile(r"^  \((\w+)")
+_UUID_STRIP_RE = re.compile(r"\((?:tstamp|uuid) [0-9a-fA-F-]{36}\)")
+_SORTABLE = {"footprint", "segment", "via", "arc", "gr_line", "gr_rect", "gr_circle", "gr_arc", "gr_poly", "gr_text"}
+
+
+def canonical_board_file(path: str, salt: str) -> None:
+    """Make a saved .kicad_pcb independent of the KiCad UUID generator's history.
+
+    KiCad sorts footprints / tracks by UUID when saving, and the UUIDs it hands out depend on
+    everything the process did before (library footprint loads consume generator draws), so
+    the same board can be saved in different item orders. Here every run of consecutive
+    top-level items of one kind is sorted by its UUID-free text, then UUIDs are renumbered in
+    order of appearance (`board.canonicalize_uuids`)."""
+    lines = open(path, encoding="utf-8").read().split("\n")
+    head, blocks, tail = [], [], []
+    i = 0
+    while i < len(lines) and not _TOP_RE.match(lines[i]):
+        head.append(lines[i])
+        i += 1
+    cur: list[str] | None = None
+    for line in lines[i:]:
+        if _TOP_RE.match(line):
+            cur = [line]
+            blocks.append(cur)
+        elif (line.startswith("  ") or not line.strip()) and cur is not None:
+            cur.append(line)
+        else:
+            tail.append(line)
+            cur = None
+    out: list[list[str]] = []
+    run: list[list[str]] = []
+    kind = None
+
+    def flush() -> None:
+        if kind in _SORTABLE:
+            run.sort(key=lambda b: _UUID_STRIP_RE.sub("", "\n".join(b)))
+        out.extend(run)
+
+    for b in blocks:
+        k = _TOP_RE.match(b[0]).group(1)
+        if k != kind:
+            flush()
+            run, kind = [], k
+        run.append(b)
+    flush()
+    body: list[str] = []
+    prev = None
+    for b in out:
+        while len(b) > 1 and not b[-1].strip():
+            b.pop()
+        k = _TOP_RE.match(b[0]).group(1)
+        if prev is not None and (k != prev or k == "footprint"):
+            body.append("")
+        body.extend(b)
+        prev = k
+    tail = [line for line in tail if line.strip()]
+    text = "\n".join(head + body + tail) + "\n"
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(text)
+    canonicalize_uuids(path, salt)
+
+
 def save_board(board: "pcbnew.BOARD", path: str, salt: str) -> None:
     tmp = path + ".tmp.kicad_pcb"
     if not pcbnew.SaveBoard(tmp, board, True):
         raise RuntimeError("SaveBoard failed")
-    canonicalize_uuids(tmp, salt)
+    canonical_board_file(tmp, salt)
     os.replace(tmp, path)
     for ext in (".kicad_pro", ".kicad_prl"):
         p = tmp[: -len(".kicad_pcb")] + ext
@@ -228,7 +314,9 @@ def rewire(golden: Golden, board_path: str, padnets: dict[str, dict[str, str]], 
            require_clean: bool = True) -> list[str]:
     """Set the board's pad nets to `padnets`, re-route the affected nets, save.
 
-    Raises NotApplicable when routing fails or the result is not DRC clean."""
+    Raises NotApplicable when routing fails or the result has more DRC errors / unconnected
+    items than before (i.e. it is DRC clean when the input was)."""
+    before = drc_result(board_path) if require_clean else None
     board = load_board(board_path)
     seed_kiid(salt)
     affected = set_pad_nets(board, padnets)
@@ -238,8 +326,10 @@ def rewire(golden: Golden, board_path: str, padnets: dict[str, dict[str, str]], 
     with tempfile.TemporaryDirectory(prefix="pcbfault_") as td:
         tmp = os.path.join(td, "board.kicad_pcb")
         save_board(board, tmp, salt)
-        if require_clean and not drc_clean(tmp):
-            raise NotApplicable("re-routed board is not DRC clean")
+        if before is not None:
+            after = drc_result(tmp)
+            if len(after.errors) > len(before.errors) or after.unconnected > before.unconnected:
+                raise NotApplicable("re-routed board has new DRC errors")
         shutil.copyfile(tmp, board_path)
     return sorted(affected)
 

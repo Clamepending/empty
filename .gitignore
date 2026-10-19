@@ -6,3 +6,10 @@ __pycache__/
 *.kicad_prl
 fp-info-cache
 redteam/_tasks/
+# generated task dirs (shipped as dist/pcb-repair-v1-*.tar.gz + tasks/manifest.jsonl; see reports/g4_faults.md)
+/tasks/train/
+/tasks/holdout/
+/tasks/_staging/
+/tasks/refresh-*/train/
+/tasks/refresh-*/holdout/
+/tasks/refresh-*/_staging/

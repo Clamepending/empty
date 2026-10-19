@@ -210,8 +210,21 @@ def problem_text(level: str, golden: Golden, records: list[dict], symptom_lines:
     return "\n".join(lines)
 
 
-def render(golden: Golden, level: str, records: list[dict], symptom_lines: list[str]) -> str:
+# Topology-only ("silent") faults whose correct wiring follows from the datasheets / interfaces alone.
+# A silent fault of another type (e.g. a bias resistor returned to the wrong rail) is only
+# recoverable from the full intent, so such tasks keep the full intent at every hint level.
+DATASHEET_INFERABLE = frozenset({"reversed_polarity", "transistor_pinout", "swapped_ic_pins",
+                                 "decap_misconnected", "floating_pin"})
+
+
+def needs_full_intent(level: str, silent_types: list[str]) -> bool:
+    return level == "explicit" or any(t not in DATASHEET_INFERABLE for t in silent_types)
+
+
+def render(golden: Golden, level: str, records: list[dict], symptom_lines: list[str],
+           full_intent: bool | None = None) -> str:
     if level not in HINT_LEVELS:
         raise ValueError(level)
-    g = golden if level == "explicit" else replace(golden, intent=reduce_intent(golden.intent))
+    full = level == "explicit" if full_intent is None else full_intent
+    g = golden if full else replace(golden, intent=reduce_intent(golden.intent))
     return render_task_md(g, problem_text(level, golden, records, symptom_lines))
