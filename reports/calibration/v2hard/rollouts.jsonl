@@ -32,6 +32,16 @@
 {"audited": true, "contaminated": false, "failed": [], "job": 32, "model": "opus", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard-13610af5", "violations": []}
 {"audited": true, "contaminated": false, "failed": [], "job": 33, "model": "opus", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard-9f5f47eb", "violations": []}
 {"audited": true, "contaminated": false, "failed": [], "job": 34, "model": "opus", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard-f5c33c43", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 35, "model": "opus", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard-517afe87", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 36, "model": "opus", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard-ecd95d53", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 37, "model": "opus", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard-b6d95d2d", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 38, "model": "opus", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard-cd39eba7", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 39, "model": "opus", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard-28291187", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 40, "model": "opus", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard-e8268954", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 41, "model": "opus", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard-86a54afa", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 42, "model": "opus", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard-9256f960", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 43, "model": "opus", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard-c0ba4ef6", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 44, "model": "opus", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard-bf7c127a", "violations": []}
 {"audited": true, "contaminated": false, "failed": ["topology", "rules"], "job": 45, "model": "sonnet", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard-954cdd78", "violations": []}
 {"audited": true, "contaminated": false, "failed": [], "job": 46, "model": "sonnet", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard-e8268954", "violations": []}
 {"audited": true, "contaminated": false, "failed": ["rules"], "job": 47, "model": "sonnet", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard-86a54afa", "violations": []}
