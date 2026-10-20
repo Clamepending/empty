@@ -193,7 +193,19 @@ def main() -> int:
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--source", choices=("fixture", "shipped", "v2"), default="fixture")
     ap.add_argument("--json")
+    ap.add_argument("--retry", help="JSON of a previous run: re-grade only its attack_error/timeout/crash pairs")
     a = ap.parse_args()
+    if a.retry:
+        prev = json.loads(Path(a.retry).read_text())["results"]
+        pairs = [(r["task"], r["attack"]) for r in prev if r["status"] in ("attack_error", "timeout", "crash")]
+        with mp.get_context("spawn").Pool(a.workers, maxtasksperchild=1) as pool:
+            res = pool.map(_grade_args, pairs, chunksize=1)
+        c = Counter(r["status"] for r in res)
+        print(f"retried pairs: {len(res)}  " + " ".join(f"{k}={v}" for k, v in sorted(c.items())))
+        for r in res:
+            if r["status"] != "fail":
+                print(r["status"].upper(), r["attack"], r["task"], (r.get("error") or r.get("detail", ""))[:160])
+        return 1 if c["pass"] or c["crash"] else 0
     ctx = mp.get_context("spawn")
     invisible: list[str] = []
     if a.source in ("shipped", "v2"):
@@ -224,8 +236,10 @@ def main() -> int:
         pairs = [(t, n) for t, k in targets for n in names if k not in LEGIT_FOR.get(n, ())]
         random.Random(a.seed).shuffle(pairs)
         pairs = sorted(pairs[: a.n])
-    with ctx.Pool(a.workers, maxtasksperchild=10) as pool:
-        res = pool.map(_grade_args, pairs, chunksize=4)
+    # one fresh interpreter per pair: attacks mutate boards through pcbnew's SWIG layer, whose state
+    # degrades in a long-lived worker (LoadBoard returning a bare SwigPyObject -> spurious attack_error)
+    with ctx.Pool(a.workers, maxtasksperchild=1) as pool:
+        res = pool.map(_grade_args, pairs, chunksize=1)
     c = Counter(r["status"] for r in res)
     hacks = [r for r in res if r["status"] == "pass"]
     print(f"tasks: {len(tds)}  faulted-baseline invisible (score 1.0, not attacked): {len(invisible)}  "

@@ -5,6 +5,7 @@ FAIL until pcbenv is fixed (deliberately not xfail). `test_blocked_*` must keep 
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import shutil
@@ -302,3 +303,50 @@ def test_rules_fail_closed_on_nonconvergence():
     # either it simulates cleanly (a lone biased resistor is fine) or it reports simulation/error --
     # it must never raise and must never fabricate a pass that hides a sim failure
     assert all(v.code in ("resistor_power", "simulation", "error") for v in viol)
+
+
+def test_blocked_no_task_id_in_public_files_v2():
+    """RT37 guard, fixed for v2 paths: no public file carries the opaque id, its hmac8 suffix, the
+    generator seed, or the family name (the round-1 test globbed `pcbr-*` and matched 0 v2 dirs)."""
+    rows = [m for m in H._manifest() if str(m.get("split", "")).startswith("v2/")]
+    assert rows, "no v2 tasks in the manifest"
+    for m in rows[::29]:
+        tid = m["id"]
+        hmac8 = tid.rsplit("-", 1)[1]
+        meta = json.load(open(os.path.join(str(H.ROOT), "tasks", m["path"], "hidden", "meta.json")))
+        seed, fam = str(meta["seed"]), meta.get("family", "")
+        pub = os.path.join(str(H.ROOT), "tasks", m["path"], "public")
+        for root, _, files in os.walk(pub):
+            for f in files:
+                txt = open(os.path.join(root, f), encoding="utf-8", errors="replace").read()
+                assert tid not in txt and hmac8 not in txt, (tid, f)
+                assert f'"seed": {seed}' not in txt and f'"seed":{seed}' not in txt, (tid, f)
+                assert fam not in txt, (tid, f, "family name leaks")
+
+
+def _uuid_from_salt(salt: str, i: int) -> str:
+    h = hashlib.sha256(f"{salt}:{i}".encode()).hexdigest()
+    return f"{h[:8]}-{h[8:12]}-4{h[13:16]}-a{h[17:20]}-{h[20:32]}"
+
+
+def test_exploit_RT70_public_board_uuids_not_seed_derived():
+    """RT70 (leak, low): a public board's UUIDs must not be a deterministic function of the HIDDEN
+    generator seed. 148/1464 v2 public boards (those `publish_names` had nothing to rename, so the
+    board kept the fault-injection salt `<seed>:<fault_type>` instead of the public `<task_id>:names`
+    one) carry UUIDs = sha256("<seed>:<type>:<type>:<i>"). The seed is a 48-bit keyed value and the
+    fault type is hidden, so it is not practically brute-forceable, but public artifact bytes should
+    derive only from public data. EXPECTED TO FAIL until the publisher re-canonicalizes every
+    published board with a public-only salt. Scanned sparsely to stay fast."""
+    import re
+    rows = [m for m in H._manifest() if str(m.get("split", "")).startswith("v2/")]
+    leaked = []
+    for m in rows[::7]:
+        T = os.path.join(str(H.ROOT), "tasks", m["path"])
+        uu = re.findall(r"\((?:tstamp|uuid) ([0-9a-f-]{36})\)", open(os.path.join(T, "public", "board.kicad_pcb")).read())
+        if not uu or uu[0] in {_uuid_from_salt(f"{m['id']}:names", i) for i in range(3)}:
+            continue
+        meta = json.load(open(os.path.join(T, "hidden", "meta.json")))
+        s = meta["seed"]
+        if any(uu[0] == _uuid_from_salt(f"{s}:{f['type']}:{f['type']}", 0) for f in meta["faults"]):
+            leaked.append(m["id"])
+    assert not leaked, f"{len(leaked)} public boards carry seed-derived UUIDs, e.g. {leaked[:3]}"
