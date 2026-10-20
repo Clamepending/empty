@@ -113,14 +113,12 @@ split. See [docs/SECURITY.md](docs/SECURITY.md).
 
 ## Task families & fault types
 
-<!-- ORCHESTRATOR: fill from reports/g4_faults.md (not yet written when this README was drafted). -->
+From [reports/v2_generation.md](reports/v2_generation.md) (train / holdout):
 
-| Family | Circuit | Fault types (examples) | # tasks (train / holdout) |
+| Tier | Families | Faults per task | # tasks |
 |---|---|---|---|
-| _TBD_ | _placeholder until reports/g4_faults.md exists_ | _TBD_ | _TBD_ |
-
-The current families (`pcbenv/families/`) are `ldo_reg`, `led_driver`, `npn_switch`, `nmos_switch`,
-`opamp_noninv`, `opamp_inv`, `rc_lowpass`, `divider_adc`, `mcu_i2c` and `xtal_osc`.
+| normal | 10 v1 families: `ldo_reg`, `led_driver`, `npn_switch`, `nmos_switch`, `opamp_noninv`, `opamp_inv`, `rc_lowpass`, `divider_adc`, `mcu_i2c`, `xtal_osc` | 1–3 of 19 types (wrong values, swapped / floating pins, reversed polarity, decap misconnected or moved, broken / narrow / shorted traces, clearance, footprint and board-pad swaps, BOM mismatch) | 655 / 164 |
+| hard | 4 composite boards (`sys_sensor_node`, `sys_motor_ctrl`, `sys_clocked_mcu`, `sys_analog_frontend`, 84 %) + 5 v1 families | 3–6, ≥ 2 latent (12 types: underrated parts, weak base drive, misplaced flyback, connector / MCU pin swaps, decap on the wrong rail, bias or pull-up to the wrong rail, bypassed protection diode), interacting value faults, 39 % no_autoroute | 362 / 90 |
 
 ## Limitations
 
@@ -129,12 +127,12 @@ The current families (`pcbenv/families/`) are `ldo_reg`, `led_driver`, `npn_swit
 - **SPICE models are behavioural approximations.** They are good enough to tell a correct design
   from a faulted one, but they are not sign-off models.
 - **KiCad 7 only.** The `.kicad_pcb` files are KiCad 7.0.11 format; ports to KiCad 8/9 are not done.
-- **Small boards.** Boards are 2-layer, about 6–16 components, using SMD/THT library footprints. The
+- **Small boards.** Boards are 2-layer, about 6–16 components (hard-tier composites 20–27), using SMD/THT library footprints. The
   in-house maze router is simple: it is enough to make goldens DRC-clean, but it is not a
   production router.
 - **Not checked:** signal or power integrity, EMI, thermal behaviour, manufacturability (beyond
   DRC), BOM cost or part availability.
-- **One task family in v1: repair.** A golden plus 1–3 injected faults, with reference designators
+- **One task kind: repair.** A golden plus injected faults (1–3 normal, 3–6 hard), with reference designators
   fixed. Open-ended design from a spec is planned for v2.
 - **Binary reward.** Partial progress is visible in `gates`/`checks`, but the reward does not
   credit it. A design that differs from the golden yet is equally correct (for example, a different

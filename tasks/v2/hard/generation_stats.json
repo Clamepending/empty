@@ -1,0 +1,1153 @@
+{
+  "accepted": 452,
+  "alone": {
+    "bias_wrong_rail|detected": 145,
+    "board_pad_swap|detected": 45,
+    "bom_mismatch|detected": 79,
+    "broken_trace|detected": 61,
+    "broken_trace|mismatch": 6,
+    "capacitor_underrated|detected": 180,
+    "clearance_violation|detected": 30,
+    "clearance_violation|mismatch": 6,
+    "connector_pin_swap|detected": 159,
+    "decap_misconnected|detected": 14,
+    "decap_misconnected|mismatch": 4,
+    "decap_moved_far|detected": 5,
+    "decap_moved_far|mismatch": 1,
+    "decap_swapped|detected": 66,
+    "decap_wrong_rail|detected": 120,
+    "floating_pin|detected": 95,
+    "flyback_misplaced|detected": 59,
+    "footprint_swap|detected": 42,
+    "interacting_value|detected": 30,
+    "led_underrated|detected": 19,
+    "magnitude_slip|detected": 71,
+    "mcu_pin_swap|detected": 169,
+    "narrow_power_trace|detected": 36,
+    "narrow_power_trace|mismatch": 2,
+    "pin_to_wrong_net|detected": 21,
+    "pin_to_wrong_net|mismatch": 2,
+    "protection_bypassed|detected": 88,
+    "pullup_wrong_rail|detected": 43,
+    "resistor_underrated|detected": 50,
+    "reversed_polarity|detected": 34,
+    "short_between_nets|detected": 31,
+    "short_between_nets|mismatch": 8,
+    "swapped_ic_pins|detected": 75,
+    "transistor_pinout|detected": 55,
+    "weak_base_drive|detected": 37,
+    "wrong_feedback_resistor|detected": 71,
+    "wrong_filter_cap|detected": 67,
+    "wrong_led_resistor|detected": 91,
+    "wrong_pull_resistor|detected": 76
+  },
+  "args": {
+    "count": 640,
+    "dedupe_against": [],
+    "holdout_frac": 0.2,
+    "holdout_out": "tasks/v2/hard_holdout",
+    "out": "tasks/v2/hard",
+    "start_index": 0,
+    "tier": "hard"
+  },
+  "composite_share": 0.8429,
+  "drop_reasons": {
+    "fault not individually detected / latent visible / replay mismatch": 28,
+    "fewer than 2 latent faults applicable (0)": 25,
+    "fewer than 2 latent faults applicable (1)": 108,
+    "latent evidence missing from public text": 26,
+    "no applicable visible fault combination": 1
+  },
+  "dropped": 188,
+  "dropped_tasks": [
+    {
+      "family": "sys_sensor_node",
+      "index": 3,
+      "reason": "fault not individually detected / latent visible / replay mismatch: short_between_nets"
+    },
+    {
+      "family": "led_driver",
+      "index": 14,
+      "reason": "fewer than 2 latent faults applicable (0)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 15,
+      "reason": "latent evidence missing from public text: {'connector_pin_swap': [['J2.2', '| J2 | 2 |', 'J2 pin 2']]}"
+    },
+    {
+      "family": "npn_switch",
+      "index": 17,
+      "reason": "fewer than 2 latent faults applicable (0)"
+    },
+    {
+      "family": "sys_sensor_node",
+      "index": 22,
+      "reason": "fault not individually detected / latent visible / replay mismatch: clearance_violation"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 33,
+      "reason": "latent evidence missing from public text: {'connector_pin_swap': [['J2.2', '| J2 | 2 |', 'J2 pin 2']]}"
+    },
+    {
+      "family": "npn_switch",
+      "index": 35,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "npn_switch",
+      "index": 53,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 54,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 55,
+      "reason": "fewer than 2 latent faults applicable (0)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 56,
+      "reason": "latent evidence missing from public text: {'connector_pin_swap': [['J2.1', '| J2 | 1 |', 'J2 pin 1'], ['J2.2', '| J2 | 2 |', 'J2 pin 2']]}"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 57,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "npn_switch",
+      "index": 58,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 59,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 73,
+      "reason": "fewer than 2 latent faults applicable (0)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 74,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 75,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "npn_switch",
+      "index": 76,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 77,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 78,
+      "reason": "fewer than 2 latent faults applicable (0)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 79,
+      "reason": "latent evidence missing from public text: {'connector_pin_swap': [['J2.1', '| J2 | 1 |', 'J2 pin 1'], ['J2.2', '| J2 | 2 |', 'J2 pin 2']]}"
+    },
+    {
+      "family": "sys_analog_frontend",
+      "index": 92,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "npn_switch",
+      "index": 94,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 95,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 96,
+      "reason": "fewer than 2 latent faults applicable (0)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 97,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 98,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "sys_analog_frontend",
+      "index": 111,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 113,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 114,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 115,
+      "reason": "latent evidence missing from public text: {'connector_pin_swap': [['J2.1', '| J2 | 1 |', 'J2 pin 1']]}"
+    },
+    {
+      "family": "npn_switch",
+      "index": 117,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 118,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 119,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 133,
+      "reason": "latent evidence missing from public text: {'connector_pin_swap': [['J2.2', '| J2 | 2 |', 'J2 pin 2']]}"
+    },
+    {
+      "family": "npn_switch",
+      "index": 135,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 136,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 139,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 155,
+      "reason": "fewer than 2 latent faults applicable (0)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 156,
+      "reason": "latent evidence missing from public text: {'connector_pin_swap': [['J2.1', '| J2 | 1 |', 'J2 pin 1'], ['J2.2', '| J2 | 2 |', 'J2 pin 2']]}"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 157,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "npn_switch",
+      "index": 158,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 159,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "sys_sensor_node",
+      "index": 163,
+      "reason": "fault not individually detected / latent visible / replay mismatch: pin_to_wrong_net"
+    },
+    {
+      "family": "sys_sensor_node",
+      "index": 167,
+      "reason": "fault not individually detected / latent visible / replay mismatch: pin_to_wrong_net"
+    },
+    {
+      "family": "sys_analog_frontend",
+      "index": 172,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 173,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 174,
+      "reason": "latent evidence missing from public text: {'connector_pin_swap': [['J2.1', '| J2 | 1 |', 'J2 pin 1'], ['J2.2', '| J2 | 2 |', 'J2 pin 2']]}"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 175,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 179,
+      "reason": "latent evidence missing from public text: {'connector_pin_swap': [['J2.1', '| J2 | 1 |', 'J2 pin 1']]}"
+    },
+    {
+      "family": "led_driver",
+      "index": 196,
+      "reason": "fewer than 2 latent faults applicable (0)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 197,
+      "reason": "latent evidence missing from public text: {'connector_pin_swap': [['J2.1', '| J2 | 1 |', 'J2 pin 1'], ['J2.2', '| J2 | 2 |', 'J2 pin 2']]}"
+    },
+    {
+      "family": "sys_motor_ctrl",
+      "index": 204,
+      "reason": "fault not individually detected / latent visible / replay mismatch: narrow_power_trace"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 213,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 214,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 215,
+      "reason": "latent evidence missing from public text: {'connector_pin_swap': [['J2.1', '| J2 | 1 |', 'J2 pin 1'], ['J2.2', '| J2 | 2 |', 'J2 pin 2']]}"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 218,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "sys_sensor_node",
+      "index": 220,
+      "reason": "fault not individually detected / latent visible / replay mismatch: decap_misconnected"
+    },
+    {
+      "family": "sys_motor_ctrl",
+      "index": 223,
+      "reason": "fault not individually detected / latent visible / replay mismatch: short_between_nets"
+    },
+    {
+      "family": "sys_analog_frontend",
+      "index": 225,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 233,
+      "reason": "latent evidence missing from public text: {'connector_pin_swap': [['J2.1', '| J2 | 1 |', 'J2 pin 1']]}"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 234,
+      "reason": "fewer than 2 latent faults applicable (0)"
+    },
+    {
+      "family": "npn_switch",
+      "index": 235,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 236,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 237,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 238,
+      "reason": "latent evidence missing from public text: {'connector_pin_swap': [['J2.1', '| J2 | 1 |', 'J2 pin 1'], ['J2.2', '| J2 | 2 |', 'J2 pin 2']]}"
+    },
+    {
+      "family": "sys_motor_ctrl",
+      "index": 242,
+      "reason": "fault not individually detected / latent visible / replay mismatch: broken_trace"
+    },
+    {
+      "family": "sys_analog_frontend",
+      "index": 248,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 254,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 255,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 257,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 259,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 277,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 278,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 279,
+      "reason": "latent evidence missing from public text: {'connector_pin_swap': [['J2.1', '| J2 | 1 |', 'J2 pin 1'], ['J2.2', '| J2 | 2 |', 'J2 pin 2']]}"
+    },
+    {
+      "family": "sys_analog_frontend",
+      "index": 290,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 295,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 296,
+      "reason": "fewer than 2 latent faults applicable (0)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 297,
+      "reason": "latent evidence missing from public text: {'connector_pin_swap': [['J2.1', '| J2 | 1 |', 'J2 pin 1'], ['J2.2', '| J2 | 2 |', 'J2 pin 2']]}"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 298,
+      "reason": "no applicable visible fault combination"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 313,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 314,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 315,
+      "reason": "latent evidence missing from public text: {'connector_pin_swap': [['J2.2', '| J2 | 2 |', 'J2 pin 2']]}"
+    },
+    {
+      "family": "npn_switch",
+      "index": 317,
+      "reason": "fewer than 2 latent faults applicable (0)"
+    },
+    {
+      "family": "led_driver",
+      "index": 319,
+      "reason": "fewer than 2 latent faults applicable (0)"
+    },
+    {
+      "family": "sys_sensor_node",
+      "index": 323,
+      "reason": "fault not individually detected / latent visible / replay mismatch: decap_moved_far"
+    },
+    {
+      "family": "sys_motor_ctrl",
+      "index": 330,
+      "reason": "fault not individually detected / latent visible / replay mismatch: clearance_violation"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 333,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 334,
+      "reason": "fewer than 2 latent faults applicable (0)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 336,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 337,
+      "reason": "fewer than 2 latent faults applicable (0)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 338,
+      "reason": "latent evidence missing from public text: {'connector_pin_swap': [['J2.1', '| J2 | 1 |', 'J2 pin 1'], ['J2.2', '| J2 | 2 |', 'J2 pin 2']]}"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 339,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "sys_motor_ctrl",
+      "index": 341,
+      "reason": "fault not individually detected / latent visible / replay mismatch: narrow_power_trace"
+    },
+    {
+      "family": "sys_motor_ctrl",
+      "index": 345,
+      "reason": "fault not individually detected / latent visible / replay mismatch: short_between_nets"
+    },
+    {
+      "family": "sys_sensor_node",
+      "index": 346,
+      "reason": "fault not individually detected / latent visible / replay mismatch: short_between_nets,broken_trace"
+    },
+    {
+      "family": "sys_analog_frontend",
+      "index": 351,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 354,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 355,
+      "reason": "fewer than 2 latent faults applicable (0)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 356,
+      "reason": "latent evidence missing from public text: {'connector_pin_swap': [['J2.2', '| J2 | 2 |', 'J2 pin 2']]}"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 357,
+      "reason": "fault not individually detected / latent visible / replay mismatch: short_between_nets"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 359,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "npn_switch",
+      "index": 376,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 377,
+      "reason": "fault not individually detected / latent visible / replay mismatch: broken_trace"
+    },
+    {
+      "family": "led_driver",
+      "index": 378,
+      "reason": "fault not individually detected / latent visible / replay mismatch: short_between_nets"
+    },
+    {
+      "family": "led_driver",
+      "index": 396,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 397,
+      "reason": "latent evidence missing from public text: {'connector_pin_swap': [['J2.1', '| J2 | 1 |', 'J2 pin 1'], ['J2.2', '| J2 | 2 |', 'J2 pin 2']]}"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 398,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 413,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 414,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 415,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 416,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 418,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 419,
+      "reason": "fewer than 2 latent faults applicable (0)"
+    },
+    {
+      "family": "sys_analog_frontend",
+      "index": 423,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "sys_analog_frontend",
+      "index": 427,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 434,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 436,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 437,
+      "reason": "fewer than 2 latent faults applicable (0)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 438,
+      "reason": "latent evidence missing from public text: {'connector_pin_swap': [['J2.1', '| J2 | 1 |', 'J2 pin 1'], ['J2.2', '| J2 | 2 |', 'J2 pin 2']]}"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 439,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "sys_clocked_mcu",
+      "index": 451,
+      "reason": "fault not individually detected / latent visible / replay mismatch: decap_misconnected"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 454,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 455,
+      "reason": "fewer than 2 latent faults applicable (0)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 456,
+      "reason": "latent evidence missing from public text: {'connector_pin_swap': [['J2.2', '| J2 | 2 |', 'J2 pin 2']]}"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 459,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 474,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 475,
+      "reason": "fault not individually detected / latent visible / replay mismatch: short_between_nets"
+    },
+    {
+      "family": "npn_switch",
+      "index": 476,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 478,
+      "reason": "fewer than 2 latent faults applicable (0)"
+    },
+    {
+      "family": "sys_sensor_node",
+      "index": 483,
+      "reason": "fault not individually detected / latent visible / replay mismatch: broken_trace"
+    },
+    {
+      "family": "sys_analog_frontend",
+      "index": 484,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "sys_analog_frontend",
+      "index": 488,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 493,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "npn_switch",
+      "index": 494,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 495,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 496,
+      "reason": "fewer than 2 latent faults applicable (0)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 497,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 498,
+      "reason": "fewer than 2 latent faults applicable (0)"
+    },
+    {
+      "family": "npn_switch",
+      "index": 499,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "sys_clocked_mcu",
+      "index": 500,
+      "reason": "fault not individually detected / latent visible / replay mismatch: broken_trace"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 513,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 514,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 515,
+      "reason": "latent evidence missing from public text: {'connector_pin_swap': [['J2.1', '| J2 | 1 |', 'J2 pin 1'], ['J2.2', '| J2 | 2 |', 'J2 pin 2']]}"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 516,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 518,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 519,
+      "reason": "fewer than 2 latent faults applicable (0)"
+    },
+    {
+      "family": "sys_motor_ctrl",
+      "index": 532,
+      "reason": "fault not individually detected / latent visible / replay mismatch: clearance_violation"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 533,
+      "reason": "latent evidence missing from public text: {'connector_pin_swap': [['J2.1', '| J2 | 1 |', 'J2 pin 1'], ['J2.2', '| J2 | 2 |', 'J2 pin 2']]}"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 534,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 536,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 537,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 538,
+      "reason": "latent evidence missing from public text: {'connector_pin_swap': [['J2.1', '| J2 | 1 |', 'J2 pin 1'], ['J2.2', '| J2 | 2 |', 'J2 pin 2']]}"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 539,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "sys_sensor_node",
+      "index": 540,
+      "reason": "fault not individually detected / latent visible / replay mismatch: decap_misconnected"
+    },
+    {
+      "family": "sys_motor_ctrl",
+      "index": 543,
+      "reason": "fault not individually detected / latent visible / replay mismatch: short_between_nets"
+    },
+    {
+      "family": "sys_analog_frontend",
+      "index": 549,
+      "reason": "fault not individually detected / latent visible / replay mismatch: clearance_violation"
+    },
+    {
+      "family": "npn_switch",
+      "index": 553,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 554,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 556,
+      "reason": "latent evidence missing from public text: {'connector_pin_swap': [['J2.2', '| J2 | 2 |', 'J2 pin 2']]}"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 557,
+      "reason": "fewer than 2 latent faults applicable (0)"
+    },
+    {
+      "family": "npn_switch",
+      "index": 558,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 559,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "sys_analog_frontend",
+      "index": 560,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "sys_clocked_mcu",
+      "index": 569,
+      "reason": "fault not individually detected / latent visible / replay mismatch: decap_misconnected"
+    },
+    {
+      "family": "sys_analog_frontend",
+      "index": 572,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 573,
+      "reason": "fewer than 2 latent faults applicable (0)"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 575,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "npn_switch",
+      "index": 576,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 577,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "sys_analog_frontend",
+      "index": 583,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 593,
+      "reason": "fewer than 2 latent faults applicable (0)"
+    },
+    {
+      "family": "npn_switch",
+      "index": 594,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 596,
+      "reason": "fault not individually detected / latent visible / replay mismatch: clearance_violation"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 597,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 598,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "npn_switch",
+      "index": 599,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 613,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 615,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "npn_switch",
+      "index": 617,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 618,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "led_driver",
+      "index": 619,
+      "reason": "fault not individually detected / latent visible / replay mismatch: clearance_violation"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 633,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 634,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "npn_switch",
+      "index": 635,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "ldo_reg",
+      "index": 636,
+      "reason": "fewer than 2 latent faults applicable (1)"
+    },
+    {
+      "family": "mcu_i2c",
+      "index": 638,
+      "reason": "latent evidence missing from public text: {'connector_pin_swap': [['J2.1', '| J2 | 1 |', 'J2 pin 1'], ['J2.2', '| J2 | 2 |', 'J2 pin 2']]}"
+    },
+    {
+      "family": "nmos_switch",
+      "index": 639,
+      "reason": "fault not individually detected / latent visible / replay mismatch: broken_trace"
+    }
+  ],
+  "generator": "pcb-repair-hard-v2",
+  "inject_log": {
+    "bias_wrong_rail|applied": 145,
+    "bias_wrong_rail|n/a": 255,
+    "board_pad_swap|applied": 96,
+    "board_pad_swap|n/a": 26,
+    "bom_mismatch|applied": 184,
+    "broken_trace|applied": 140,
+    "broken_trace|n/a": 9,
+    "capacitor_underrated|applied": 194,
+    "capacitor_underrated|n/a": 251,
+    "clearance_violation|applied": 62,
+    "clearance_violation|n/a": 22,
+    "connector_pin_swap|applied": 171,
+    "connector_pin_swap|n/a": 228,
+    "decap_misconnected|applied": 51,
+    "decap_misconnected|n/a": 64,
+    "decap_moved_far|applied": 8,
+    "decap_moved_far|n/a": 111,
+    "decap_swapped|applied": 85,
+    "decap_swapped|n/a": 313,
+    "decap_wrong_rail|applied": 149,
+    "decap_wrong_rail|n/a": 283,
+    "floating_pin|applied": 218,
+    "floating_pin|n/a": 35,
+    "flyback_misplaced|applied": 65,
+    "flyback_misplaced|conflict": 1,
+    "flyback_misplaced|n/a": 353,
+    "footprint_swap|applied": 77,
+    "footprint_swap|n/a": 35,
+    "interacting_value|applied": 30,
+    "interacting_value|n/a": 13,
+    "led_underrated|applied": 27,
+    "led_underrated|n/a": 339,
+    "magnitude_slip|applied": 175,
+    "mcu_pin_swap|applied": 169,
+    "mcu_pin_swap|conflict": 1,
+    "mcu_pin_swap|n/a": 264,
+    "narrow_power_trace|applied": 72,
+    "narrow_power_trace|n/a": 43,
+    "pin_to_wrong_net|applied": 67,
+    "pin_to_wrong_net|n/a": 51,
+    "protection_bypassed|applied": 88,
+    "protection_bypassed|n/a": 369,
+    "pullup_wrong_rail|applied": 43,
+    "pullup_wrong_rail|n/a": 403,
+    "resistor_underrated|applied": 54,
+    "resistor_underrated|n/a": 337,
+    "reversed_polarity|applied": 65,
+    "reversed_polarity|n/a": 87,
+    "short_between_nets|applied": 67,
+    "short_between_nets|n/a": 29,
+    "swapped_ic_pins|applied": 155,
+    "swapped_ic_pins|n/a": 51,
+    "transistor_pinout|applied": 130,
+    "transistor_pinout|n/a": 154,
+    "weak_base_drive|applied": 55,
+    "weak_base_drive|n/a": 353,
+    "wrong_feedback_resistor|applied": 131,
+    "wrong_feedback_resistor|n/a": 37,
+    "wrong_filter_cap|applied": 119,
+    "wrong_filter_cap|n/a": 41,
+    "wrong_led_resistor|applied": 165,
+    "wrong_led_resistor|n/a": 49,
+    "wrong_pull_resistor|applied": 204,
+    "wrong_pull_resistor|n/a": 23
+  },
+  "latent_detected_by": {
+    "rules": 257,
+    "rules+topology": 94,
+    "topology": 669
+  },
+  "latent_fault_share": 0.5233,
+  "latent_types": {
+    "bias_wrong_rail": 144,
+    "capacitor_underrated": 163,
+    "connector_pin_swap": 126,
+    "decap_swapped": 63,
+    "decap_wrong_rail": 116,
+    "flyback_misplaced": 57,
+    "led_underrated": 16,
+    "mcu_pin_swap": 136,
+    "protection_bypassed": 84,
+    "pullup_wrong_rail": 37,
+    "resistor_underrated": 42,
+    "weak_base_drive": 36
+  },
+  "per_family": {
+    "ldo_reg": 10,
+    "led_driver": 12,
+    "mcu_i2c": 10,
+    "nmos_switch": 17,
+    "npn_switch": 22,
+    "sys_analog_frontend": 89,
+    "sys_clocked_mcu": 101,
+    "sys_motor_ctrl": 96,
+    "sys_sensor_node": 95
+  },
+  "per_hint": {
+    "symptom": 225,
+    "vague": 227
+  },
+  "per_intent": {
+    "full": 145,
+    "reduced": 307
+  },
+  "per_mode": {
+    "full": 276,
+    "no_autoroute": 176
+  },
+  "per_n_faults": {
+    "3": 111,
+    "4": 161,
+    "5": 108,
+    "6": 72
+  },
+  "per_n_latent": {
+    "2": 336,
+    "3": 116
+  },
+  "per_split": {
+    "v2/hard": 362,
+    "v2/hard_holdout": 90
+  },
+  "seconds": 2957.1,
+  "secret_fingerprint": "b9dd97d0757e",
+  "visible_types": {
+    "board_pad_swap": 43,
+    "bom_mismatch": 60,
+    "broken_trace": 47,
+    "clearance_violation": 30,
+    "decap_misconnected": 11,
+    "decap_moved_far": 5,
+    "floating_pin": 91,
+    "footprint_swap": 41,
+    "interacting_value": 28,
+    "magnitude_slip": 53,
+    "narrow_power_trace": 33,
+    "pin_to_wrong_net": 21,
+    "reversed_polarity": 33,
+    "short_between_nets": 28,
+    "swapped_ic_pins": 75,
+    "transistor_pinout": 52,
+    "wrong_feedback_resistor": 68,
+    "wrong_filter_cap": 64,
+    "wrong_led_resistor": 87,
+    "wrong_pull_resistor": 59
+  },
+  "with_interacting": 28
+}

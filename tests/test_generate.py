@@ -159,6 +159,7 @@ def test_hint_levels_render():
 
 def test_pack_deterministic(runs, tmp_path):
     root, _, _ = runs
-    G.pack(root / "a", tmp_path / "x.tar.gz", "train")
-    G.pack(root / "b", tmp_path / "y.tar.gz", "train")
+    tid = sorted(d.name for d in (root / "a").iterdir() if d.is_dir())[0]   # manifests differ by split name only
+    G.pack(root / "a" / tid, tmp_path / "x.tar.gz", "t")
+    G.pack(root / "b" / tid, tmp_path / "y.tar.gz", "t")
     assert (tmp_path / "x.tar.gz").read_bytes() == (tmp_path / "y.tar.gz").read_bytes()

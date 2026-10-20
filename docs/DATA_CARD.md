@@ -3,7 +3,8 @@
 ## Summary
 
 PCB-Repair tasks are small circuit-board repair problems. Each task is a golden design (a
-schematic in `design.json` plus a KiCad 7 layout in `board.kicad_pcb`) with 1–3 injected faults,
+schematic in `design.json` plus a KiCad 7 layout in `board.kicad_pcb`) with 1–3 injected faults
+(hard tier: 3–6, at least two latent),
 a natural-language problem report (`TASK.md`), a machine-readable spec (`spec.json`) and
 datasheets for the generic parts. A deterministic verifier grades the agent's repaired files
 against the hidden golden. The reward is binary.
@@ -11,7 +12,7 @@ against the hidden golden. The reward is binary.
 ## Provenance
 
 - **100 % synthetic and procedurally generated.** Each circuit is produced by a family generator
-  (`pcbenv/families/`) from an integer seed. The layout comes from our own placer and maze router
+  (`pcbenv/families/`) from an integer seed (v2: seed = HMAC(secret, task index), `pcbenv/taskids.py`). The layout comes from our own placer and maze router
   (`pcbenv/board.py`, `pcbenv/router.py`). Faults come from the fault injector (`pcbenv/faults`),
   and the text from templates. No third-party designs, scraped schematics, customer data or
   personal data are included.
@@ -39,16 +40,26 @@ against the hidden golden. The reward is binary.
 
 ## Composition
 
-<!-- ORCHESTRATOR: fill from tasks/manifest.jsonl and reports/g4_faults.md once G4 ships. -->
+Source: `reports/v2_generation.md` (generated from the generators' statistics and `tasks/manifest.jsonl`).
 
-| Field | Value |
-|---|---|
-| Families | 10: `ldo_reg`, `led_driver`, `npn_switch`, `nmos_switch`, `opamp_noninv`, `opamp_inv`, `rc_lowpass`, `divider_adc`, `mcu_i2c`, `xtal_osc` |
-| Fault types | _TBD (≥ 15, see reports/g4_faults.md)_ |
-| Tasks | _TBD (≥ 500 shipped)_ |
-| Splits | `train`, `holdout` (20 %) |
-| Board size | 2 copper layers, about 6–16 components, a few cm across |
-| Files per task | public: TASK.md, design.json, board.kicad_pcb, spec.json, parts/*.md · hidden: golden_design.json, golden_board.kicad_pcb, meta.json |
+| Field | Normal tier (v2) | Hard tier (v2) |
+|---|---|---|
+| Tasks | 819 (train 655 / holdout 164 = 20.0 %) | 452 (train 362 / holdout 90 = 19.9 %) |
+| Splits (dirs under `tasks/`) | `v2/normal`, `v2/normal_holdout` | `v2/hard`, `v2/hard_holdout` |
+| Families | 10 v1 families (`ldo_reg`, `led_driver`, `npn_switch`, `nmos_switch`, `opamp_noninv`, `opamp_inv`, `rc_lowpass`, `divider_adc`, `mcu_i2c`, `xtal_osc`), 81–83 tasks each | 4 composite multi-rail families (`sys_analog_frontend` 89, `sys_clocked_mcu` 101, `sys_motor_ctrl` 96, `sys_sensor_node` 95 = 84.3 %) + 5 v1 families (71) |
+| Faults per task | 1: 42.1 %, 2: 33.3 %, 3: 24.5 % | 3: 24.6 %, 4: 35.6 %, 5: 23.9 %, 6: 15.9 % |
+| Fault types | 19 (6 value, 6 connectivity, 7 board) | the 19 visible types + 12 latent types (invisible to every `pcbtool` check) + interacting value faults; 52.3 % of faults latent, ≥ 2 per task |
+| DRC/ERC-invisible | 82.3 % of tasks have ≥ 1 | 100 % (every task has ≥ 2 latent faults) |
+| Hint levels | explicit 31.5 %, symptom 38.0 %, vague 30.5 % | symptom 49.8 %, vague 50.2 % |
+| Tool mode | full | full 61.1 %, no_autoroute 38.9 % |
+| Board size | 2 copper layers, about 6–16 components | 2 copper layers, 20–27 components (composites), 50–72 mm |
+| Task ids | opaque `pcbr2-normal-<hmac8>` | opaque `pcbr2-hard-<hmac8>` |
+| Files per task | public: TASK.md, design.json, board.kicad_pcb, spec.json, parts/*.md · hidden: golden_design.json, golden_board.kicad_pcb, meta.json | same + public tools.json |
+
+Every shipped task passed the gates: golden 1.0, faulted 0.0, each fault alone 0.0, oracle repair 1.0,
+no fault cancelled by another; hard tier also: every latent fault invisible to `pcbtool` alone and its
+evidence present in the public text. Bundles: `dist/pcb-repair-v2-{normal,normal-holdout,hard,hard-holdout}.tar.gz`
+(sha256s in the report). v1 (818 tasks) remains in git history.
 
 ## Intended use
 
