@@ -24,7 +24,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from grade import audit  # noqa: E402
 from pcbenv.verify import verify_isolated  # noqa: E402
 
-OUT = ROOT / "reports" / "calibration" / "v2hard"
+import os
+
+# Output dir per calibration run (default: the v2 hard tier run); override with PCBENV_CALIB_OUT.
+OUT = ROOT / "reports" / "calibration" / os.environ.get("PCBENV_CALIB_OUT", "v2hard")
 CACHE = OUT / "rollouts.jsonl"
 DELIV = OUT / "deliverables.tar.gz"
 
