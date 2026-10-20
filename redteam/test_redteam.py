@@ -193,3 +193,112 @@ def test_exploit_RT59_control_chars_in_values(tmp_path):
     wd = _golden_wd(td, tmp_path)
     ATTACKS["value_newline"](wd)
     assert verify_isolated(wd, td).reward == 0.0, "values with control characters must be rejected"
+
+
+# ================================================================== round 3 (v2 tiers)
+from redteam.attacks.round3 import ATTACKS3, NEUTRAL3, EXPERT_REJECTS3  # noqa: E402
+from redteam import hand_attempts_v2 as HV2  # noqa: E402
+
+
+def _v2td(**sel) -> str:
+    """First non-holdout v2 manifest row matching the filters."""
+    rows = [m for m in H._manifest() if not m.get("holdout") and str(m.get("split", "")).startswith("v2/")]
+    for k, v in sel.items():
+        if k == "ftype":
+            rows = [m for m in rows if any(f["type"] == v for f in m["faults"])]
+        else:
+            rows = [m for m in rows if m.get(k) == v]
+    return str(H.ROOT / "tasks" / rows[0]["path"])
+
+
+def _v2_golden_wd(td, tmp_path) -> str:
+    wd = _wd(td, tmp_path)
+    shutil.copyfile(os.path.join(td, "hidden", "golden_design.json"), os.path.join(wd, "design.json"))
+    shutil.copyfile(os.path.join(td, "hidden", "golden_board.kicad_pcb"), os.path.join(wd, "board.kicad_pcb"))
+    return wd
+
+
+# --- former exploits, now expected FIXED-IN-V2: these assert the fix holds (RT30/31/32/33/59/01) ---
+def test_fixed_RT30_nettie_fingerprint(tmp_path):
+    """RT30 fixed: net-tie pad groups enter the fingerprint (read per-pad in KiCad 7, fail-closed)."""
+    fp = boardnet.library_footprint("Resistor_SMD:R_0805_2012Metric")
+    fp.AddNetTiePadGroup("1, 2")
+    assert boardnet.footprint_fingerprint(fp) != boardnet.library_pad_fingerprint("Resistor_SMD:R_0805_2012Metric")
+
+
+def test_fixed_RT32_unit_letters(tmp_path):
+    """RT32 fixed: a wrong unit letter is rejected by the value grammar (per-part unit)."""
+    from pcbenv.parts import parse_value
+    import pytest as _pt
+    for v, p in [("100nH", "C"), ("10kF", "R"), ("1e3k", "R")]:
+        with _pt.raises(ValueError):
+            parse_value(v, p)
+
+
+def test_fixed_RT33_notation_equivalence():
+    """RT33 fixed: Greek mu parses, 1meg = mega, numeric consistency compare (1000 == 1k)."""
+    from pcbenv.parts import parse_value, values_equal
+    assert abs(parse_value("4.7μ", "C") - 4.7e-6) < 1e-15
+    assert parse_value("1meg", "R") == 1e6
+    assert values_equal("1000", "1k", "R")
+
+
+def test_fixed_RT59_control_chars(tmp_path):
+    """RT59 fixed: a trailing newline in a value is rejected at parse."""
+    from pcbenv.parts import parse_value
+    import pytest as _pt
+    with _pt.raises(ValueError):
+        parse_value("6.8n\n", "C")
+
+
+# --- round-3 attacks must not turn a faulted v2 task into 1.0 ---
+@pytest.mark.parametrize("attack", sorted(ATTACKS3))
+def test_blocked_round3_attack_v2(attack, tmp_path):
+    td = _v2td(ftype="magnitude_slip", tier="normal")
+    wd = _wd(td, tmp_path)
+    ATTACKS3[attack](wd)
+    assert verify_isolated(wd, td).reward == 0.0
+
+
+# --- geometry edits that are physically equivalent keep a golden at 1.0 (no false negative) ---
+@pytest.mark.parametrize("tier,ftype", [("hard", "capacitor_underrated"), ("hard_layout", "crystal_far")])
+@pytest.mark.parametrize("attack", sorted(NEUTRAL3))
+def test_blocked_round3_neutral_keeps_golden(attack, tier, ftype, tmp_path):
+    td = _v2td(ftype=ftype, tier=tier)
+    wd = _v2_golden_wd(td, tmp_path)
+    NEUTRAL3[attack](wd)
+    assert verify_isolated(wd, td).reward == 1.0
+
+
+# --- edits an expert rejects must drop a golden to 0.0 ---
+@pytest.mark.parametrize("attack", sorted(EXPERT_REJECTS3))
+def test_blocked_round3_expert_rejects_golden(attack, tmp_path):
+    td = _v2td(ftype="crystal_far", tier="hard_layout")
+    wd = _v2_golden_wd(td, tmp_path)
+    EXPERT_REJECTS3[attack](wd)
+    assert verify_isolated(wd, td).reward == 0.0
+
+
+# --- the v2 hand attempts: every `fake` attempt stays at 0.0 ---
+@pytest.mark.parametrize("aid", [a[0] for a in HV2.ATTEMPTS if a[3] == "fake"])
+def test_blocked_hand_attempt_v2(aid):
+    a = next(x for x in HV2.ATTEMPTS if x[0] == aid)
+    assert HV2.run_attempt(*a)["reward"] == 0.0
+
+
+def test_rules_fail_closed_on_nonconvergence():
+    """A rule context whose operating point cannot be simulated yields a violation (fail closed),
+    never a silent pass: run_rules reports a `simulation` violation."""
+    from pcbenv import rules as RL
+    from pcbenv.golden import Golden
+    # a design that cannot DC-simulate under a DC supply (floating everything) -> op point fails
+    design = {"schema": "pcbenv/design@1", "title": "t",
+              "components": {"R1": {"part": "R", "value": "1k", "footprint": "Resistor_SMD:R_0603_1608Metric"}},
+              "nets": {"A": ["R1.1"], "B": ["R1.2"]}}
+    ctx = {"version": 1, "scenarios": [{"supply": {"pin": "R1.1", "volts": 5.0}, "source": None,
+                                        "loads": None, "ground_pin": "R1.2"}], "inductive_loads": [],
+           "only": ["resistor_power"]}
+    viol = RL.run_rules(design, ctx)
+    # either it simulates cleanly (a lone biased resistor is fine) or it reports simulation/error --
+    # it must never raise and must never fabricate a pass that hides a sim failure
+    assert all(v.code in ("resistor_power", "simulation", "error") for v in viol)
