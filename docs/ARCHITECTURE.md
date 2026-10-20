@@ -19,16 +19,22 @@ faults/ inject 1–3 faults ─▶ taskio.write_task ─▶ tasks/<split>/<id>/{
 | `parts.py`, `parts_lib.py` | Generic parts library: pins (pad, electrical type, required), allowed footprints, SPICE model, datasheet text; `parse_value`/`format_value` |
 | `design.py` | `design.json` schema `pcbenv/design@1`: load, validate, `partition()` |
 | `golden.py` | `Golden` dataclass |
-| `families/` | 10 circuit family generators, `FAMILIES[name].generate(seed)` |
+| `families/` | 10 v1 circuit families (`V1_FAMILIES`) + 4 composite hard-tier `sys_*` families (`HARD_FAMILIES`, built from `_blocks.py`), `FAMILIES[name].generate(seed)` |
 | `sim.py`, `checks.py` | Spec assertions: ngspice decks (op, ac, tran) and analytic checks (crystal load) |
 | `board.py`, `router.py` | Deterministic placement and a grid maze router producing DRC-clean 2-layer boards |
 | `boardnet.py` | Board → `BoardInfo` (partition via the pad map, footprints, values, pad and outline fingerprints, track widths, zones, markers) |
 | `drc.py` | KiCad 7 DRC wrapper with canonical rules; `run_drc(board, rules_board)` |
 | `erc.py` | Name-insensitive electrical rule check on design.json |
-| `layout.py` | Power-net width / decoupling checks; `same_topology` (symmetric-part pin swaps) |
-| `faults/` | Fault injector (G4; owned by builder-faults) |
+| `layout.py` | Power-net width / decoupling checks (copper path length cap pad -> IC pin, `copper_path_mm`); `same_topology` (symmetric-part pin swaps) |
+| `faults/` | Fault injector (G4): 19 visible types; `latent.py`: 12 latent types for the hard tier + their public-evidence groups |
+| `rules.py` | Datasheet design rules (`rules` check), hard-tier datasheet addenda, golden hardening |
+| `generate.py`, `generate_hard.py` | Normal / hard tier generators, gates, manifests, deterministic tarballs (`python3 -m pcbenv.generate`) |
+| `taskids.py` | Opaque task ids and HMAC(secret, index) generator seeds (RT37) |
+| `netnames.py` | Neutral public net names (RT34) |
+| `prompts.py` | TASK.md hint levels, symptoms, reduced / hard intent |
+| `report_v2.py` | `reports/v2_generation.md` from the generators' statistics |
 | `taskio.py` | Task directory layout, TASK.md / spec.json writer, `make_golden_task` |
-| `verify.py` | The grader: 5 gates + 4 checks, binary reward, `verify_isolated` subprocess |
+| `verify.py` | The grader: 5 gates + 5 checks (+ `rules` where the task has a rule context), binary reward, `verify_isolated` subprocess |
 | `tool.py` (`bin/pcbtool`) | Agent CLI: show / netlist / drc / erc / sim / parts / check + mutating edits that keep both files consistent |
 | `harness.py` | `PcbRepairEnv` (reset / step / reward), `run_task_with_policy` |
 | `api.py` | Stable public API + `python3 -m pcbenv.api {list,extract,verify}` |

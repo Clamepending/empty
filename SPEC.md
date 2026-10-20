@@ -1,4 +1,4 @@
-# PCB-Repair — technical spec (v1)
+# PCB-Repair — technical spec (v2)
 
 This is the contract between modules. If you need to change it, say so in your report
 rather than silently diverging.
@@ -7,7 +7,8 @@ rather than silently diverging.
 
 - **Design of record** = `design.json` (the "schematic") + `board.kicad_pcb` (KiCad 7 layout).
 - **Golden** = a correct design produced by a *family generator* from a seed.
-- **Task** = golden + 1–3 injected faults, plus a `TASK.md` prompt. The agent edits the
+- **Task** = golden + 1–3 injected faults (hard tier: 3–6, ≥ 2 of them latent: invisible to every
+  `pcbtool` check, deducible from the public datasheets / intent / design rules), plus a `TASK.md` prompt. The agent edits the
   two deliverable files in its workdir; the verifier grades them against the hidden golden.
 - Component reference designators are **fixed** — faults never add/remove components and
   agents must not either. (A "missing" part is modelled as a part that is disconnected/misconnected.)
@@ -32,7 +33,13 @@ rather than silently diverging.
   Passive two-terminal parts use pins `1`,`2`. Diodes/LEDs use `A`,`K`.
 - A pin may appear in at most one net. Pins not listed are unconnected.
 - Values: SI strings, `"10k"`, `"4.7u"`, `"100n"`, `"2.2"`, `"1M"`, `"470p"`, `"10m"`
-  (m = milli, M = mega). Parsed by `parts.parse_value`. Empty for parts without a value.
+  (m = milli, M = mega). Parsed by `parts.parse_value(s, part)`. Empty for parts without a value.
+  v2 grammar (RT32/RT33/RT59, stated in every valued part's `parts/<PART>.md` "Value notation" and in
+  TASK.md): `<number><SI prefix?><unit?>`; number = digits, optional decimal point, optional exponent;
+  prefixes `p n u µ μ m k K M G` and `meg`/`MEG`/`Meg` (mega); an exponent together with a prefix is
+  rejected; unit letters must match the part (R: `Ω`/`ohm`/`Ohm`/`R`; C: `F`; L: `H`; crystals: `Hz`;
+  others none); no whitespace or control characters inside (leading/trailing spaces are ignored).
+  Board and design values are compared as numbers (`1k` == `1000`).
 - Net names are free text; graders compare **partitions**, never names.
 
 **Partition** of a design = `frozenset` of `frozenset[str]` of `REF.PINNAME`, one inner set per
@@ -74,7 +81,8 @@ class Golden:
 Deterministic in `seed`. Must pass all its own assertions.
 
 Hard tier (v2): composite multi-rail families (`sys_*`, module attribute `TIER = "hard"`, listed in
-`families.HARD_FAMILIES`; `families.V1_FAMILIES` are the others) — 20–40 parts, an LDO rail plus the
+`families.HARD_FAMILIES`; `families.V1_FAMILIES` are the others; the normal tier uses `V1_FAMILIES`,
+the hard tier ≥ 60 % composites plus the v1 families that admit ≥ 2 latent faults) — 20–40 parts, an LDO rail plus the
 input rail, several ICs, 40–90 mm boards; their intent carries connector and MCU pin-assignment
 tables (kept in the reduced intent) and `params["roles"]` lists refs per fault role.
 
@@ -124,7 +132,9 @@ golden assertion, never read from the agent's files.
   with reference = design ref, value = design value, pad nets = design nets via the parts pad map,
   deterministic placement, **fully routed** (no unconnected pads), DRC clean under the standard rules:
   clearance 0.2 mm, min track 0.2 mm, via 0.6/0.3 mm, power nets routed at
-  `power_nets[net]` width. Decoupling caps placed within their `max_mm`.
+  `power_nets[net]` width. Decoupling caps placed within their `max_mm` (straight line) and routed
+  first after their IC pin, so the copper path cap pad -> IC pin stays within `max_path_mm` (the
+  builder rejects an attempt whose path exceeds 90 % of it).
 - `run_drc(board_path, rules_board_path) -> DrcResult(errors: list[dict], unconnected: int)`.
   Loads the candidate, **overwrites its design settings with those of `rules_board_path`**
   (the golden), runs `pcbnew.WriteDRCReport`, parses it. Warnings ignored; only severity error.
@@ -145,7 +155,8 @@ Hard gates (all must pass, else reward 0):
 2. `components` — same ref set as golden; each `part` equals golden; footprint in the part's allowed list
    and board footprint id == design footprint; pad fingerprint matches the library footprint.
 3. `topology` — `partition(design) == partition(golden)` (or ∈ `hidden/meta.json:"alt_partitions"`).
-4. `consistency` — board partition == design partition; board values == design values.
+4. `consistency` — board partition == design partition; board values == design values (compared as
+   numbers through `parts.values_equal`; non-valued parts as strings).
 5. `integrity` — outline fingerprint == golden; no DRC exclusions/markers; no zones unless golden has them.
 
 Checks (all must pass for reward 1.0):
@@ -156,7 +167,12 @@ Checks (all must pass for reward 1.0):
 9. `values` — every ref in `hidden/meta.json:"value_bounds"` has a design value that parses to a
    finite number in [min, max] (inclusive). Tasks without `value_bounds` skip it (passes).
 10. `layout` — power nets (matched to golden by pin set) have min track width ≥ required; decoupling
-   caps within max distance of their IC pin.
+   (v2, RT31): the cap's pad on the IC pin's net reaches the IC pin's pad through at most
+   `max_path_mm` (default `max_mm`) of copper — shortest path over that net's tracks, vias and pads,
+   pad centre to pad centre (`layout.copper_path_mm`) — and every cap pad lies within `max_mm` of the
+   pin in a straight line. Goldens: `max_mm` 5, `max_path_mm` 6 (v1 families) / 8 (composites).
+11. `rules` — only for tasks whose meta carries a rule context (`rules`: hard tier; `rules_power`:
+   all v2 tasks, resistor power): datasheet design rules (`pcbenv/rules.py`), not run by pcbtool.
 
 **Reward is binary**: 1.0 iff all gates and checks pass, else 0.0. `checks` carries the per-check
 breakdown for diagnostics only.
@@ -164,13 +180,23 @@ breakdown for diagnostics only.
 ## 8. Tasks on disk
 
 ```
-tasks/<split>/<task_id>/
-  public/   design.json  board.kicad_pcb  TASK.md  parts/<PART>.md
+tasks/<split>/<task_id>/                 v2 splits: v2/normal, v2/normal_holdout, v2/hard, v2/hard_holdout
+  public/   design.json  board.kicad_pcb  TASK.md  spec.json  parts/<PART>.md  [tools.json: hard tier]
   hidden/   golden_design.json  golden_board.kicad_pcb  meta.json
 ```
-`meta.json`: `task_id, family, seed, params, faults: [{type, detail}], assertions, power_nets,
-decoupling, value_bounds, alt_partitions, difficulty (measured|predicted)`. `public/spec.json`:
-`title, assertions, power_nets (net, anchor_pin, min_width_mm), decoupling, value_bounds`. Splits: `train`, `holdout`.
+`meta.json`: `task_id, tier, family, seed, index, params, faults: [{type, detail, data}], assertions,
+power_nets, decoupling, value_bounds, alt_partitions, public_net_renames, difficulty (measured|predicted)`
+(+ `rules` / `rules_power`, `tools_mode` for the hard tier). `public/spec.json`: `title, assertions,
+power_nets (net, anchor_pin, min_width_mm), decoupling, value_bounds` (hard tier: `decoupling` is empty
+and the rules are under `design_rules.decoupling`: stated and graded, not run by pcbtool).
+
+v2 (RT37): task ids are opaque, `pcbr2-<tier>-<hmac8>`, and generator seeds are
+HMAC-SHA256(secret, `seed:<tier>:<index>`) (`pcbenv/taskids.py`); the secret lives only in
+`tasks/.secret` (git-ignored). Public manifests (`tasks/manifest.jsonl` = all splits, plus one per
+split dir; rows: `id, tier, family, split, path, holdout, faults, n_faults, hint_level, gates, ...`)
+never carry seeds; `tasks/private/<tier>.jsonl` (git-ignored) maps ids to index and seed.
+v2 (RT34): public net names that TASK.md / spec.json do not mention are renamed to KiCad-style auto
+names from the net's own public pins (`Net-(R3-Pad2)`, `pcbenv/netnames.py`).
 
 ## 9. Agent-facing tool (`pcbtool`, `pcbenv/tool.py`)
 
@@ -179,3 +205,5 @@ listed in TASK.md — these are public — and the
 `value_bounds` of spec.json; `check` reports both), `parts <PART>`. Mutating (keeps design.json and board in
 sync): `set-value REF VAL`, `set-footprint REF FP`, `connect REF.PIN NET`, `disconnect REF.PIN`,
 `move REF X Y ROT`, `route NET [--width W]`, `unroute NET`, `sync`. Agents may also edit files directly.
+`pcbtool check`'s layout section runs the decoupling rules of `spec.json:decoupling` (empty in the hard
+tier). In `no_autoroute` mode (hard tier, `tools.json`) `route` and `sync` exit 2.

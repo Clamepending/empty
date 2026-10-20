@@ -101,6 +101,10 @@ def test_built_board(built, kind, name, seed):
         for cpin in ("1", "2"):
             cx, cy = boardnet.pad_position(b, dc["cap"], cpin, g.design)
             assert math.hypot(cx - ix, cy - iy) <= dc["max_mm"], (dc, cpin)
+        # RT31: the cap is wired to the pin through a short copper path
+        from pcbenv import layout
+        path_mm = layout.decoupling_path_mm(b, dc["cap"], dc["ic_pin"], {r: c["part"] for r, c in g.design["components"].items()})
+        assert path_mm is not None and path_mm <= layout.max_path_mm(dc), (dc, path_mm)
 
 
 def test_deterministic(tmp_path):

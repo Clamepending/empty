@@ -89,5 +89,9 @@ Specific hardening in `verify.py` and its helpers:
     read.
   - Do not give the agent container network access. With network access it could fetch this
     repository, including the generators.
+  - Keep the generation secret `tasks/.secret` and the private manifests `tasks/private/` private
+    (both git-ignored). v2 task ids are opaque (`pcbr2-<tier>-<hmac8>`) and generator seeds are
+    HMAC(secret, index), so an id or a public manifest row that reaches a policy does not let it
+    regenerate the golden with the open-source generators (RT37). Whoever holds the secret can.
   - Record the image digest, `pcbenv` version and task-set version with every result (see
     VERSIONING.md).

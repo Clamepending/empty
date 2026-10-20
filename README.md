@@ -2,9 +2,11 @@
 
 PCB-Repair is a reinforcement-learning environment and evaluation in which an agent repairs small
 printed-circuit-board designs. Each design has a schematic of record (`design.json`) and a KiCad 7
-layout (`board.kicad_pcb`). Each task contains 1–3 injected faults: wrong component values, broken
-or swapped connections, wrong footprints, undersized power tracks, misplaced decoupling capacitors,
-and so on. The agent works with ordinary shell commands plus a domain CLI (`pcbtool`). A
+layout (`board.kicad_pcb`). Each normal-tier task contains 1–3 injected faults: wrong component
+values, broken or swapped connections, wrong footprints, undersized power tracks, misplaced
+decoupling capacitors, and so on. Hard-tier tasks (mostly 20–27-part multi-rail boards) contain
+3–6 faults, at least two of them *latent*: invisible to every `pcbtool` check but deducible from the
+datasheets, the design intent and the stated design rules. The agent works with ordinary shell commands plus a domain CLI (`pcbtool`). A
 deterministic verifier then grades the two deliverable files against a hidden golden reference.
 The verifier applies structural gates and also runs KiCad DRC, an ERC, SPICE spec assertions
 (ngspice) and layout checks. The reward is binary: it is 1 only if every gate and check passes.
@@ -19,25 +21,27 @@ sudo apt-get install -y kicad=7.0.11* kicad-footprints=7.0.11* ngspice python3-n
 # 2. from the repo root: put pcbtool on PATH (or `pip install -e .` into a --system-site-packages venv)
 export PATH="$PWD/bin:$PATH"
 # 3. get tasks: extract a released bundle (path traversal / links are rejected) ...
-python3 -m pcbenv.api extract dist/<bundle>.tar.gz tasks       # ... or generate: python3 -m pcbenv.generate --help
+python3 -m pcbenv.api extract dist/pcb-repair-v2-normal.tar.gz tasks   # also -hard, -normal-holdout, -hard-holdout
+#    ... or generate fresh ones: python3 -m pcbenv.generate --tier normal --out /tmp/t/normal --count 20 --secret default
 # 4. list them
-python3 -m pcbenv.api list tasks --split train | head
+python3 -m pcbenv.api list tasks | head
 # 5. run the scripted demo policy (builds its own wrong-value task, fixes it with pcbtool, reward 1)
 python3 examples/demo_policy.py --make-demo /tmp/pcb_demo --transcript runs/demo.jsonl
 # 6. work a task by hand: copy the PUBLIC files only, then inspect / edit with pcbtool
-T=$(python3 -m pcbenv.api list tasks --split train --json | head -1 | python3 -c 'import json,sys; print(json.load(sys.stdin)["path"])'); cp -r "$T/public" /tmp/work && (cd /tmp/work && pcbtool check)
+T=$(python3 -m pcbenv.api list tasks --json | head -1 | python3 -c 'import json,sys; print(json.load(sys.stdin)["path"])'); cp -r "$T/public" /tmp/work && (cd /tmp/work && pcbtool check)
 # 7. grade a workdir (prints gates/checks; exit 0 iff reward 1)
 python3 -m pcbenv.api verify /tmp/work "$T"
 # 8. JSONL export for HF datasets (public files only) -- score predictions with `... jsonl score`
-python3 -m pcbenv.adapters.jsonl export --tasks tasks --split train --out train.jsonl
+python3 -m pcbenv.adapters.jsonl export --tasks tasks --split v2/normal --out train.jsonl
 # 9. Inspect (optional: pip install inspect-ai; docker build --target agent -t pcb-repair-agent .)
-inspect eval pcbenv/adapters/inspect_task.py@pcb_repair -T split=train -T limit=5 --model anthropic/<model-id>
-# 10. tests (~3 min)
+inspect eval pcbenv/adapters/inspect_task.py@pcb_repair -T split=v2/normal -T limit=5 --model anthropic/<model-id>
+# 10. tests (~15 min)
 python3 -m pytest -q tests/
 ```
 
-<!-- ORCHESTRATOR: replace dist/<bundle>.tar.gz with the shipped bundle name and confirm the
-`python3 -m pcbenv.generate` invocation once G4/G10 land. -->
+In a git checkout the shipped task dirs are already under `tasks/v2/` (regenerated, or extracted from
+`dist/`); `tasks/manifest.jsonl` lists all four splits (`v2/normal`, `v2/normal_holdout`, `v2/hard`,
+`v2/hard_holdout`). Task ids are opaque (`pcbr2-<tier>-<hash>`); see [reports/v2_generation.md](reports/v2_generation.md).
 
 Any LLM: `examples/run_with_claude.py MODEL_ID --tasks tasks --limit 5` is a reference loop for the
 Anthropic Messages API (`pip install anthropic`). For other providers, write a
@@ -48,7 +52,7 @@ Anthropic Messages API (`pip install anthropic`). For other providers, write a
 
 ```python
 from pcbenv import api
-tasks = api.list_tasks("tasks", split="train")             # [TaskRef(task_id, path, split, family, difficulty)]
+tasks = api.list_tasks("tasks", split="v2/normal")         # [TaskRef(task_id, path, split, family, difficulty)]
 task = api.load_task(tasks[0].path)                         # TASK.md, spec, public file list (no hidden data)
 with api.PcbRepairEnv(max_steps=40) as env:                 # gym-like: reset / step / reward
     obs = env.reset(task.path)                              # {"task_md", "files", "workdir"}
@@ -68,8 +72,8 @@ res = api.verify(workdir, task.path)                        # isolated subproces
 A task directory looks like this:
 
 ```
-tasks/<split>/<task_id>/
-  public/  TASK.md  design.json  board.kicad_pcb  spec.json  parts/<PART>.md   <- the agent sees only this
+tasks/v2/<split>/<task_id>/
+  public/  TASK.md  design.json  board.kicad_pcb  spec.json  parts/<PART>.md  [tools.json]  <- the agent sees only this
   hidden/  golden_design.json  golden_board.kicad_pcb  meta.json                <- the grader reads only this
 ```
 
@@ -89,9 +93,11 @@ comes from `hidden/`.
 | check | `drc` | KiCad DRC under the canonical rules: 0 errors, 0 unconnected |
 | check | `erc` | no ERC errors (unconnected required pins, driver conflicts, missing supply, shorts, ...) |
 | check | `spec` | every golden SPICE / analytic assertion passes on the candidate design |
-| check | `layout` | power-net track widths ≥ required; decoupling caps within their maximum distance |
+| check | `values` | every component value inside its published range (`value_bounds`) |
+| check | `layout` | power-net track widths ≥ required; each decoupling cap within its straight-line distance and copper-path length of its IC pin |
+| check | `rules` | only for tasks with a rule context (all v2 tasks: resistor power; hard tier: all datasheet design rules) — not run by `pcbtool` |
 
-**Reward = 1.0 if and only if all 5 gates and all 4 checks pass, otherwise 0.0.** The per-gate and
+**Reward = 1.0 if and only if all 5 gates and all checks (5, plus `rules` where present) pass, otherwise 0.0.** The per-gate and
 per-check booleans are returned for diagnostics only. [docs/REWARD.md](docs/REWARD.md) covers what
 each stage catches and its known limitations.
 
