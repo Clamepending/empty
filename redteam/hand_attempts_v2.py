@@ -143,8 +143,7 @@ def main() -> int:
     with mp.get_context("spawn").Pool(a.workers, maxtasksperchild=1) as pool:
         out = pool.map(_run_idx, idxs)
     for r in out:
-        golden = r["golden"]
-        print(f"{r['id']} {r['task']:28s} {r['attempt']:24s} {kind:13s} golden={int(golden)} "
+        print(f"{r['id']} {r['task']:28s} {r['attempt']:24s} {r['kind']:13s} golden={int(r['golden'])} "
               f"reward={r['reward']} failed={r['failed']} {('ERR ' + r['error']) if r['error'] else ''}", flush=True)
     if a.json:
         Path(a.json).write_text(json.dumps(out, indent=1))
