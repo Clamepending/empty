@@ -68,8 +68,14 @@
 {"audited": true, "contaminated": false, "failed": [], "job": 78, "model": "sonnet", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard-b21bf3a9", "violations": []}
 {"audited": true, "contaminated": false, "failed": [], "job": 79, "model": "sonnet", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard-bf7c127a", "violations": []}
 {"audited": true, "contaminated": false, "failed": ["rules"], "job": 80, "model": "sonnet", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard-135a0806", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 81, "model": "sonnet", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard-d3b0cf4b", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 82, "model": "sonnet", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard-02ef0372", "violations": []}
 {"audited": true, "contaminated": false, "failed": [], "job": 83, "model": "sonnet", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard-68f3d465", "violations": []}
 {"audited": true, "contaminated": false, "failed": [], "job": 84, "model": "sonnet", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard-517afe87", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 85, "model": "sonnet", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard-4e91c4ba", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 86, "model": "sonnet", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard-fdfe7234", "violations": []}
+{"audited": true, "contaminated": false, "failed": ["topology"], "job": 87, "model": "sonnet", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard-08ee97e2", "violations": []}
+{"audited": true, "contaminated": false, "failed": ["topology"], "job": 88, "model": "sonnet", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard-85e6101a", "violations": []}
 {"audited": true, "contaminated": false, "failed": [], "job": 89, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard-954cdd78", "violations": []}
 {"audited": true, "contaminated": false, "failed": [], "job": 90, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard-cd39eba7", "violations": []}
 {"audited": true, "contaminated": false, "failed": [], "job": 91, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard-fced1736", "violations": []}
