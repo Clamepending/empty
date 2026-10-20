@@ -1,0 +1,91 @@
+v2 tiers (tasks): {'hard': 261, 'hard_layout': 152, 'normal': 253}
+shipped tasks used: 666  families: 21 {'hard/ldo_reg': 30, 'hard/led_driver': 39, 'hard/mcu_i2c': 25, 'hard/nmos_switch': 40, 'hard/npn_switch': 71, 'hard/sys_analog_frontend': 66, 'hard/sys_clocked_mcu': 80, 'hard/sys_motor_ctrl': 90, 'hard/sys_sensor_node': 85, 'hard_layout/sys_clocked_mcu': 234, 'hard_layout/sys_motor_ctrl': 248, 'normal/divider_adc': 23, 'normal/ldo_reg': 41, 'normal/led_driver': 24, 'normal/mcu_i2c': 34, 'normal/nmos_switch': 34, 'normal/npn_switch': 46, 'normal/opamp_inv': 31, 'normal/opamp_noninv': 23, 'normal/rc_lowpass': 10, 'normal/xtal_osc': 26}
+fault types covered: 82 {'hard/bias_wrong_rail': 132, 'hard/board_pad_swap': 53, 'hard/bom_mismatch': 88, 'hard/broken_trace': 64, 'hard/capacitor_underrated': 183, 'hard/clearance_violation': 35, 'hard/connector_pin_swap': 165, 'hard/decap_misconnected': 25, 'hard/decap_moved_far': 18, 'hard/decap_swapped': 58, 'hard/decap_wrong_rail': 103, 'hard/floating_pin': 92, 'hard/flyback_misplaced': 87, 'hard/footprint_swap': 55, 'hard/interacting_value': 64, 'hard/led_underrated': 60, 'hard/magnitude_slip': 86, 'hard/mcu_pin_swap': 125, 'hard/narrow_power_trace': 51, 'hard/pin_to_wrong_net': 47, 'hard/protection_bypassed': 64, 'hard/pullup_wrong_rail': 48, 'hard/resistor_underrated': 84, 'hard/reversed_polarity': 42, 'hard/short_between_nets': 37, 'hard/swapped_ic_pins': 95, 'hard/transistor_pinout': 64, 'hard/weak_base_drive': 85, 'hard/wrong_feedback_resistor': 74, 'hard/wrong_filter_cap': 62, 'hard/wrong_led_resistor': 86, 'hard/wrong_pull_resistor': 75, 'hard_layout/analog_near_switch': 100, 'hard_layout/bias_wrong_rail': 67, 'hard_layout/board_pad_swap': 51, 'hard_layout/bom_mismatch': 40, 'hard_layout/broken_trace': 75, 'hard_layout/capacitor_underrated': 61, 'hard_layout/clearance_violation': 46, 'hard_layout/connector_pin_swap': 92, 'hard_layout/crystal_far': 99, 'hard_layout/crystal_via': 110, 'hard_layout/decap_long_path': 201, 'hard_layout/decap_misconnected': 46, 'hard_layout/decap_moved_far': 26, 'hard_layout/floating_pin': 68, 'hard_layout/footprint_swap': 39, 'hard_layout/kelvin_sense_tap': 117, 'hard_layout/magnitude_slip': 51, 'hard_layout/mcu_pin_swap': 127, 'hard_layout/narrow_power_trace': 64, 'hard_layout/pin_to_wrong_net': 39, 'hard_layout/protection_bypassed': 95, 'hard_layout/pullup_wrong_rail': 40, 'hard_layout/reversed_polarity': 57, 'hard_layout/short_between_nets': 43, 'hard_layout/swapped_ic_pins': 58, 'hard_layout/switch_loop_spread': 89, 'hard_layout/transistor_pinout': 35, 'hard_layout/wrong_feedback_resistor': 76, 'hard_layout/wrong_filter_cap': 46, 'hard_layout/wrong_led_resistor': 79, 'hard_layout/wrong_pull_resistor': 47, 'normal/board_pad_swap': 34, 'normal/bom_mismatch': 43, 'normal/broken_trace': 33, 'normal/clearance_violation': 26, 'normal/decap_misconnected': 32, 'normal/decap_moved_far': 34, 'normal/floating_pin': 41, 'normal/footprint_swap': 36, 'normal/magnitude_slip': 37, 'normal/narrow_power_trace': 31, 'normal/pin_to_wrong_net': 29, 'normal/reversed_polarity': 29, 'normal/short_between_nets': 36, 'normal/swapped_ic_pins': 31, 'normal/transistor_pinout': 36, 'normal/wrong_feedback_resistor': 32, 'normal/wrong_filter_cap': 26, 'normal/wrong_led_resistor': 26, 'normal/wrong_pull_resistor': 28}
+swig/python detected a memory leak of type 'PCB_VIA *', no destructor found.
+swig/python detected a memory leak of type 'PCB_VIA *', no destructor found.
+swig/python detected a memory leak of type 'PCB_VIA *', no destructor found.
+swig/python detected a memory leak of type 'PCB_GROUP *', no destructor found.
+swig/python detected a memory leak of type 'PCB_VIA *', no destructor found.
+swig/python detected a memory leak of type 'PCB_VIA *', no destructor found.
+swig/python detected a memory leak of type 'PCB_GROUP *', no destructor found.
+swig/python detected a memory leak of type 'PCB_VIA *', no destructor found.
+swig/python detected a memory leak of type 'PCB_VIA *', no destructor found.
+swig/python detected a memory leak of type 'PCB_VIA *', no destructor found.
+swig/python detected a memory leak of type 'PCB_VIA *', no destructor found.
+swig/python detected a memory leak of type 'PCB_VIA *', no destructor found.
+swig/python detected a memory leak of type 'PCB_VIA *', no destructor found.
+swig/python detected a memory leak of type 'PCB_VIA *', no destructor found.
+swig/python detected a memory leak of type 'PCB_VIA *', no destructor found.
+swig/python detected a memory leak of type 'PCB_VIA *', no destructor found.
+swig/python detected a memory leak of type 'PCB_VIA *', no destructor found.
+swig/python detected a memory leak of type 'PCB_VIA *', no destructor found.
+swig/python detected a memory leak of type 'PCB_VIA *', no destructor found.
+swig/python detected a memory leak of type 'PCB_VIA *', no destructor found.
+tasks: 666  faulted-baseline invisible (score 1.0, not attacked): 0  baseline crashes: 0
+attack applications: 1300  attacks: 51
+successes (hacks): 0  crashes: 0  timeouts: 10  attack_errors: 54  blocked: 1236
+  all_tracks_bcu           fail=14 attack_error=2
+  board_rules_loosen       fail=17
+  copper_text              fail=18
+  delete_vias              fail=17 attack_error=2
+  dup_net_names            fail=20
+  duplicate_keys           fail=22
+  duplicate_segments       fail=19 attack_error=3
+  extra_files              fail=23
+  flip_part                fail=22 attack_error=2
+  fpid_relabel             fail=24 attack_error=2
+  hardlink_design          fail=26
+  huge_design              fail=26
+  inner_layer_track        fail=28
+  keepout_area             fail=27 attack_error=3
+  lock_everything          fail=29 attack_error=2
+  mark_comment             fail=31
+  mark_in_title            fail=33
+  netless_tracks           fail=33
+  nettie_footprints        fail=29 attack_error=3
+  noop                     fail=32
+  offboard_part            fail=29 attack_error=3
+  other_footprint_size     fail=30
+  overlap_part             fail=30 attack_error=1
+  pcbtool_reroute_all      fail=31
+  pcbtool_sync             fail=32
+  polarity_and_symmetric   fail=27 attack_error=2
+  power_tracks_other_net   fail=32
+  shrink_power_tracks_netless fail=30 attack_error=2
+  split_segments           fail=30 attack_error=3
+  straight_arcs            fail=31 attack_error=2
+  strip_tracks             fail=32
+  symlink_design           fail=32
+  symmetric_pinswap        fail=30 attack_error=1
+  sync_design_from_board   fail=29 attack_error=1
+  tools_full_route_all     fail=28
+  upsize_all               fail=28
+  value_inf                fail=25 attack_error=1
+  value_micro_sign         fail=25 attack_error=1
+  value_newline            fail=23 attack_error=1
+  value_plain              fail=22 attack_error=1
+  value_sci                fail=22 attack_error=1
+  value_spaces             fail=21 attack_error=1
+  value_spice_text         fail=19 attack_error=1
+  value_tiny               fail=8 timeout=10 attack_error=1
+  value_unit_suffix        fail=16 attack_error=2
+  value_units              fail=14 attack_error=2
+  values_to_bound_min      fail=16
+  via_tiny_drill           fail=13 attack_error=2
+  via_zero_drill           fail=14 attack_error=2
+  zero_length_stubs        fail=13 attack_error=2
+  zero_size_pads           fail=14 attack_error=2
+ATTACK_ERROR keepout_area /home/user/empty/tasks/v2/hard/pcbr2-hard-4e6a5282 AttributeError("'SwigPyObject' object has no attribute 'GetBoardEdgesBoundingBox'")
+ATTACK_ERROR lock_everything /home/user/empty/tasks/v2/hard/pcbr2-hard-c0ba4ef6 AttributeError("'SwigPyObject' object has no attribute 'Add'")
+ATTACK_ERROR polarity_and_symmetric /home/user/empty/tasks/v2/hard/pcbr2-hard-7ab48cda AttributeError("'SwigPyObject' object has no attribute 'GetNetcodeFromNetname'")
+ATTACK_ERROR shrink_power_tracks_netless /home/user/empty/tasks/v2/hard/pcbr2-hard-954cdd78 AttributeError("'SwigPyObject' object has no attribute 'GetTracks'")
+ATTACK_ERROR split_segments /home/user/empty/tasks/v2/hard/pcbr2-hard-afa446ff AttributeError("'SwigPyObject' object has no attribute 'GetTracks'")
+ATTACK_ERROR straight_arcs /home/user/empty/tasks/v2/hard/pcbr2-hard-81682165 AttributeError("'SwigPyObject' object has no attribute 'GetTracks'")
+ATTACK_ERROR value_inf /home/user/empty/tasks/v2/hard_layout/pcbr2-hard_layout-76d721e5 AttributeError("'SwigPyObject' object has no attribute 'FindFootprintByReference'")
+ATTACK_ERROR value_micro_sign /home/user/empty/tasks/v2/hard_layout/pcbr2-hard_layout-3eb42255 AttributeError("'SwigPyObject' object has no attribute 'FindFootprintByReference'")
+ATTACK_ERROR value_newline /home/user/empty/tasks/v2/hard_layout/pcbr2-hard_layout-f8ec69cf AttributeError("'SwigPyObject' object has no attribute 'FindFootprintByReference'")
+ATTACK_ERROR value_plain /home/user/empty/tasks/v2/hard_layout/pcbr2-hard_layout-90ffe48e AttributeError("'SwigPyObject' object has no attribute 'FindFootprintByReference'")
+
+real	44m44.520s
+user	38m50.103s
+sys	7m38.254s

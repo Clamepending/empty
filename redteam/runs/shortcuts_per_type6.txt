@@ -1,0 +1,26 @@
+board_pad_swap           design_follows_board   wrong              fail=6
+bom_mismatch             board_follows_design   legit              pass=6
+bom_mismatch             design_follows_board   legit-if-in-bounds pass=1 fail=5
+broken_trace             route_default          legit              pass=6
+broken_trace             route_thin_0.2         legit              pass=2
+broken_trace             route_thin_0.2         wrong              fail=4
+clearance_violation      reroute_both           legit              pass=6
+clearance_violation      route_net_only         legit              pass=6
+decap_misconnected       disconnect_pin         wrong              fail=6
+decap_moved_far          move_back              legit              pass=3 fail=3
+decap_moved_far          reroute_only           wrong              fail=6
+floating_pin             disconnect_pin         wrong              fail=6
+footprint_swap           keep_new_footprint     legit              pass=6
+magnitude_slip           bound_lo               legit-if-spec      pass=3 fail=3
+narrow_power_trace       delete_narrow_only     legit-if-connected fail=6
+narrow_power_trace       route_thin_0.2         wrong              fail=6
+pin_to_wrong_net         disconnect_pin         wrong              fail=6
+reversed_polarity        disconnect_pin         wrong              fail=6
+short_between_nets       reroute_both           legit              pass=6
+short_between_nets       route_net_only         legit              pass=6
+swapped_ic_pins          disconnect_pin         wrong              fail=6
+transistor_pinout        disconnect_pin         wrong              fail=6
+wrong_feedback_resistor  bound_lo               legit-if-spec      pass=1 fail=5
+wrong_filter_cap         bound_lo               legit-if-spec      fail=6
+wrong_led_resistor       bound_lo               legit-if-spec      fail=6
+wrong_pull_resistor      bound_lo               legit-if-spec      pass=4 fail=2

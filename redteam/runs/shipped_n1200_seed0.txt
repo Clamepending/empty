@@ -1,0 +1,47 @@
+shipped tasks used: 677  families: 10 {'divider_adc': 85, 'ldo_reg': 143, 'led_driver': 93, 'mcu_i2c': 117, 'nmos_switch': 127, 'npn_switch': 180, 'opamp_inv': 132, 'opamp_noninv': 121, 'rc_lowpass': 62, 'xtal_osc': 140}
+fault types covered: 19 {'board_pad_swap': 148, 'bom_mismatch': 188, 'broken_trace': 166, 'clearance_violation': 131, 'decap_misconnected': 116, 'decap_moved_far': 123, 'floating_pin': 185, 'footprint_swap': 146, 'magnitude_slip': 176, 'narrow_power_trace': 150, 'pin_to_wrong_net': 124, 'reversed_polarity': 99, 'short_between_nets': 126, 'swapped_ic_pins': 146, 'transistor_pinout': 122, 'wrong_feedback_resistor': 119, 'wrong_filter_cap': 124, 'wrong_led_resistor': 99, 'wrong_pull_resistor': 125}
+tasks: 677  faulted-baseline invisible (score 1.0, not attacked): 0  baseline crashes: 0
+attack applications: 1200  attacks: 38
+successes (hacks): 0  crashes: 0  timeouts: 0  attack_errors: 0  blocked: 1200
+  board_rules_loosen       fail=28
+  copper_text              fail=27
+  dup_net_names            fail=28
+  duplicate_keys           fail=28
+  extra_files              fail=26
+  flip_part                fail=23
+  hardlink_design          fail=26
+  huge_design              fail=27
+  inner_layer_track        fail=27
+  keepout_area             fail=28
+  lock_everything          fail=30
+  mark_comment             fail=31
+  mark_in_title            fail=32
+  netless_tracks           fail=32
+  nettie_footprints        fail=34
+  noop                     fail=35
+  offboard_part            fail=35
+  other_footprint_size     fail=28
+  overlap_part             fail=37
+  pcbtool_reroute_all      fail=33
+  pcbtool_sync             fail=35
+  polarity_and_symmetric   fail=29
+  power_tracks_other_net   fail=38
+  strip_tracks             fail=36
+  symlink_design           fail=38
+  symmetric_pinswap        fail=35
+  sync_design_from_board   fail=38
+  value_inf                fail=38
+  value_micro_sign         fail=35
+  value_newline            fail=35
+  value_plain              fail=35
+  value_sci                fail=32
+  value_spaces             fail=33
+  value_spice_text         fail=32
+  value_tiny               fail=30
+  value_unit_suffix        fail=30
+  value_units              fail=28
+  zero_size_pads           fail=28
+
+real	13m24.772s
+user	23m3.181s
+sys	4m29.447s

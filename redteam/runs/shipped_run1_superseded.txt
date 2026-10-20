@@ -1,0 +1,51 @@
+shipped tasks used: 677  families: 10 {'divider_adc': 88, 'ldo_reg': 143, 'led_driver': 95, 'mcu_i2c': 117, 'nmos_switch': 126, 'npn_switch': 175, 'opamp_inv': 132, 'opamp_noninv': 122, 'rc_lowpass': 63, 'xtal_osc': 139}
+fault types covered: 19 {'board_pad_swap': 141, 'bom_mismatch': 186, 'broken_trace': 167, 'clearance_violation': 134, 'decap_misconnected': 119, 'decap_moved_far': 117, 'floating_pin': 184, 'footprint_swap': 149, 'magnitude_slip': 181, 'narrow_power_trace': 153, 'pin_to_wrong_net': 122, 'reversed_polarity': 96, 'short_between_nets': 127, 'swapped_ic_pins': 143, 'transistor_pinout': 124, 'wrong_feedback_resistor': 124, 'wrong_filter_cap': 123, 'wrong_led_resistor': 110, 'wrong_pull_resistor': 124}
+tasks: 677  faulted-baseline invisible (score 1.0, not attacked): 0  baseline crashes: 0
+attack applications: 1200  attacks: 38
+successes (hacks): 4  crashes: 0  timeouts: 0  attack_errors: 0  blocked: 1196
+  board_rules_loosen       fail=27
+  copper_text              fail=27
+  dup_net_names            fail=27
+  duplicate_keys           fail=25
+  extra_files              fail=27
+  flip_part                fail=24
+  hardlink_design          fail=26
+  huge_design              fail=27
+  inner_layer_track        fail=28
+  keepout_area             fail=29
+  lock_everything          fail=30
+  mark_comment             fail=30
+  mark_in_title            fail=32
+  netless_tracks           fail=33
+  nettie_footprints        fail=34
+  noop                     fail=33
+  offboard_part            fail=36
+  other_footprint_size     fail=33 pass=1
+  overlap_part             fail=38
+  pcbtool_reroute_all      fail=32
+  pcbtool_sync             fail=37
+  polarity_and_symmetric   fail=35 pass=3
+  power_tracks_other_net   fail=37
+  strip_tracks             fail=37
+  symlink_design           fail=36
+  symmetric_pinswap        fail=31
+  sync_design_from_board   fail=37
+  value_inf                fail=37
+  value_micro_sign         fail=35
+  value_newline            fail=35
+  value_plain              fail=34
+  value_sci                fail=32
+  value_spaces             fail=32
+  value_spice_text         fail=31
+  value_tiny               fail=30
+  value_unit_suffix        fail=29
+  value_units              fail=26
+  zero_size_pads           fail=27
+HACK polarity_and_symmetric /home/user/empty/tasks/train/pcbr-ldo_reg-541-26180fe5
+HACK other_footprint_size /home/user/empty/tasks/train/pcbr-opamp_inv-6-810fcada
+HACK polarity_and_symmetric /home/user/empty/tasks/train/pcbr-npn_switch-585-4985df5c
+HACK polarity_and_symmetric /home/user/empty/tasks/train/pcbr-opamp_inv-186-61125ae7
+
+real	12m33.238s
+user	20m59.488s
+sys	4m35.553s
