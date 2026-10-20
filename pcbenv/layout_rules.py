@@ -150,16 +150,19 @@ def _xy(p) -> tuple[float, float]:
     return c.x / 1e6, c.y / 1e6
 
 
-def net_tracks(b, netcode: int) -> tuple[list[tuple], list[tuple]]:
-    """([(layer, x1, y1, x2, y2, w)], [(x, y, r)]) of a net's tracks (arcs as two chords) and vias."""
+def net_tracks(b, netcode: int, objs: list | None = None) -> tuple[list[tuple], list[tuple]]:
+    """([(layer, x1, y1, x2, y2, w)], [(x, y, r)]) of a net's tracks (arcs as two chords) and vias.
+    `objs` (a list): filled with the KiCad item of every returned segment, then of every via."""
     import pcbnew
     segs, vias = [], []
+    vobjs: list = []
     for t in b.GetTracks():
         if t.GetNetCode() != netcode:
             continue
         if t.GetClass() == "PCB_VIA":
             q = t.GetPosition()
             vias.append((q.x / 1e6, q.y / 1e6, t.GetWidth() / 2e6))
+            vobjs.append(t)
             continue
         if t.GetLayer() not in (pcbnew.F_Cu, pcbnew.B_Cu):
             continue
@@ -171,6 +174,10 @@ def net_tracks(b, netcode: int) -> tuple[list[tuple], list[tuple]]:
         pts.append((e.x / 1e6, e.y / 1e6))
         for (x1, y1), (x2, y2) in zip(pts, pts[1:]):
             segs.append((t.GetLayer(), x1, y1, x2, y2, t.GetWidth() / 1e6))
+            if objs is not None:
+                objs.append(t)
+    if objs is not None:
+        objs.extend(vobjs)
     return segs, vias
 
 
@@ -227,6 +234,28 @@ def _seg_touches_pad(pad, sdf, lay: int, x1: float, y1: float, x2: float, y2: fl
         elif pad.HitTest(pcbnew.VECTOR2I(int(round(x * 1e6)), int(round(y * 1e6))), int(round(w / 2 * 1e6))):
             return True
     return False
+
+
+def island_items(b, netcode: int, pad, drop_pad=None) -> list:
+    """KiCad tracks / vias in the copper island of `pad` (with `drop_pad` deleted)."""
+    objs: list = []
+    segs, vias = net_tracks(b, netcode, objs)
+    isl = copper_islands(b, netcode, drop_pad=drop_pad)
+    mine = isl[_pad_key(pad)]
+    out = []
+    for k, v in isl.items():
+        if v != mine:
+            continue
+        if k[0] == "s":
+            out.append(objs[k[1]])
+        elif k[0] == "v":
+            out.append(objs[len(segs) + k[1]])
+    uniq, seen = [], set()
+    for t in out:
+        if id(t) not in seen:
+            seen.add(id(t))
+            uniq.append(t)
+    return uniq
 
 
 def copper_islands(b, netcode: int, drop_pad=None) -> dict[object, int]:

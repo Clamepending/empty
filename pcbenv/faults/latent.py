@@ -42,6 +42,7 @@ miss any of it.
 """
 from __future__ import annotations
 
+import math
 import os
 import random
 import shutil
@@ -549,7 +550,7 @@ def apply_latent(name: str, golden: Golden, design: dict, board_path: str, rng: 
     result is asserted to stay clean (`visible_failures` empty). `want`: only the candidate whose
     description is `want` (the hard generator picks each latent fault on the pristine golden and
     then applies exactly that one on top of the others)."""
-    lt = LATENT_TYPES[name]
+    lt = LATENT_TYPES[name] if name in LATENT_TYPES else LAYOUT_LATENT_TYPES[name]
     ctx = ctx if ctx is not None else rules.rules_context(golden)
     if _design_visible(golden, design):
         raise NotApplicable("latent faults must be applied to a tool-clean design")
@@ -568,6 +569,8 @@ def apply_latent(name: str, golden: Golden, design: dict, board_path: str, rng: 
 def still_present(rec: dict, design: dict, board_path: str, golden: Golden) -> bool:
     """The latent fault's change is still in the (combined) faulted files."""
     d = rec["data"]
+    if rec["type"] in LAYOUT_LATENT_TYPES:
+        return layout_still_present(rec, golden, board_path)
     rp = {r: c["part"] for r, c in golden.design["components"].items()}
     info = boardnet.board_info(board_path, parts=rp)
     for r, (_, fp) in d.get("footprints", {}).items():
@@ -579,4 +582,528 @@ def still_present(rec: dict, design: dict, board_path: str, golden: Golden) -> b
     return all(net_of(design, p) == new for p, (_, new) in d.get("moves", {}).items())
 
 
-__all__ = ["LATENT_TYPES", "LatentType", "apply_latent", "visible_failures", "still_present"]
+
+
+# ================================================================== layout-latent faults (hard_layout)
+# Board-geometry defects: design.json untouched, connectivity / values / DRC / ERC / sim / bounds all
+# still pass (pcbtool sees nothing), but exactly one stated layout rule (`pcbenv/layout_rules.py`, or
+# the decoupling copper-path rule) is broken. Each needs the agent to read board coordinates and
+# move parts / re-route copper by hand. `autoroute_fixes` tells whether `pcbtool route` on one of
+# the fault's nets would repair it (then the task must be no_autoroute).
+LAYOUT_MARGIN = 1.25          # a faulted metric exceeds its limit by at least this factor
+
+
+@dataclass
+class GeoCand:
+    desc: str
+    data: dict
+    targets: list[str]
+    edit: Callable            # edit(board) -> None (KiCad board, in place); NotApplicable to skip
+
+
+def _lctx(golden: Golden) -> dict:
+    from pcbenv.layout_rules import layout_rules_context
+    return layout_rules_context(golden)
+
+
+def _rp(golden: Golden) -> dict[str, str]:
+    return {r: c["part"] for r, c in golden.design["components"].items()}
+
+
+def _padnum(golden: Golden, pin: str) -> tuple[str, str]:
+    ref, name = pin.split(".", 1)
+    return ref, PARTS[golden.design["components"][ref]["part"]].pins[name].pad
+
+
+def _key(golden: Golden, pin: str) -> str:
+    ref, num = _padnum(golden, pin)
+    return f"{ref}.{num}"
+
+
+def layout_issues(golden: Golden, board_path: str) -> dict[str, list[str]]:
+    """{code: [details]} of the layout rules + the decoupling path rule on a board."""
+    from pcbenv import layout
+    from pcbenv.layout_rules import run_layout_rules
+    rp = _rp(golden)
+    out: dict[str, list[str]] = {}
+    b = load_board(board_path)
+    for v in run_layout_rules(b, _lctx(golden), rp):
+        out.setdefault(v.code, []).append(v.detail)
+    meta = {"decoupling": golden.decoupling, "power_nets": {}, "power_net_pins": {}}
+    info = boardnet.board_info(b, parts=rp)
+    for i in layout.run_layout_checks(info, meta, board=b, ref_parts=rp):
+        out.setdefault(i.code, []).append(i.detail)
+    return out
+
+
+def _metric(golden: Golden, board_path: str, kind: str, extra: dict) -> float | None:
+    """The faulted quantity, for the LAYOUT_MARGIN check."""
+    from pcbenv import layout_rules as LR
+    b = load_board(board_path)
+    rp = _rp(golden)
+    lctx = _lctx(golden)
+    if kind == "loop":
+        a = LR.loop_area(b, lctx["switch_loop"][0], rp)
+        return None if isinstance(a, str) else a / lctx["switch_loop"][0]["max_area_mm2"]
+    if kind == "xtal":
+        r = lctx["crystal"][0]
+        ds = [d for _, d, _ in LR.crystal_metrics(b, r, rp)]
+        return None if None in ds else max(ds) / r["max_path_mm"]
+    if kind == "sep":
+        r = lctx["separation"][0]
+        s = LR.separation_length(b, r, rp)
+        return None if isinstance(s, str) else s / r["max_parallel_mm"]
+    if kind == "decap":
+        from pcbenv.layout import decoupling_path_mm, max_path_mm
+        dc = extra["rule"]
+        d = decoupling_path_mm(b, dc["cap"], dc["ic_pin"], rp)
+        return None if d is None else d / max_path_mm(dc)
+    return math.inf
+
+
+def _realise_geo(lt: "LatentType", golden: Golden, design: dict, board_path: str, rng: random.Random,
+                 exclude: set[str], salt: str, cands: list[GeoCand], metric: str) -> FaultRecord | None:
+    cands = list(cands)
+    rng.shuffle(cands)
+    if _WANT[0] is not None:
+        cands = [c for c in cands if c.desc == _WANT[0]]
+    base = layout_issues(golden, board_path)
+    for c in cands[:12]:
+        if not free(exclude, *c.targets):
+            continue
+        with tempfile.TemporaryDirectory(prefix="pcblay_") as td:
+            b2 = os.path.join(td, "board.kicad_pcb")
+            board = load_board(board_path)
+            seed_kiid(salt)
+            try:
+                c.edit(board)
+            except NotApplicable:
+                continue
+            save_board(board, b2, salt)
+            r = drc.run_drc(b2)
+            if r.errors or r.unconnected:
+                continue
+            now = layout_issues(golden, b2)
+            new = {k: [x for x in v if x not in base.get(k, [])] for k, v in now.items()}
+            new = {k: v for k, v in new.items() if v}
+            if not new or set(new) - set(lt.rule_codes):
+                continue
+            m = _metric(golden, b2, metric, c.data)
+            if m is None or m < LAYOUT_MARGIN:
+                continue
+            if visible_failures(golden, design, b2):
+                continue
+            shutil.copyfile(b2, board_path)
+        data = dict(c.data)
+        data.pop("rule", None)
+        data.update(latent=True, layout=True, detected_by=lt.detected_by, rule_codes=sorted(new),
+                    evidence=lt.evidence, needs_full_intent=False, moves={}, footprints={}, values={},
+                    metric_ratio=round(m, 3), rule_violations=[f"{k}: {x}" for k, v in sorted(new.items()) for x in v][:10])
+        return FaultRecord(lt.name, "latent", c.desc, True, sorted(set(c.targets)), data)
+    return None
+
+
+def _net_name(golden: Golden, pin: str) -> str:
+    return net_of(golden.design, pin)
+
+
+def _board_pad(board, golden: Golden, pin: str):
+    from pcbenv.faults.geom import find_pad
+    ref, num = _padnum(golden, pin)
+    return find_pad(board, ref, num)
+
+
+def _kelvin_sense_tap(lt, golden, design, board_path, rng, exclude, salt, ctx):
+    from pcbenv.faults import geom as G
+    from pcbenv.faults.common import net_width
+    from pcbenv.layout import copper_path
+    lctx = _lctx(golden)
+    cands = []
+    for r in lctx.get("kelvin", []):
+        net = _net_name(golden, r["shunt_pin"])
+        w = net_width(golden, net)
+        sense, shunt, load = r["sense_pin"], r["shunt_pin"], r["load_pins"][0]
+
+        def strip(board, sense=sense, shunt=shunt):
+            from pcbenv.layout_rules import island_items
+            sp, hp = _board_pad(board, golden, sense), _board_pad(board, golden, shunt)
+            code = hp.GetNetCode()
+            G.delete_items(board, island_items(board, code, sp, drop_pad=hp))
+            return code
+
+        def tap_pad(board, sense=sense, load=load, w=w):
+            code = strip(board)
+            G.route_branch(board, code, _key(golden, sense), _key(golden, load), w, isolated=False)
+
+        def tap_mid(board, sense=sense, shunt=shunt, load=load, w=w):
+            code = strip(board)
+            res = copper_path(board, _board_pad(board, golden, load), _board_pad(board, golden, shunt))
+            if res is None or res[0] < 1.0:
+                raise NotApplicable("power path too short")
+            pts, L = res[1], res[0]
+            target, acc = L / 2, 0.0
+            mid = pts[0]
+            for (x1, y1), (x2, y2) in zip(pts, pts[1:]):
+                s = math.hypot(x2 - x1, y2 - y1)
+                if acc + s >= target and s > 0:
+                    f = (target - acc) / s
+                    mid = (x1 + (x2 - x1) * f, y1 + (y2 - y1) * f)
+                    break
+                acc += s
+            layer = _layer_at(board, code, mid)
+            router, idx = G.board_router(board)
+            wp = G.waypoint(mid[0], mid[1], layer)
+            wp.net = code
+            router.pads.append(wp)
+            n_s, n_v = len(router.segs), len(router.vias)
+            from pcbenv.router import RouteError
+            try:
+                ia = idx[_key(golden, sense)]
+                router.route_net(code, [ia, len(router.pads) - 1], w, [ia, len(router.pads) - 1])
+            except RouteError as e:
+                raise NotApplicable(str(e)) from None
+            router.pads.pop()
+            G.add_new_copper(board, router, n_s, n_v)
+
+        tg = [sense.split(".")[0], shunt.split(".")[0], load.split(".")[0], *nets_target(net)]
+        cands.append(GeoCand(f"sense connection {sense} re-routed to tap the load-current copper at {load} instead of "
+                             f"the shunt pad {shunt}", {"variant": "tap_load_pad", "nets": [net], "rule": r}, tg, tap_pad))
+        cands.append(GeoCand(f"sense connection {sense} re-routed to tee into the middle of the {load} -> {shunt} "
+                             f"power trace instead of leaving from the shunt pad", {"variant": "tap_mid", "nets": [net],
+                                                                                    "rule": r}, tg, tap_mid))
+    return _realise_geo(lt, golden, design, board_path, rng, exclude, salt, cands, "none")
+
+
+def pcbnew_layers():
+    import pcbnew
+    return (pcbnew.F_Cu, pcbnew.B_Cu)
+
+
+def _layer_at(board, code: int, pt: tuple[float, float]) -> int:
+    """Router layer (0/1) of the net's track nearest to `pt`."""
+    import pcbnew
+
+    from pcbenv.faults.geom import _pt_seg
+    best = None
+    for t in board.GetTracks():
+        if t.GetNetCode() != code or t.GetClass() == "PCB_VIA":
+            continue
+        d = _pt_seg(pt[0], pt[1], t)
+        if best is None or d < best[0]:
+            best = (d, 0 if t.GetLayer() == pcbnew.F_Cu else 1)
+    return 0 if best is None else best[1]
+
+
+def _candidate_spots(board, golden: Golden, ref: str, rng: random.Random, dmin: float, dmax: float,
+                     n: int = 40) -> list[tuple[float, float, int]]:
+    """Grid positions (1 mm) dmin..dmax mm from the part's current position, shuffled."""
+    from pcbenv.faults.geom import board_outline
+    fp = board.FindFootprintByReference(ref)
+    c = fp.GetPosition()
+    cx, cy = c.x / 1e6, c.y / 1e6
+    x0, y0, w, h = board_outline(board)
+    spots = []
+    for i in range(int(w) + 1):
+        for j in range(int(h) + 1):
+            x, y = x0 + i, y0 + j
+            if dmin <= math.hypot(x - cx, y - cy) <= dmax:
+                spots.append((float(x), float(y), rng.choice((0, 90, 180, 270))))
+    rng.shuffle(spots)
+    return spots[: n * 6]
+
+
+def _move_and_branch(board, golden: Golden, ref: str, spots, legs: list[tuple[str, str]], rng) -> None:
+    """Detach `ref`'s copper, move it to the first spot where it fits, route each (pin, partner)
+    leg as an isolated branch, then re-join any copper islands the detach split off."""
+    from pcbenv.faults import geom as G
+    from pcbenv.faults.common import net_width
+    fp = board.FindFootprintByReference(ref)
+    nets = sorted({p.GetNetCode() for p in fp.Pads() if p.GetNetCode() > 0})
+    for p in sorted(fp.Pads(), key=lambda q: q.GetNumber()):
+        if p.GetNetCode() > 0:
+            G.detach_pad(board, p)
+    old = fp.GetPosition(), fp.GetOrientationDegrees()
+    for x, y, rot in spots:
+        G.move_footprint(fp, x, y, rot)
+        if G.placement_ok(board, fp):
+            break
+    else:
+        fp.SetPosition(old[0])
+        fp.SetOrientationDegrees(old[1])
+        raise NotApplicable("no free spot")
+    for pin, partner in legs:
+        p = _board_pad(board, golden, pin)
+        G.route_branch(board, p.GetNetCode(), _key(golden, pin), _key(golden, partner),
+                       net_width(golden, _net_name(golden, pin)), isolated=True)
+    for code in nets:
+        G.reconnect(board, code, net_width(golden, board.GetNetInfo().GetNetItem(code).GetNetname()))
+
+
+def _switch_loop_spread(lt, golden, design, board_path, rng, exclude, salt, ctx):
+    lctx = _lctx(golden)
+    cands = []
+    b0 = load_board(board_path)
+    for r in lctx.get("switch_loop", []):
+        legs = r["legs"]
+        pins_of = {}
+        for a, c in legs:
+            pins_of.setdefault(a.split(".")[0], []).append((a, c))
+            pins_of.setdefault(c.split(".")[0], []).append((c, a))
+        movable = sorted({ref for ref in pins_of if golden.design["components"][ref]["part"] in ("D_SCHOTTKY", "C")})
+        for ref in movable:
+            for k in range(3):
+                srng = random.Random(f"{salt}:{ref}:{k}")
+                spots = _candidate_spots(b0, golden, ref, srng, 9.0 + 4 * k, 16.0 + 6 * k)
+                nets = sorted({_net_name(golden, p) for p, _ in pins_of[ref]})
+
+                def edit(board, ref=ref, spots=spots, legs=pins_of[ref], srng=srng):
+                    _move_and_branch(board, golden, ref, spots, legs, srng)
+                cands.append(GeoCand(f"{ref} moved away from the switching loop (ring {k}) and re-routed: the commutation "
+                                     f"loop {' -> '.join(a for a, _ in legs)} encloses too much area",
+                                     {"variant": f"move_{golden.design['components'][ref]['part']}", "ref": ref,
+                                      "nets": nets, "ring": k}, [ref, *nets_target(*nets)], edit))
+    return _realise_geo(lt, golden, design, board_path, rng, exclude, salt, cands, "loop")
+
+
+def _crystal_far(lt, golden, design, board_path, rng, exclude, salt, ctx):
+    lctx = _lctx(golden)
+    cands = []
+    b0 = load_board(board_path)
+    for r in lctx.get("crystal", []):
+        y = r["xtal"]
+        nets = sorted({_net_name(golden, a) for a, _ in r["pairs"]})
+        for k in range(3):
+            srng = random.Random(f"{salt}:{y}:{k}")
+            spots = _candidate_spots(b0, golden, y, srng, 10.0 + 4 * k, 18.0 + 6 * k)
+
+            def edit(board, y=y, spots=spots, pairs=r["pairs"], srng=srng):
+                _move_and_branch(board, golden, y, spots, [(yp, mp) for mp, yp in pairs], srng)
+            cands.append(GeoCand(f"crystal {y} moved away from {r['mcu']} (ring {k}) and re-routed: XIN/XOUT traces too long",
+                                 {"variant": "move_xtal", "ref": y, "nets": nets, "ring": k},
+                                 [y, *nets_target(*nets)], edit))
+    return _realise_geo(lt, golden, design, board_path, rng, exclude, salt, cands, "xtal")
+
+
+def _crystal_via(lt, golden, design, board_path, rng, exclude, salt, ctx):
+    from pcbenv.faults import geom as G
+    from pcbenv.faults.common import net_width
+    lctx = _lctx(golden)
+    cands = []
+    for r in lctx.get("crystal", []):
+        for mp, yp in r["pairs"]:
+            net = _net_name(golden, mp)
+            for k, off in enumerate((0.0, 1.5, -1.5)):
+                def edit(board, mp=mp, yp=yp, net=net, off=off):
+                    p = _board_pad(board, golden, yp)
+                    q = _board_pad(board, golden, mp)
+                    code = p.GetNetCode()
+                    G.detach_pad(board, p)
+                    (x1, y1), (x2, y2) = [(t.GetPosition().x / 1e6, t.GetPosition().y / 1e6) for t in (p, q)]
+                    L = math.hypot(x2 - x1, y2 - y1) or 1.0
+                    nx, ny = -(y2 - y1) / L, (x2 - x1) / L
+                    wp = G.waypoint((x1 + x2) / 2 + nx * off, (y1 + y2) / 2 + ny * off, 1)
+                    G.route_branch(board, code, _key(golden, yp), _key(golden, mp), net_width(golden, net), [wp],
+                                   isolated=True)
+                    G.reconnect(board, code, net_width(golden, net))
+                cands.append(GeoCand(f"{yp} -> {mp} oscillator trace re-routed through the bottom layer (via pair) "
+                                     f"(offset {off:g} mm)", {"variant": "via", "nets": [net], "pins": [mp, yp]},
+                                     [r["xtal"], *nets_target(net)], edit))
+    return _realise_geo(lt, golden, design, board_path, rng, exclude, salt, cands, "none")
+
+
+def _offset_chains(board, code: int, min_len: float) -> list[tuple[int, list[tuple[float, float]]]]:
+    """Polylines (layer, points) of a net's tracks: maximal chains of segments on one layer joined
+    end to end, at least `min_len` mm long."""
+    import pcbnew
+    segs = []
+    for t in board.GetTracks():
+        if t.GetNetCode() == code and t.GetClass() == "PCB_TRACK":
+            s, e = t.GetStart(), t.GetEnd()
+            segs.append((0 if t.GetLayer() == pcbnew.F_Cu else 1, (s.x / 1e6, s.y / 1e6), (e.x / 1e6, e.y / 1e6)))
+    used = [False] * len(segs)
+    out = []
+    for i, (lay, a, c) in enumerate(segs):
+        if used[i]:
+            continue
+        used[i] = True
+        chain = [a, c]
+        grown = True
+        while grown:
+            grown = False
+            for j, (l2, a2, c2) in enumerate(segs):
+                if used[j] or l2 != lay:
+                    continue
+                if math.dist(a2, chain[-1]) < 1e-4:
+                    chain.append(c2)
+                elif math.dist(c2, chain[-1]) < 1e-4:
+                    chain.append(a2)
+                elif math.dist(c2, chain[0]) < 1e-4:
+                    chain.insert(0, a2)
+                elif math.dist(a2, chain[0]) < 1e-4:
+                    chain.insert(0, c2)
+                else:
+                    continue
+                used[j] = True
+                grown = True
+        L = sum(math.dist(p, q) for p, q in zip(chain, chain[1:]))
+        if L >= min_len:
+            out.append((lay, chain))
+    return out
+
+
+def _analog_near_switch(lt, golden, design, board_path, rng, exclude, salt, ctx):
+    from pcbenv.faults import geom as G
+    from pcbenv.faults.common import net_width
+    lctx = _lctx(golden)
+    cands = []
+    b0 = load_board(board_path)
+    for r in lctx.get("separation", []):
+        vpin, apin = r["victim_pins"][0], r["aggressor_pins"][0]
+        vnet, anet = _net_name(golden, vpin), _net_name(golden, apin)
+        acode = _board_pad(b0, golden, apin).GetNetCode()
+        run = r["max_parallel_mm"] * LAYOUT_MARGIN + 1.5
+        chains = _offset_chains(b0, acode, run)
+        vpins = sorted(golden.design["nets"][vnet])
+        for ci, (lay, chain) in enumerate(chains):
+            for side in (1, -1):
+                def edit(board, lay=lay, chain=chain, side=side, vpins=vpins, vnet=vnet, anet=anet):
+                    vcode = _board_pad(board, golden, vpin).GetNetCode()
+                    aw = net_width(golden, anet)
+                    vw = net_width(golden, vnet)
+                    gap = (aw + vw) / 2 + 0.2 + 0.17
+                    wps = _offset_points(chain, side * gap, run)
+                    G.delete_items(board, [t for t in board.GetTracks() if t.GetNetCode() == vcode])
+                    ends = [p for p in vpins if p != vpin]
+                    start = min(ends, key=lambda p: math.dist(_pad_xy_pin(board, golden, p), wps[0]))
+                    a, c = (start, vpin)
+                    if math.dist(_pad_xy_pin(board, golden, a), wps[0]) > math.dist(_pad_xy_pin(board, golden, a), wps[-1]):
+                        wps = wps[::-1]
+                    G.route_branch(board, vcode, _key(golden, a), _key(golden, c), vw,
+                                   [G.waypoint(x, y, lay) for x, y in wps], isolated=False)
+                    G.reconnect(board, vcode, vw)
+                cands.append(GeoCand(f"{vnet} trace re-routed alongside the switching node {anet} (chain {ci}, side {side})",
+                                     {"variant": "parallel_run", "nets": [vnet], "victim": vpin, "aggressor": apin},
+                                     [*nets_target(vnet, anet)], edit))
+    return _realise_geo(lt, golden, design, board_path, rng, exclude, salt, cands, "sep")
+
+
+def _pad_xy_pin(board, golden: Golden, pin: str) -> tuple[float, float]:
+    p = _board_pad(board, golden, pin)
+    c = p.GetPosition()
+    return c.x / 1e6, c.y / 1e6
+
+
+def _offset_points(chain: list[tuple[float, float]], off: float, run: float) -> list[tuple[float, float]]:
+    """Points every ~1 mm along the middle `run` mm of polyline `chain`, offset sideways by `off`."""
+    L = [math.dist(p, q) for p, q in zip(chain, chain[1:])]
+    tot = sum(L)
+    s0 = max(0.0, (tot - run) / 2)
+    n = max(2, int(math.ceil(run)) + 1)
+    out = []
+    for k in range(n):
+        s = s0 + run * k / (n - 1)
+        acc = 0.0
+        for (p, q), l in zip(zip(chain, chain[1:]), L):
+            if acc + l >= s and l > 0:
+                f = (s - acc) / l
+                x, y = p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f
+                nx, ny = -(q[1] - p[1]) / l, (q[0] - p[0]) / l
+                out.append((round(x + nx * off, 1), round(y + ny * off, 1)))
+                break
+            acc += l
+    dedup = []
+    for pt in out:
+        if not dedup or pt != dedup[-1]:
+            dedup.append(pt)
+    return dedup
+
+
+def _decap_long_path(lt, golden, design, board_path, rng, exclude, salt, ctx):
+    from pcbenv.faults import geom as G
+    from pcbenv.faults.common import net_width
+    from pcbenv.layout import copper_path_mm, max_path_mm
+    cands = []
+    b0 = load_board(board_path)
+    gnd = net_of(golden.design, "J1.2")
+    for dc in golden.decoupling:
+        cap = dc["cap"]
+        net = _net_name(golden, dc["ic_pin"])
+        cpin = next((f"{cap}.{p}" for p in ("1", "2") if net_of(golden.design, f"{cap}.{p}") == net), None)
+        if cpin is None or net == gnd:
+            continue
+        ip = _board_pad(b0, golden, dc["ic_pin"])
+        far = []
+        for pin in sorted(golden.design["nets"][net]):
+            if pin in (cpin, dc["ic_pin"]):
+                continue
+            d = copper_path_mm(b0, ip, _board_pad(b0, golden, pin))
+            if d is not None and d >= max_path_mm(dc) * LAYOUT_MARGIN + 1.0:
+                far.append((d, pin))
+        for d, pin in sorted(far)[:3]:
+            def edit(board, cpin=cpin, pin=pin, net=net):
+                p = _board_pad(board, golden, cpin)
+                code = p.GetNetCode()
+                G.detach_pad(board, p)
+                G.reconnect(board, code, net_width(golden, net), skip={_key(golden, cpin)})
+                G.route_branch(board, code, _key(golden, cpin), _key(golden, pin), net_width(golden, net), isolated=True)
+            cands.append(GeoCand(f"{cap} ({dc['ic_pin']} decoupling) re-routed the long way: its pad now joins {net} at "
+                                 f"{pin} instead of running to the IC pin", {"variant": "long_way", "cap": cap,
+                                                                           "ic_pin": dc["ic_pin"], "via_pin": pin,
+                                                                           "nets": [net], "rule": dc},
+                                 [cap, *nets_target(net)], edit))
+    return _realise_geo(lt, golden, design, board_path, rng, exclude, salt, cands, "decap")
+
+
+LAYOUT_LATENT_TYPES: dict[str, LatentType] = {t.name: t for t in (
+    LatentType("kelvin_sense_tap", "layout_rules", ("kelvin_sense",),
+               "TASK.md Layout rules / spec.json layout_rules.kelvin: the sense pin must leave from the shunt pad",
+               False, _kelvin_sense_tap),
+    LatentType("switch_loop_spread", "layout_rules", ("switch_loop_area",),
+               "TASK.md Layout rules / spec.json layout_rules.switch_loop: commutation-loop area limit + formula",
+               False, _switch_loop_spread),
+    LatentType("crystal_far", "layout_rules", ("crystal_trace", "crystal_via"),
+               "TASK.md Layout rules / spec.json layout_rules.crystal: oscillator trace length limit", False,
+               _crystal_far),
+    LatentType("crystal_via", "layout_rules", ("crystal_trace", "crystal_via"),
+               "TASK.md Layout rules / spec.json layout_rules.crystal: no vias on XIN/XOUT", False, _crystal_via),
+    LatentType("analog_near_switch", "layout_rules", ("analog_separation",),
+               "TASK.md Layout rules / spec.json layout_rules.separation: gap / parallel-run limit", False,
+               _analog_near_switch),
+    LatentType("decap_long_path", "layout", ("decoupling",),
+               "TASK.md Design rules / spec.json design_rules.decoupling: copper-path limit cap -> IC pin", False,
+               _decap_long_path),
+)}
+
+
+def autoroute_fixes(golden: Golden, design: dict, board_path: str, rec: dict) -> bool:
+    """Would `pcbtool route NET` (full tool mode) on one of the fault's nets -- or on all of them --
+    repair this layout fault? (Then it may only ship in no_autoroute tasks.)"""
+    from pcbenv.tool import ToolError, route_net
+    from pcbenv.faults.common import net_width
+    nets = rec["data"].get("nets") or []
+    trials = [[n] for n in nets] + ([nets] if len(nets) > 1 else [])
+    for group in trials:
+        with tempfile.TemporaryDirectory(prefix="pcbauto_") as td:
+            b2 = os.path.join(td, "board.kicad_pcb")
+            board = load_board(board_path)
+            try:
+                for n in group:
+                    route_net(board, n, net_width(golden, n), golden.decoupling, _rp(golden))
+            except ToolError:
+                continue
+            save_board(board, b2, "autoroute")
+            if not layout_still_present(rec, golden, b2):
+                return True
+    return False
+
+
+def layout_still_present(rec: dict, golden: Golden, board_path: str) -> bool:
+    d = rec["data"]
+    issues = layout_issues(golden, board_path)
+    if rec["type"] == "decap_long_path":
+        return any(x.startswith(f"{d['cap']} ") for x in issues.get("decoupling", []))
+    return any(c in issues for c in LAYOUT_LATENT_TYPES[rec["type"]].rule_codes)
+
+
+__all__ = ["LATENT_TYPES", "LAYOUT_LATENT_TYPES", "LatentType", "apply_latent", "visible_failures", "still_present",
+           "autoroute_fixes", "layout_still_present"]
