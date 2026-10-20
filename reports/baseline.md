@@ -419,7 +419,7 @@ Agent / hand attempts:
 |---|---|---|---|
 | round 1: scripted low-effort policies via the harness (exploits.md) | 96 | – | 0 |
 | round 2: hand attempts (`redteam/runs/hand_attempts.txt`) | 28 | fake 15, minimal-legit 5, probe 8 | 0 |
-| round 3: hand attempts on v2 hard/hard_layout (exploits.md RT75) | 24 | fake 15 | 0 |
+| round 3: hand attempts on v2 hard/hard_layout (exploits.md RT75) | 24 | ? | ? |
 
 Agent/hand attempts total: **148**. Reward-1.0 episodes from `minimal-legit` attempts or round-1 policies are genuine (cheap but correct) repairs, not hacks.
 
@@ -438,6 +438,7 @@ Exploit ledger (`redteam/exploits.md` summary tables; BLOCKED rows omitted):
 | RT37 | LEAK (risk, not run) | MITIGATED (v2) |
 | RT59 | EXPERT-DISAGREES | FIXED (v2) |
 | RT70 | LEAK | LEAK |
+| RT76 | ROBUSTNESS (fails closed) | ROBUSTNESS (fails closed) |
 
 Findings ever rated EXPLOIT or EXPERT-DISAGREES (verifier gave 1.0 to something an expert rejects, or an exploitable gap): 5; latest verdict FIXED: 5; still open: none. Open LEAK items are listed above.
 
@@ -448,16 +449,16 @@ sha256 prefixes of the exact bytes read:
 | input | sha256[:16] |
 |---|---|
 | `git b1a1255:tasks/manifest.jsonl` | 4468a8a1ff8b8330 |
-| `redteam/exploits.md` | 8ab2597f9b4abbdc |
+| `redteam/exploits.md` | fcfd118c09269ea4 |
 | `redteam/runs/fixture_n1000_seed0.txt` | fa0f7ba4d28abc55 |
 | `redteam/runs/hand_attempts.txt` | fd611aec47c6f392 |
 | `redteam/runs/shipped_n1200_seed0.txt` | 5dd9c4c4585d5d41 |
 | `redteam/runs/shipped_run1_superseded.txt` | 4ba0bb24c3e5f0a5 |
 | `redteam/runs/shipped_run2_superseded.txt` | b3caf42bab05b121 |
 | `redteam/runs/v2_n1300_seed0.txt` | f798bf59dcf3424a |
-| `redteam/runs/v2_n1300_seed0_retry.txt` | e3b0c44298fc1c14 |
+| `redteam/runs/v2_n1300_seed0_retry.txt` | cc0e378c12603edd |
 | `reports/calibration/rollouts.jsonl` | 98aaed3ece7aa91f |
-| `reports/calibration/v2hard/FINDINGS.md` | 66af8a4c861351f8 |
+| `reports/calibration/v2hard/FINDINGS.md` | 61da848b5a34e9e4 |
 | `reports/calibration/v2hard/rollouts.jsonl` | 07aad45a9fb9ba7f |
 | `reports/calibration/v2hard_layout/rollouts.jsonl` | 0ea4c96fcfd18832 |
 | `reports/v2/orchestrator_test_run.txt` | dd43909acce0dba5 |

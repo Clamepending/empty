@@ -1,0 +1,12 @@
+retried pairs: 64  fail=53 timeout=11
+TIMEOUT value_tiny /home/user/empty/tasks/v2/hard_layout/pcbr2-hard_layout-bf8a4f57 verify timed out after 120 s
+TIMEOUT value_tiny /home/user/empty/tasks/v2/hard_layout/pcbr2-hard_layout-4cd5e4f5 verify timed out after 120 s
+TIMEOUT value_tiny /home/user/empty/tasks/v2/hard_layout/pcbr2-hard_layout-796353e0 verify timed out after 120 s
+TIMEOUT value_tiny /home/user/empty/tasks/v2/hard_layout/pcbr2-hard_layout-9018f847 verify timed out after 120 s
+TIMEOUT value_tiny /home/user/empty/tasks/v2/hard_layout/pcbr2-hard_layout-6df1719a verify timed out after 120 s
+TIMEOUT value_tiny /home/user/empty/tasks/v2/hard_layout/pcbr2-hard_layout-75c1c28c verify timed out after 120 s
+TIMEOUT value_tiny /home/user/empty/tasks/v2/hard_layout/pcbr2-hard_layout-25b31985 verify timed out after 120 s
+TIMEOUT value_tiny /home/user/empty/tasks/v2/hard_layout/pcbr2-hard_layout-8bc2071a verify timed out after 120 s
+TIMEOUT value_tiny /home/user/empty/tasks/v2/hard_layout/pcbr2-hard_layout-01b22c23 verify timed out after 120 s
+TIMEOUT value_tiny /home/user/empty/tasks/v2/hard_layout/pcbr2-hard_layout-e492c601 verify timed out after 120 s
+TIMEOUT value_tiny /home/user/empty/tasks/v2/hard/pcbr2-hard-5da20698 verify timed out after 120 s

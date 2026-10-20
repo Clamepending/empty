@@ -25,3 +25,24 @@ committed in this directory).
   are also solvable by a diligent agent that computes them. If so, frontier-level difficulty needs
   a different task paradigm (open-ended placement/routing/synthesis with optimisation targets,
   not repair against fully-stated rules).
+
+## Follow-up: why Haiku (100 %) beat Sonnet (57 %) on v2 hard
+
+Same 44 tasks, prompt, effort (medium) and grader for all three models; oracles all 1.0; served
+model ids confirmed from transcripts. Paired: 19 tasks Sonnet failed and Haiku passed; **0** the
+other way. Sonnet's failures were mostly `rules` (14) — datasheet design rules that TASK.md states
+and says pcbtool does NOT check. Cleanest case: 17 tasks contained an under-rated capacitor
+(voltage > 80 % of the footprint's rating, stated in parts/C.md): Opus fixed 17/17, Haiku 17/17,
+Sonnet 9/17 — and passed exactly those 9. Sonnet claimed "believed fixed" on all 19 failures,
+typically ending with "pcbtool check passes".
+
+Effort check: Sonnet re-run on its 19 failed tasks at **effort=high** (fresh workdirs, 0
+contaminated) → **12/19 pass**; `rules` failures 14 → 2; remaining failures mostly topology
+(missed latent wiring faults). Rollouts: `reports/calibration/v2hard_sonnet_high_rerun/`.
+
+Interpretation: the Haiku/Sonnet gap is mainly a *behavioural, effort-sensitive* difference
+(trusting the tool's green checks vs. doing the requested manual review), not a grader artifact
+and not evidence that Haiku is more capable. For buyers: hard-tier pass rates depend materially
+on effort/scaffolding; report results with effort settings attached. Caveat: the high-effort run
+is a second attempt on already-failed tasks (not a fresh 44-task run), so it overstates nothing
+about Sonnet-high's overall rate but can't give it either.

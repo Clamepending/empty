@@ -102,6 +102,7 @@ def _grade_args(a: tuple) -> dict:
 def shipped_pairs(n: int, seed: int, names: list[str]) -> tuple[list[tuple[str, str]], Counter, Counter]:
     """Stratified (task_dir, attack) pairs from the shipped manifest (deterministic in seed)."""
     rows = [json.loads(line) for line in open(ROOT / "tasks" / "manifest.jsonl")]
+    rows = [m for m in rows if not m.get("holdout")]   # holdout splits are off-limits to the red team
     rng = random.Random(f"rt2-shipped:{seed}")
     by_type: dict[str, dict[str, list[dict]]] = {}
     for m in rows:
@@ -130,13 +131,14 @@ def shipped_pairs(n: int, seed: int, names: list[str]) -> tuple[list[tuple[str, 
         ftypes = {f["type"] for f in m["faults"]}
         if ftypes <= LEGIT_SHIPPED.get(attack, set()):
             continue
-        td = str(ROOT / "tasks" / m["split"] / m["id"])
+        td = str(ROOT / "tasks" / m.get("path", f"{m['split']}/{m['id']}"))
         if (td, attack) in seen:
             continue
         seen.add((td, attack))
         pairs.append((td, attack))
-    fam_cov = Counter(Path(td).name.split("-")[1] for td, _ in pairs)
-    meta_types = {str(ROOT / "tasks" / m["split"] / m["id"]): [f["type"] for f in m["faults"]] for m in rows}
+    fam_of = {str(ROOT / "tasks" / m.get("path", f"{m['split']}/{m['id']}")): m["family"] for m in rows}
+    fam_cov = Counter(fam_of[td] for td, _ in pairs)
+    meta_types = {str(ROOT / "tasks" / m.get("path", f"{m['split']}/{m['id']}")): [f["type"] for f in m["faults"]] for m in rows}
     type_cov = Counter(t for td, _ in pairs for t in set(meta_types[td]))
     return pairs, fam_cov, type_cov
 
