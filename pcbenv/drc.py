@@ -5,8 +5,8 @@ netclasses, severities, exclusions) live in the `.kicad_pro` project file, not i
 `.kicad_pcb`. The verifier only ever sees `board.kicad_pcb`, so the rules are defined
 here (`RULES`) and applied to every board before DRC. `run_drc` additionally copies the
 board-file-level settings (solder mask, layer count/enabled layers) from the rules board
-(the golden) and takes, for every numeric minimum, max(canonical, rules board) so a rules
-board can only tighten the rules, never loosen them.
+(the golden); numeric minimums are always the canonical `RULES` (the published values),
+never the rules board's -- a board without a project only carries KiCad's built-in defaults.
 
 The candidate is copied into a fresh temp dir next to our own canonical `.kicad_pro` and
 `.kicad_dru` before loading, so no project file (severities, exclusions) or custom rules
@@ -78,6 +78,9 @@ def apply_rules(board: "pcbnew.BOARD", rules_board: "pcbnew.BOARD | None" = None
     rules published in TASK.md and enforced by `pcbtool drc`.
     """
     ds = board.GetDesignSettings()
+    # Board-file-level settings (solder mask, layers) do live in the .kicad_pcb, so those are
+    # still copied from the rules board below; only the numeric minimums are canonical.
+    rd = rules_board.GetDesignSettings() if rules_board is not None else None
 
     def tight(val_mm: float, attr: str) -> int:
         return _nm(val_mm)
