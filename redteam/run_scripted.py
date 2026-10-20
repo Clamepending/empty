@@ -2,6 +2,7 @@
 
     python3 redteam/run_scripted.py --n 1000 [--workers 8] [--seed 0] [--json out.json]
     python3 redteam/run_scripted.py --source shipped --n 1200   # real tasks/ (manifest), all attacks
+    python3 redteam/run_scripted.py --source v2 --n 1300 --workers 3   # round 3: v2 normal/hard/hard_layout
 
 --source fixture (default): round-1 hand-made faulted tasks (redteam/tasks_fixture.py), round-1
 attacks. --source shipped: (task, attack) pairs drawn from tasks/manifest.jsonl, stratified so
@@ -35,8 +36,9 @@ from redteam import tasks_fixture  # noqa: E402
 from redteam.attacks import ATTACKS  # noqa: E402
 from redteam.attacks.basic import LEGIT_FOR  # noqa: E402
 from redteam.attacks.round2 import ATTACKS2  # noqa: E402
+from redteam.attacks.round3 import ATTACKS3  # noqa: E402
 
-ALL_ATTACKS = {**ATTACKS, **ATTACKS2}
+ALL_ATTACKS = {**ATTACKS, **ATTACKS2, **ATTACKS3}
 ROUTING = {"broken_trace", "clearance_violation", "short_between_nets", "narrow_power_trace", "footprint_swap"}
 NOTATION = {"value_sci", "value_plain", "value_units", "value_micro_sign", "value_spaces"}
 # attack -> shipped fault types it genuinely repairs (pairs whose faults are ALL in here are skipped)
@@ -52,6 +54,13 @@ LEGIT_SHIPPED = {
     # round-1 value attacks also write design value (+ suffix) onto the board -> fixes bom_mismatch;
     # the trailing-newline residue itself is RT59
     "value_newline": {"bom_mismatch"}, "value_unit_suffix": {"bom_mismatch"},
+    # round 3 (v2): the no_autoroute bypass re-routes every net (genuine for routing faults); blanket
+    # footprint upsizing re-pushes values and re-routes (genuine for *_underrated / routing faults);
+    # values at the low end of their PUBLISHED bounds are a genuine repair when the spec still passes
+    "tools_full_route_all": ROUTING,
+    "upsize_all": ROUTING | {"bom_mismatch", "capacitor_underrated", "resistor_underrated", "led_underrated"},
+    "values_to_bound_min": {"bom_mismatch", "wrong_filter_cap", "wrong_feedback_resistor", "wrong_led_resistor",
+                            "wrong_pull_resistor", "magnitude_slip", "interacting_value", "weak_base_drive"},
 }
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -132,25 +141,73 @@ def shipped_pairs(n: int, seed: int, names: list[str]) -> tuple[list[tuple[str, 
     return pairs, fam_cov, type_cov
 
 
+def v2_pairs(n: int, seed: int, names: list[str]) -> tuple[list[tuple[str, str]], Counter, Counter]:
+    """Stratified (task_dir, attack) pairs over the NON-holdout v2 splits: round-robin over
+    (tier, fault type) strata -- latent and layout-latent types included -- families rotating within
+    each stratum, attacks rotating per stratum. Deterministic in `seed`."""
+    rows = [json.loads(line) for line in open(ROOT / "tasks" / "manifest.jsonl")]
+    rows = [m for m in rows if not m.get("holdout") and str(m.get("split", "")).startswith("v2/")]
+    rng = random.Random(f"rt3-v2:{seed}")
+    strata: dict[tuple[str, str], dict[str, list[dict]]] = {}
+    for m in rows:
+        for f in sorted({f["type"] for f in m["faults"]}):
+            strata.setdefault((m["tier"], f), {}).setdefault(m["family"], []).append(m)
+    for fams in strata.values():
+        for lst in fams.values():
+            rng.shuffle(lst)
+    keys = sorted(strata)
+    cur = {k: [0, {fam: 0 for fam in strata[k]}] for k in keys}
+    pairs: list[tuple[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    row_of: dict[str, dict] = {}
+    i = guard = 0
+    while len(pairs) < n and guard < 50 * n:
+        guard += 1
+        k = keys[i % len(keys)]
+        fams = sorted(strata[k])
+        c = cur[k]
+        fam = fams[c[0] % len(fams)]
+        c[0] += 1
+        lst = strata[k][fam]
+        m = lst[c[1][fam] % len(lst)]
+        c[1][fam] += 1
+        attack = names[(i // len(keys) + keys.index(k)) % len(names)]
+        i += 1
+        if {f["type"] for f in m["faults"]} <= LEGIT_SHIPPED.get(attack, set()):
+            continue
+        td = str(ROOT / "tasks" / m["path"])
+        if (td, attack) in seen:
+            continue
+        seen.add((td, attack))
+        row_of[td] = m
+        pairs.append((td, attack))
+    fam_cov = Counter(f"{row_of[td]['tier']}/{row_of[td]['family']}" for td, _ in pairs)
+    type_cov = Counter(f"{row_of[td]['tier']}/{t}" for td, _ in pairs for t in {f["type"] for f in row_of[td]["faults"]})
+    return pairs, fam_cov, type_cov
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=1000)
     ap.add_argument("--workers", type=int, default=min(8, os.cpu_count() or 2))
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--source", choices=("fixture", "shipped"), default="fixture")
+    ap.add_argument("--source", choices=("fixture", "shipped", "v2"), default="fixture")
     ap.add_argument("--json")
     a = ap.parse_args()
     ctx = mp.get_context("spawn")
     invisible: list[str] = []
-    if a.source == "shipped":
-        names = sorted(ALL_ATTACKS)
-        pairs, fam_cov, type_cov = shipped_pairs(a.n, a.seed, names)
+    if a.source in ("shipped", "v2"):
+        names = sorted(ALL_ATTACKS) if a.source == "v2" else sorted({**ATTACKS, **ATTACKS2})
+        pairs, fam_cov, type_cov = (v2_pairs if a.source == "v2" else shipped_pairs)(a.n, a.seed, names)
         tds = sorted({t for t, _ in pairs})
         with ctx.Pool(a.workers, maxtasksperchild=10) as pool:
             base = pool.map(_grade_args, [(t, None) for t in tds])
         invisible = sorted(b["task"] for b in base if b["status"] == "pass")
         bad_base = [b for b in base if b["status"] not in ("pass", "fail")]
         pairs = [p for p in pairs if p[0] not in set(invisible)]
+        if a.source == "v2":
+            tiers = Counter(Path(td).name.split("-")[1] for td in tds)
+            print(f"v2 tiers (tasks): {dict(sorted(tiers.items()))}")
         print(f"shipped tasks used: {len(tds)}  families: {len(fam_cov)} {dict(sorted(fam_cov.items()))}")
         print(f"fault types covered: {len(type_cov)} {dict(sorted(type_cov.items()))}")
     else:
