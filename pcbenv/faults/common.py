@@ -91,7 +91,9 @@ def ref_parts(design: dict) -> dict[str, str]:
 
 
 def topology_differs(design: dict, golden: Golden) -> bool:
-    return not same_topology(D.partition(design), D.partition(golden.design), ref_parts(golden.design))
+    from pcbenv.rules import symmetric_load_refs
+    return not same_topology(D.partition(design), D.partition(golden.design), ref_parts(golden.design),
+                             frozenset(symmetric_load_refs(golden)))
 
 
 def spec_fails(design: dict, golden: Golden) -> bool:

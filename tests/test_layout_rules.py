@@ -160,6 +160,46 @@ def test_kelvin_fails_when_sense_touches_power_path(goldens):
     assert "kelvin_sense" in _codes(b, ctx, g)
 
 
+def test_kelvin_allows_meeting_inside_the_shunt_pad(goldens, tmp_path):
+    """v2.1 (QA F1): the textbook Kelvin layout -- the load track and the sense track both run to the
+    shunt pad centre and meet only inside the pad -- passes; a sense track that tees into the load
+    track just outside the pad still fails."""
+    import pcbnew
+    from pcbenv.boardnet import load_board
+    passed = 0
+    for seed in range(3):
+        g, ctx, bp = goldens[("sys_motor_ctrl", seed)]
+        r = ctx["kelvin"][0]
+        b = load_board(bp)
+        sh = LR._pad(b, r["shunt_pin"], _rp(g))
+        c = sh.GetPosition()
+        moved = 0
+        for t in b.GetTracks():
+            if t.GetNetCode() != sh.GetNetCode() or t.GetClass() == "PCB_VIA":
+                continue
+            for get, set_ in ((t.GetStart, t.SetStart), (t.GetEnd, t.SetEnd)):
+                p = get()
+                if sh.HitTest(p) and p != c:
+                    set_(pcbnew.VECTOR2I(c.x, c.y))
+                    moved += 1
+        assert moved >= 2
+        ok, why = LR.kelvin_ok(b, r, _rp(g))
+        out = tmp_path / f"centre_{seed}.kicad_pcb"
+        b.Save(str(out))
+        if not ok:   # the moved ends made the two tracks merge before the pad edge: real sharing
+            assert "outside the shunt pad" in why
+            continue
+        assert "kelvin_sense" not in _codes(str(out), ctx, g)
+        passed += 1
+        # a stub from the sense track to the load track, outside the pad -> shared copper
+        q = LR._pad(b, r["load_pins"][0], _rp(g))
+        s = LR._pad(b, r["sense_pin"], _rp(g))
+        (x1, y1), (x2, y2) = LR._xy(s), LR._xy(q)
+        _add_track(b, s.GetNetCode(), pcbnew.F_Cu, x1, y1, x2, y2)
+        assert "kelvin_sense" in _codes(b, ctx, g)
+    assert passed >= 1
+
+
 def test_loop_area_formula_and_limit(goldens):
     assert LR.shoelace([(0, 0), (4, 0), (4, 3), (0, 3)]) == pytest.approx(12.0)
     assert LR.shoelace([(0, 0), (0, 3), (4, 3), (4, 0)]) == pytest.approx(12.0)   # orientation-free
@@ -206,11 +246,22 @@ def test_separation_fails_on_parallel_run(goldens):
     assert LR.parallel_length(b, vcode, acode, r["min_gap_mm"]) == pytest.approx(
         LR.parallel_length(load_board(bp), vcode, acode, r["min_gap_mm"]) + 6.0, abs=1e-3)
     assert "analog_separation" in _codes(b, ctx, g)
-    # opposite layers do not couple
+    # v2.1 (QA F3 loophole): a parallel run on the OPPOSITE layer (here directly over the switching
+    # node, broadside) counts too; v2.0 ignored it ("only same-layer copper counts")
     b2 = load_board(bp)
     _add_track(b2, acode, pcbnew.B_Cu, 110.0, 105.0, 116.0, 105.0)
-    _add_track(b2, vcode, pcbnew.F_Cu, 110.0, 105.7, 116.0, 105.7)
-    assert "analog_separation" not in _codes(b2, ctx, g)
+    _add_track(b2, vcode, pcbnew.F_Cu, 110.0, 105.0, 116.0, 105.0)
+    assert LR.parallel_length(b2, vcode, acode, r["min_gap_mm"]) == pytest.approx(
+        LR.parallel_length(load_board(bp), vcode, acode, r["min_gap_mm"]) + 6.0, abs=1e-3)
+    assert LR.parallel_length(b2, vcode, acode, r["min_gap_mm"], same_layer_only=True) == pytest.approx(
+        LR.parallel_length(load_board(bp), vcode, acode, r["min_gap_mm"], same_layer_only=True), abs=1e-3)
+    assert "analog_separation" in _codes(b2, ctx, g)
+    # ... but a perpendicular crossing on the opposite layer is not a parallel run
+    b3 = load_board(bp)
+    _add_track(b3, acode, pcbnew.B_Cu, 110.0, 105.0, 116.0, 105.0)
+    _add_track(b3, vcode, pcbnew.F_Cu, 113.0, 102.0, 113.0, 108.0)
+    assert LR.parallel_length(b3, vcode, acode, r["min_gap_mm"]) == pytest.approx(
+        LR.parallel_length(load_board(bp), vcode, acode, r["min_gap_mm"]), abs=1e-3)
 
 
 # ------------------------------------------------------------------ layout-latent faults

@@ -185,11 +185,13 @@ def test_hard_generator_gates(tmp_path):
         assert "## Design rules" in md and "does not check" in md
         spec = json.loads((tdir / "public" / "spec.json").read_text())
         assert spec["decoupling"] == [] and spec["design_rules"]["decoupling"] == meta["decoupling"]
-        text = "\n".join([md, json.dumps(spec)] + [f.read_text() for f in sorted((tdir / "public" / "parts").glob("*.md"))])
+        text = [("TASK.md", md), ("spec.json", json.dumps(spec))] + [
+            (f"parts/{f.name}", f.read_text()) for f in sorted((tdir / "public" / "parts").glob("*.md"))]
         for f in meta["faults"]:  # no fault names / details leak into the public prompt
             assert f["type"] not in md and f["detail"] not in md
-            if f["category"] == "latent":   # fairness: the evidence is public
+            if f["category"] == "latent":   # fairness: the evidence is public, and its line is recorded
                 assert not missing_evidence(f, text), (e["id"], f["type"])
+                assert f["data"]["evidence_matches"] and all(m["line"] for m in f["data"]["evidence_matches"])
     assert st["composite_share"] >= 0.5
     # deterministic: same indices, different worker count -> byte-identical task trees
     generate_hard(str(tmp_path / "hard2"), str(tmp_path / "hold2"), 0, 8, 0.2, workers=2, log=lambda *_: None)
@@ -224,3 +226,27 @@ def test_v1_task_verdicts_unchanged(td, tmp_path):
     shutil.copyfile(td / "hidden" / "golden_design.json", wd / "design.json")
     shutil.copyfile(td / "hidden" / "golden_board.kicad_pcb", wd / "board.kicad_pcb")
     assert verify(str(wd), str(td)).reward == 1.0
+
+
+def test_evidence_gate_needs_requirement_sentences():
+    """v2.1 (QA F4): incidental mentions are not evidence. A connector pin named only in spec
+    assertion lines / the problem report / spec.json, or a footprint row found only in ANOTHER
+    part's rating table, fails the gate; the pinout statement / the part's own table row passes."""
+    from pcbenv.faults.latent import match_evidence, missing_evidence
+    swap = {"type": "connector_pin_swap", "data": {"pins": ["J2.1", "J2.2"]}}
+    task = ("# Task\n\n## Problem report\n\n- Bench: current through J2.2 is 0 A (`load_on_current`).\n\n"
+            "## Design intent\n\nSwitches a relay coil.\n\n## Spec\n\n"
+            "- `load_on_current`: DC current through J2.2 between 1 mA and 2 mA (load R=150 L=0.01 from J2.1 to J2.2)\n")
+    srcs = [("TASK.md", task), ("spec.json", '{"element": "J2.2", "pin": "J2.1"}')]
+    assert len(missing_evidence(swap, srcs)) == 2
+    task2 = task.replace("Switches a relay coil.", "Switches a relay coil plugged into J2 (pin 1 = supply, "
+                                                    "pin 2 = switched side to Q1 collector).")
+    srcs2 = [("TASK.md", task2)]
+    assert not missing_evidence(swap, srcs2)
+    assert [m["line"] for m in match_evidence(swap, srcs2)][0].startswith("Switches a relay coil plugged into J2")
+    under = {"type": "resistor_underrated", "data": {"footprint": "Resistor_SMD:R_0805_2012Metric"}}
+    rule = "**Design rule:** the continuous dissipation P = I²·R of every resistor must not exceed 50 %"
+    led_row = "| 0805 | 30 mA | 24 mA |"
+    r_row = "| 0805 | 0.125 W | 62.5 mW |"
+    assert missing_evidence(under, [("parts/R.md", rule), ("parts/LED_GREEN.md", led_row)])
+    assert not missing_evidence(under, [("parts/R.md", rule + "\n" + r_row), ("parts/LED_GREEN.md", led_row)])

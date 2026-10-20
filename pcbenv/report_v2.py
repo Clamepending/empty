@@ -200,7 +200,7 @@ def render(commands: list[str]) -> str:
     refresh_section(L, ROOT / "refresh-v2" / "hard", "hard")
     L += ["", "## Tarballs", "", "Deterministic (sorted entries, mtime 0, no gzip timestamp); each contains its split's "
           "task dirs and public `manifest.jsonl`.", "", "| file | MB | sha256 |", "|---|---|---|"]
-    for p in sorted(DIST.glob("pcb-repair-v2-*.tar.gz")):
+    for p in sorted(DIST.glob("pcb-repair-v2.1-*.tar.gz")):
         L.append(f"| `{p}` | {p.stat().st_size / 1e6:.1f} | `{_sha(p)}` |")
     man = ROOT / "manifest.jsonl"
     if man.exists():

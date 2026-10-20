@@ -34,7 +34,7 @@ import traceback
 from collections import Counter
 from pathlib import Path
 
-LAYOUT_VERSION = "pcb-repair-hard-layout-v1"
+LAYOUT_VERSION = "pcb-repair-hard-layout-v2.1"
 TIER = "hard_layout"
 BOARD_SEED = 0
 # the composites with board-geometry rules beyond decoupling (Kelvin / loop / separation; crystal)
@@ -54,11 +54,6 @@ def family_for(index: int) -> str:
 
 def _n_layout(n: int) -> int:
     return 1 if n <= 4 else 2
-
-
-def _public_text(tdir: str) -> str:
-    from pcbenv.generate_hard import _public_text as pt
-    return pt(tdir)
 
 
 def build_one_layout(args: tuple) -> dict:
@@ -97,7 +92,7 @@ def _build(index: int, seed: int, staging: str, log: list, secret: str) -> dict:
     from pcbenv.faults import FAULT_TYPES, apply_fault
     from pcbenv.faults.common import canonical_board_file, design_hash
     from pcbenv.faults.latent import (LATENT_TYPES, LAYOUT_LATENT_TYPES, apply_latent, autoroute_fixes, layout_issues,
-                                      missing_evidence, still_present as latent_present, visible_failures)
+                                      still_present as latent_present, visible_failures)
     from pcbenv.families import FAMILIES
     from pcbenv.generate import _failing, _json_hash, _sha, _weighted, _weighted_order, _workdir_with, publish_names
     from pcbenv.generate import still_present as visible_present
@@ -263,9 +258,8 @@ def _build(index: int, seed: int, staging: str, log: list, secret: str) -> dict:
         (pub / "TASK.md").write_text(prompts.add_layout_rules(text, rules_md(lctx, bool(golden.decoupling))),
                                      encoding="utf-8")
         # ---- (f) fairness
-        ptext = _public_text(tdir)
-        missing = {r.type: missing_evidence(r.to_dict(), ptext) for r in lrecs}
-        missing = {k: v for k, v in missing.items() if v}
+        from pcbenv.generate_hard import evidence_gate
+        missing = evidence_gate(lrecs, rec_dicts, tdir)
         gates["evidence_public"] = not missing
         renames = publish_names(tdir, golden, f"{task_id}:names")
         meta = taskio.load_meta(tdir)

@@ -154,7 +154,9 @@ Hard gates (all must pass, else reward 0):
 1. `parse` — both files load; design validates against the schema & parts library.
 2. `components` — same ref set as golden; each `part` equals golden; footprint in the part's allowed list
    and board footprint id == design footprint; pad fingerprint matches the library footprint.
-3. `topology` — `partition(design) == partition(golden)` (or ∈ `hidden/meta.json:"alt_partitions"`).
+3. `topology` — `partition(design) == partition(golden)` (or ∈ `hidden/meta.json:"alt_partitions"`), up to
+   swapping the two pins of symmetric parts (R, C, L, crystals) and of the refs in `meta["symmetric_refs"]`
+   (v2.1: 2-pin connectors of a non-polar load whose pinout the public intent leaves open; none in shipped tasks).
 4. `consistency` — board partition == design partition; board values == design values (compared as
    numbers through `parts.values_equal`; non-valued parts as strings).
 5. `integrity` — outline fingerprint == golden; no DRC exclusions/markers; no zones unless golden has them.
@@ -176,11 +178,14 @@ Checks (all must pass for reward 1.0):
 12. `layout_rules` — only for tasks whose meta carries `layout_rules` (hard_layout sub-tier): board-geometry
    rules (`pcbenv/layout_rules.py`), stated with pins, limits and formulae in TASK.md "Layout rules" and
    `spec.json:layout_rules`, not run by pcbtool. Nets are identified by public pins, never by name.
-   Kelvin sense (delete the shunt pad: the sense pin's copper island must not hold the load-current pin),
-   switching-loop area (polygon of the shortest copper paths between consecutive loop pads, |shoelace|
+   Kelvin sense (v2.1: delete the shunt pad and all copper inside its outline -- tracks cut at the pad edge,
+   contacts counted only outside the pad; the sense pin's copper island must still touch the shunt pad and
+   must not hold the load-current pin, so sense and load tracks may meet inside the pad, e.g. both at its
+   centre), switching-loop area (polygon of the shortest copper paths between consecutive loop pads, |shoelace|
    area; self-intersecting loops count every region |winding number| times) ≤ 60 mm², crystal copper path
-   MCU pin -> crystal pad ≤ 10 mm and no vias on the oscillator nets, analog/switching separation (same-layer
-   victim centreline within 1.0 mm of a switching-node centreline ≤ 3.0 mm in total). Golden boards of this
+   MCU pin -> crystal pad ≤ 10 mm and no vias on the oscillator nets, analog/switching separation (victim
+   centreline within 1.0 mm, in projection, of a switching-node centreline on EITHER layer ≤ 3.0 mm in total;
+   v2.1: opposite-layer runs count, opposite-layer crossings at ≥ 45° do not). Golden boards of this
    tier are built with `build_board(layout_rules=ctx)` (layout-aware placement/routing, every rule met at
    0.8 × its limit); `build_board` without it is unchanged.
 

@@ -28,30 +28,33 @@ EPS = 1e-6
 SYMMETRIC_PARTS = frozenset({"R", "C", "L", "XTAL", "XTAL_CL18"})
 
 
-def pin_label(pin: str, ref_parts: dict[str, str]) -> str:
-    """`REF.*` for a pin of a symmetric part, else the pin itself."""
+def pin_label(pin: str, ref_parts: dict[str, str], symmetric_refs=frozenset()) -> str:
+    """`REF.*` for a pin of a symmetric part (or of a ref in `symmetric_refs`), else the pin itself."""
     ref = pin.split(".", 1)[0]
-    return f"{ref}.*" if ref_parts.get(ref) in SYMMETRIC_PARTS else pin
+    return f"{ref}.*" if ref_parts.get(ref) in SYMMETRIC_PARTS or ref in symmetric_refs else pin
 
 
-def net_signature(pins, ref_parts: dict[str, str]) -> Counter:
-    return Counter(pin_label(p, ref_parts) for p in pins)
+def net_signature(pins, ref_parts: dict[str, str], symmetric_refs=frozenset()) -> Counter:
+    return Counter(pin_label(p, ref_parts, symmetric_refs) for p in pins)
 
 
-def _sig_key(pins, ref_parts: dict[str, str]) -> tuple:
-    return tuple(sorted(net_signature(pins, ref_parts).items()))
+def _sig_key(pins, ref_parts: dict[str, str], symmetric_refs=frozenset()) -> tuple:
+    return tuple(sorted(net_signature(pins, ref_parts, symmetric_refs).items()))
 
 
-def same_topology(a: frozenset, b: frozenset, ref_parts: dict[str, str]) -> bool:
-    """Partition equality up to swapping the two pins of symmetric parts (R, C, L, crystals).
+def same_topology(a: frozenset, b: frozenset, ref_parts: dict[str, str], symmetric_refs=frozenset()) -> bool:
+    """Partition equality up to swapping the two pins of symmetric parts (R, C, L, crystals), and of
+    the two-pin refs in `symmetric_refs` (v2.1: `meta["symmetric_refs"]`, 2-pin connectors of a
+    non-polar load whose polarity the public intent does not fix; see `faults.latent.symmetric_load_refs`).
 
     Equal multisets of per-net label multisets imply a net bijection under which every
     symmetric part's two pins land on corresponding nets, i.e. a consistent per-part swap
     exists; the converse is obvious."""
     if a == b:
         return True
-    ka = sorted(_sig_key(n, ref_parts) for n in a)
-    kb = sorted(_sig_key(n, ref_parts) for n in b)
+    sym = frozenset(symmetric_refs)
+    ka = sorted(_sig_key(n, ref_parts, sym) for n in a)
+    kb = sorted(_sig_key(n, ref_parts, sym) for n in b)
     return ka == kb
 
 

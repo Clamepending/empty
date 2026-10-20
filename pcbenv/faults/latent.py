@@ -44,6 +44,7 @@ from __future__ import annotations
 
 import math
 import os
+import re
 import random
 import shutil
 import tempfile
@@ -286,8 +287,10 @@ def _flyback_misplaced(lt, golden, design, board_path, rng, exclude, salt, ctx):
 
 def _connector_pin_swap(lt, golden, design, board_path, rng, exclude, salt, ctx):
     cands = []
-    resistive = [{ld["pin"], ld["to"]} for a in golden.assertions for ld in a.get("loads") or []
-                 if ld.get("to") and ld.get("l") is None and ld.get("c") is None]
+    # v2.1 (QA F5): the two pins of a non-polar off-board load (relay coil, solenoid, heater) are
+    # electrically interchangeable -- swapping them is no real defect, so it is never injected;
+    # a polarised load (motor: direction of rotation) still is
+    nonpolar = [set(c["pins"]) for c in rules.load_connectors(golden) if not c["polar"]]
     for j in _comps(design, "CONN"):
         pins = sorted(PARTS[design["components"][j]["part"]].pins)
         for i, a in enumerate(pins):
@@ -295,8 +298,8 @@ def _connector_pin_swap(lt, golden, design, board_path, rng, exclude, salt, ctx)
                 pa, pb = f"{j}.{a}", f"{j}.{b}"
                 if net_of(design, pa) == net_of(design, pb) or net_of(design, pa) is None or net_of(design, pb) is None:
                     continue
-                if {pa, pb} in resistive:
-                    continue  # a plain resistive off-board load (heater) is not polarised: no real defect
+                if {pa, pb} in nonpolar:
+                    continue
                 cands.append(Cand(f"connector {j} pins {a} and {b} exchanged (pinout fixed by the intent)",
                                   {"pins": [pa, pb]}, swaps=[(pa, pb)]))
     return _realise(lt, golden, design, board_path, rng, exclude, salt, cands, ctx)
@@ -489,60 +492,129 @@ LATENT_TYPES: dict[str, LatentType] = {t.name: t for t in (
 
 
 # ------------------------------------------------------------------ fairness: public evidence
+# v2.1 (QA F4): the gate needs a specific REQUIREMENT sentence, not an incidental mention. Evidence is
+# searched only where requirements live: TASK.md minus its "Problem report" section and minus the spec
+# assertion bullets (which mention every pin they measure, e.g. "load ... from J2.1 to J2.2"), plus
+# parts/*.md; spec.json is never evidence. An alternative may be restricted to one file ("@FILEGLOB:"
+# prefix), and is either a literal substring of a line, `line:A&B` (A as a whole token and B on one
+# line) or `re:REGEX` (searched per line).
 _ADDENDUM_KEYS = {
-    "resistor_underrated": [["the continuous dissipation P = I²·R of every resistor"]],
-    "capacitor_underrated": [["the DC working voltage across a capacitor must not exceed 80 %"]],
-    "led_underrated": [["the forward current must not exceed 80 % of the package maximum"]],
-    "weak_base_drive": [["**Design rule (switching):**"]],
-    "flyback_misplaced": [["**Design rule (inductive loads):**"]],
-    "pullup_wrong_rail": [["by a pull-up to a higher rail"]],
+    "resistor_underrated": [["@parts/R.md:the continuous dissipation P = I²·R of every resistor"]],
+    "capacitor_underrated": [["@parts/C.md:the DC working voltage across a capacitor must not exceed 80 %"]],
+    "led_underrated": [["@parts/LED_*.md:the forward current must not exceed 80 % of the package maximum"]],
+    "weak_base_drive": [["@parts/NPN.md:**Design rule (switching):**"]],
+    "flyback_misplaced": [["@parts/D_SCHOTTKY.md:**Design rule (inductive loads):**"]],
+    "pullup_wrong_rail": [["@parts/MCU8.md:by a pull-up to a higher rail"]],
 }
+_RATING_FILE = {"resistor_underrated": "parts/R.md", "capacitor_underrated": "parts/C.md",
+                "led_underrated": "parts/LED_*.md"}
+
+
+def _pinout_re(ref: str, pin: str) -> str:
+    """A connector pinout statement in prose: "J2 (pin 1 = supply, pin 2 = ...)", "J2: pin 1 = ...",
+    "J2 connects the off-board load: pin 1 = ..."."""
+    return (rf"re:\b{ref}\b(?:\s*\(|[^\n.]{{0,60}}?:)\s*(?:pin \d+ = [^,;)\n]*[,;]\s*)*pin {pin} = ")
 
 
 def evidence_groups(rec: dict) -> list[list[str]]:
-    """Text that must appear in the task's public material (TASK.md + spec.json + parts/*.md) for
-    this latent fault to be deducible: every group needs one alternative present. An alternative
-    `line:A&B` needs A and B on one line."""
+    """Requirement text that must appear in the task's public material for this latent fault to be
+    deducible: every group needs one alternative present (`match_evidence`)."""
     t, d = rec["type"], rec.get("data", {})
     if t in LAYOUT_LATENT_TYPES:
         from pcbenv.layout_rules import evidence_groups as layout_evidence
-        return layout_evidence(rec, d.get("layout_ctx") or {})
+        return [[a if a.startswith("@") else "@TASK.md:" + a for a in g]
+                for g in layout_evidence(rec, d.get("layout_ctx") or {})]
     groups = [list(g) for g in _ADDENDUM_KEYS.get(t, [])]
-    if t in ("resistor_underrated", "capacitor_underrated", "led_underrated"):
+    if t in _RATING_FILE:   # the rating-table row of the downsized footprint, in the part's OWN datasheet
         size = d["footprint"].split(":")[1].split("_")[1]
-        groups.append([f"| {size} |"])
-    if t == "connector_pin_swap" or t == "mcu_pin_swap":
+        groups.append([f"@{_RATING_FILE[t]}:re:^\\| {size} \\| [0-9.]+ (W|V|mA) \\|"])
+    if t == "connector_pin_swap":
         for pin in d["pins"]:
             ref, p = pin.split(".", 1)
-            alts = [f"{ref}.{p}"]
-            alts += [f"| {ref} | {p} |", f"{ref} pin {p}"] if t == "connector_pin_swap" else [f"| {p} |"]
-            groups.append(alts)
+            groups.append([f"@TASK.md:{_pinout_re(ref, p)}", f"@TASK.md:| {ref} | {p} |",
+                           f"@TASK.md:re:\\b{ref} pin {p}\\b"])
+    if t == "mcu_pin_swap":
+        for pin in d["pins"]:
+            ref, p = pin.split(".", 1)
+            groups.append([f"@TASK.md:re:^\\| {p} \\| [^|]*[A-Za-z]", f"@TASK.md:re:\\b{ref}\\.{p}\\b",
+                           f"@TASK.md:re:pin \\d+ = {p}\\b"])
     if t in ("decap_swapped", "decap_wrong_rail"):
         for cap in d.get("caps") or [d["cap"]]:
-            groups.append([f"- {cap} within"])
+            groups.append([f"@TASK.md:- {cap} within"])
     if t == "decap_wrong_rail":
-        groups.append([d["ic_pin"]])
+        groups.append([f"@TASK.md:line:{d['cap']}&{d['ic_pin']}"])
     if t == "bias_wrong_rail":
-        groups.append([f"line:{d['pin'].split('.')[0]}&GND"])
+        groups.append([f"@TASK.md:line:{d['pin'].split('.')[0]}&GND"])
     if t == "pullup_wrong_rail":
-        groups.append([f"line:{d['ref']}&{d['golden_net']}", f"| VDD | supply, {d['golden_net']} rail |"])
+        groups.append([f"@TASK.md:line:{d['ref']}&{d['golden_net']}", f"@TASK.md:| VDD | supply, {d['golden_net']} rail |"])
     if t == "protection_bypassed":
-        groups.append(["reverse-polarity diode -> VIN", f"Schottky {d['diode']} in series"])
+        groups.append(["@TASK.md:reverse-polarity diode -> VIN", f"@TASK.md:Schottky {d['diode']} in series"])
     return groups
 
 
-def missing_evidence(rec: dict, public_text: str) -> list[list[str]]:
-    """Evidence groups of `rec` with no alternative present in `public_text`."""
-    import re as _re
-    lines = public_text.splitlines()
+_ASSERTION_LINE = re.compile(r"^- `[^`]+`: ")
 
-    def has(alt: str) -> bool:
+
+def requirement_lines(sources) -> list[tuple[str, str]]:
+    """[(file, line)] where evidence may come from: TASK.md without its "## Problem report" section and
+    spec assertion bullets, and parts/*.md. spec.json is excluded. `sources` = [(file, text)] (or a
+    plain string: a legacy single source named "public" that every file restriction accepts)."""
+    if isinstance(sources, str):
+        sources = [("public", sources)]
+    out = []
+    for fname, text in sources:
+        if fname == "spec.json":
+            continue
+        skip = False
+        for ln in text.splitlines():
+            if fname == "TASK.md" and ln.startswith("## "):
+                skip = ln.strip() == "## Problem report"
+            if skip or (fname == "TASK.md" and _ASSERTION_LINE.match(ln)):
+                continue
+            out.append((fname, ln))
+    return out
+
+
+def _alt_hit(alt: str, lines: list[tuple[str, str]]) -> tuple[str, str] | None:
+    import fnmatch
+    glob = None
+    if alt.startswith("@"):
+        glob, alt = alt[1:].split(":", 1)
+    for fname, ln in lines:
+        if glob is not None and fname != "public" and not fnmatch.fnmatch(fname, glob):
+            continue
         if alt.startswith("line:"):
             a, b = alt[5:].split("&", 1)
-            pa = _re.compile(r"(?<![A-Za-z0-9])" + _re.escape(a) + r"(?![A-Za-z0-9])")
-            return any(pa.search(ln) and b in ln for ln in lines)
-        return alt in public_text
-    return [g for g in evidence_groups(rec) if not any(has(a) for a in g)]
+            ok = re.search(r"(?<![A-Za-z0-9])" + re.escape(a) + r"(?![A-Za-z0-9])", ln) and b in ln
+        elif alt.startswith("re:"):
+            ok = re.search(alt[3:], ln)
+        else:
+            ok = alt in ln
+        if ok:
+            return fname, ln.strip()
+    return None
+
+
+def match_evidence(rec: dict, sources) -> list[dict]:
+    """For each evidence group: {"group", "found", "alt", "file", "line"} (the first alternative
+    found, and the requirement line it matched)."""
+    lines = requirement_lines(sources)
+    out = []
+    for g in evidence_groups(rec):
+        hit = None
+        for alt in g:
+            h = _alt_hit(alt, lines)
+            if h:
+                hit = (alt, *h)
+                break
+        out.append({"group": g, "found": hit is not None, "alt": hit[0] if hit else None,
+                    "file": hit[1] if hit else None, "line": hit[2] if hit else None})
+    return out
+
+
+def missing_evidence(rec: dict, sources) -> list[list[str]]:
+    """Evidence groups of `rec` with no alternative present in the public requirement text."""
+    return [m["group"] for m in match_evidence(rec, sources) if not m["found"]]
 
 
 def apply_latent(name: str, golden: Golden, design: dict, board_path: str, rng: random.Random,
@@ -593,7 +665,7 @@ def still_present(rec: dict, design: dict, board_path: str, golden: Golden) -> b
 # the decoupling copper-path rule) is broken. Each needs the agent to read board coordinates and
 # move parts / re-route copper by hand. `autoroute_fixes` tells whether `pcbtool route` on one of
 # the fault's nets would repair it (then the task must be no_autoroute).
-LAYOUT_MARGIN = 1.25          # a faulted metric exceeds its limit by at least this factor
+LAYOUT_MARGIN = 1.5           # a faulted metric exceeds its limit by at least this factor (v2.1, QA F2: was 1.25)
 
 
 @dataclass

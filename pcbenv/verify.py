@@ -19,7 +19,8 @@ datasheet design rules that pcbtool does not run), and -- only for hard_layout t
 `values`: every ref in `meta["value_bounds"]` (ref -> [min, max]) has a design value inside its
 range (old tasks without the key: nothing to check, the check passes).
 
-Topology is compared up to swapping the two pins of symmetric parts (R, C, L, crystals);
+Topology is compared up to swapping the two pins of symmetric parts (R, C, L, crystals; v2.1: also
+the 2-pin load connectors listed in `meta["symmetric_refs"]`, normally none);
 see `layout.same_topology`. Board pads are named through the GOLDEN ref->part map.
 """
 from __future__ import annotations
@@ -198,7 +199,8 @@ def _verify(workdir: str, task_dir: str, td: str) -> VerifyResult:
     dpart = D.partition(design)
     gpart = D.partition(gdesign)
     alts = [frozenset(frozenset(n) for n in alt) for alt in meta.get("alt_partitions", [])]
-    ok = any(layout.same_topology(dpart, p, ref_parts) for p in [gpart, *alts])
+    sym = frozenset(meta.get("symmetric_refs") or [])
+    ok = any(layout.same_topology(dpart, p, ref_parts, sym) for p in [gpart, *alts])
     _fail(res, "topology", [] if ok else [_partition_diff(dpart, gpart)], True)
 
     # ---------------------------------------------------------- consistency

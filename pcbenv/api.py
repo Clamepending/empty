@@ -8,7 +8,7 @@ with api.PcbRepairEnv(max_steps=40) as env:               # gym-like episode (se
     obs = env.reset(task.path)
     ...
 res = api.verify(workdir, tasks[0].path)                  # VerifyResult(reward 0/1, gates, checks)
-api.extract_tasks("dist/pcb-repair-v2-normal.tar.gz", "data")   # -> data/v2/normal/<task_id>/
+api.extract_tasks("dist/pcb-repair-v2.1-normal.tar.gz", "data")   # -> data/v2/normal/<task_id>/
 ```
 Names in `__all__` are the stable surface (semver, see docs/VERSIONING.md); anything else in
 `pcbenv` may change between minor versions.
@@ -111,12 +111,12 @@ def _scan(root: Path) -> list[Path]:
     return out
 
 
-_BUNDLE_RE = re.compile(r"^pcb-repair-(v\d+)-(.+)$")
+_BUNDLE_RE = re.compile(r"^pcb-repair-(v\d+)(?:\.\d+)*-(.+)$")   # v2.1 bundles hold the v2/<split> splits
 
 
 def canonical_split(name: str | None) -> str | None:
-    """Bundle / dir names -> manifest split names: `pcb-repair-v2-hard-layout-holdout` ->
-    `v2/hard_layout_holdout`; `v2/normal` is unchanged."""
+    """Bundle / dir names -> manifest split names: `pcb-repair-v2-hard-layout-holdout` (or the v2.1
+    bundle `pcb-repair-v2.1-hard-layout-holdout`) -> `v2/hard_layout_holdout`; `v2/normal` is unchanged."""
     if name is None:
         return None
     m = _BUNDLE_RE.match(name)
@@ -212,7 +212,7 @@ def no_tasks_message(root: str | os.PathLike, split: str | None) -> str:
     """Human-readable explanation of why nothing matched, with the splits that do exist."""
     if not Path(root).exists():
         return f"no tasks: {os.fspath(root)!r} does not exist (extract a bundle first: " \
-               f"python3 -m pcbenv.api extract dist/pcb-repair-v2-normal.tar.gz {os.fspath(root)})"
+               f"python3 -m pcbenv.api extract dist/pcb-repair-v2.1-normal.tar.gz {os.fspath(root)})"
     avail = available_splits(root)
     if not avail:
         return f"no tasks found under {os.fspath(root)!r} (no */public/TASK.md, no manifest.jsonl)"

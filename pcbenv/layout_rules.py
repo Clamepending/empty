@@ -8,16 +8,18 @@ context (`meta["layout_rules"]` == `spec.json["layout_rules"]`) is built from th
 
 Rules (precise definitions are in `rules_md`, the public text):
 
-- kelvin       the ADC sense connection must leave from the shunt pad itself: delete the shunt pad
-               from the sense net's copper; the copper island holding the sense pin's pad must not
-               contain the load-current pin's pad (no shared copper with the power path).
+- kelvin       the ADC sense connection must leave from the shunt pad itself (v2.1, QA F1): delete
+               the shunt pad AND all copper inside its outline (tracks cut at the pad edge; contacts
+               count only outside the pad); the copper island holding the sense pin's pad must still
+               touch the shunt pad and must not contain the load-current pin's pad. Sense and load
+               tracks meeting inside the pad (e.g. both at its centre) is the textbook Kelvin layout.
 - switch_loop  hot loop of the low-side switch: the closed path made of the shortest copper paths
                between consecutive loop pads (pad centre to pad centre, `layout.copper_path`) and
                straight lines through each part body; |shoelace area| <= max_area_mm2.
 - crystal      copper path MCU oscillator pin -> crystal pad <= max_path_mm; no via on either net.
 - separation   total length of the victim net's track centrelines that lie within min_gap_mm
-               (centreline to centreline) of an aggressor-net track on the same copper layer
-               <= max_parallel_mm.
+               (centreline to centreline, in projection) of an aggressor-net track on EITHER copper
+               layer <= max_parallel_mm (v2.1, QA F3; opposite-layer crossings at >= 45° excluded).
 - decoupling   unchanged: graded by `layout.run_layout_checks` (check `layout`), restated here.
 """
 from __future__ import annotations
@@ -29,7 +31,7 @@ from dataclasses import dataclass
 from pcbenv import boardnet
 from pcbenv.parts import PARTS
 
-VERSION = 1
+VERSION = 1   # context format (unchanged in v2.1; the rule definitions changed, see rules_md)
 EPS = 1e-6
 
 # Limits (mm / mm²). Chosen so every golden passes with margin (reports/v2_generation.md,
@@ -322,7 +324,143 @@ def _pad_key(p) -> tuple:
 
 
 # ------------------------------------------------------------------ metrics
+def _inside_fn(pad, sdf):
+    """inside(x, y): the point lies inside the pad's copper outline (layer not considered)."""
+    import pcbnew
+    if sdf is not None:
+        return lambda x, y: sdf(x, y) <= EPS
+    return lambda x, y: pad.HitTest(pcbnew.VECTOR2I(int(round(x * 1e6)), int(round(y * 1e6))), 0)
+
+
+def _clip_outside(inside, x1: float, y1: float, x2: float, y2: float) -> list[tuple[float, float, float, float]]:
+    """The pieces of centreline segment (x1,y1)-(x2,y2) that lie outside the pad (`inside`)."""
+    L = math.hypot(x2 - x1, y2 - y1)
+    n = max(1, int(math.ceil(L / 0.02)))
+    ts = [i / n for i in range(n + 1)]
+
+    def pt(t: float) -> tuple[float, float]:
+        return x1 + (x2 - x1) * t, y1 + (y2 - y1) * t
+    flags = [inside(*pt(t)) for t in ts]
+    if not any(flags):
+        return [(x1, y1, x2, y2)]
+
+    def edge(t_in: float, t_out: float) -> float:
+        for _ in range(30):
+            m = (t_in + t_out) / 2
+            if inside(*pt(m)):
+                t_in = m
+            else:
+                t_out = m
+        return t_out
+    out = []
+    i = 0
+    while i <= n:
+        if flags[i]:
+            i += 1
+            continue
+        j = i
+        while j + 1 <= n and not flags[j + 1]:
+            j += 1
+        a = ts[i] if i == 0 else edge(ts[i - 1], ts[i])
+        b = ts[j] if j == n else edge(ts[j + 1], ts[j])
+        if (b - a) * L > 1e-6:
+            out.append((*pt(a), *pt(b)))
+        i = j + 1
+    return out
+
+
+def _contact_outside(inside, a: tuple, wa: float, b: tuple, wb: float) -> bool:
+    """Do the copper capsules of centreline segments a and b (widths wa, wb; a zero-length segment
+    is a disc) overlap at some point OUTSIDE the pad (`inside`)? Witness points are sampled every
+    0.02 mm along both centrelines."""
+    from pcbenv.layout import _proj
+    for (p, wp), (q, wq) in (((a, wa), (b, wb)), ((b, wb), (a, wa))):
+        x1, y1, x2, y2 = p
+        L = math.hypot(x2 - x1, y2 - y1)
+        n = max(1, int(math.ceil(L / 0.02)))
+        for i in range(n + 1):
+            x, y = x1 + (x2 - x1) * i / n, y1 + (y2 - y1) * i / n
+            t, d, _ = _proj(x, y, *q)
+            if d > (wp + wq) / 2 + EPS:
+                continue
+            qx, qy = q[0] + (q[2] - q[0]) * t, q[1] + (q[3] - q[1]) * t
+            f = wp / (wp + wq) if wp + wq > 0 else 0.5
+            wx, wy = x + (qx - x) * f, y + (qy - y) * f
+            if not inside(wx, wy):
+                return True
+    return False
+
+
+def kelvin_islands(b, netcode: int, shunt) -> tuple[dict, list]:
+    """Copper islands of a net with the shunt pad AND every piece of copper inside its outline
+    removed (on the layers the pad is on): track centrelines are clipped to their parts outside the
+    pad, and two items count as touching only if their copper overlaps outside the pad (or on a
+    layer the pad is not on). Returns ({item: island id}, pieces) with items ("s", i) for
+    pieces[i] = (layer, x1, y1, x2, y2, w), ("v", i) for vias, and pad keys (`_pad_key`)."""
+    import pcbnew
+    from pcbenv.layout import _proj
+    segs, vias = net_tracks(b, netcode)
+    sdf = _pad_sdf(shunt)
+    inside = _inside_fn(shunt, sdf)
+    pieces = []
+    for lay, x1, y1, x2, y2, w in segs:
+        if shunt.IsOnLayer(lay):
+            pieces += [(lay, *c, w) for c in _clip_outside(inside, x1, y1, x2, y2)]
+        else:
+            pieces.append((lay, x1, y1, x2, y2, w))
+    sk = _pad_key(shunt)
+    pads = [p for fp in b.GetFootprints() for p in fp.Pads() if p.GetNetCode() == netcode and _pad_key(p) != sk]
+    items = [("s", i) for i in range(len(pieces))] + [("v", i) for i in range(len(vias))] + [_pad_key(p) for p in pads]
+    parent = {it: it for it in items}
+
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(a, c):
+        ra, rc = find(a), find(c)
+        if ra != rc:
+            parent[max(ra, rc)] = min(ra, rc)
+
+    def touch(lay: int, a: tuple, wa: float, c: tuple, wc: float) -> bool:
+        if _seg_seg_dist(a, c) > (wa + wc) / 2 + EPS:
+            return False
+        return not shunt.IsOnLayer(lay) or _contact_outside(inside, a, wa, c, wc)
+    for i, (l1, *a, w1) in enumerate(pieces):
+        for j in range(i + 1, len(pieces)):
+            l2, *c, w2 = pieces[j]
+            if l1 == l2 and touch(l1, tuple(a), w1, tuple(c), w2):
+                union(("s", i), ("s", j))
+        for v, (vx, vy, vr) in enumerate(vias):
+            if _proj(vx, vy, *a)[1] <= w1 / 2 + vr + EPS and touch(l1, tuple(a), w1, (vx, vy, vx, vy), 2 * vr):
+                union(("s", i), ("v", v))
+    both = shunt.IsOnLayer(pcbnew.F_Cu) and shunt.IsOnLayer(pcbnew.B_Cu)
+    for v, (vx, vy, vr) in enumerate(vias):
+        for v2 in range(v + 1, len(vias)):
+            wx, wy, wr = vias[v2]
+            if math.hypot(vx - wx, vy - wy) <= vr + wr + EPS and (
+                    not both or _contact_outside(inside, (vx, vy, vx, vy), 2 * vr, (wx, wy, wx, wy), 2 * wr)):
+                union(("v", v), ("v", v2))
+    for p in pads:
+        psdf = _pad_sdf(p)
+        for i, (lay, x1, y1, x2, y2, w) in enumerate(pieces):
+            if _seg_touches_pad(p, psdf, lay, x1, y1, x2, y2, w):
+                union(("s", i), _pad_key(p))
+        for v, (vx, vy, vr) in enumerate(vias):
+            if any(_seg_touches_pad(p, psdf, lay, vx, vy, vx, vy, 2 * vr) for lay in (pcbnew.F_Cu, pcbnew.B_Cu)):
+                union(("v", v), _pad_key(p))
+    return {it: find(it) for it in items}, pieces
+
+
 def kelvin_ok(b, rule: dict, ref_parts: dict[str, str]) -> tuple[bool, str]:
+    """Kelvin rule (v2.1, QA F1): the sense pin's copper must attach to the shunt pad, and must not
+    share copper with the load-current path OUTSIDE the shunt pad. Copper inside the shunt pad's
+    outline (e.g. the sense and load tracks both ending at the pad centre) is the pad itself and is
+    allowed. Check: remove the shunt pad and every piece of copper inside its outline; the island
+    holding the sense pin's pad must still touch the shunt pad and must not contain a load pin."""
+    import pcbnew
     b = boardnet._as_board(b)
     shunt = _pad(b, rule["shunt_pin"], ref_parts)
     sense = _pad(b, rule["sense_pin"], ref_parts)
@@ -331,18 +469,33 @@ def kelvin_ok(b, rule: dict, ref_parts: dict[str, str]) -> tuple[bool, str]:
     code = shunt.GetNetCode()
     if code <= 0 or sense.GetNetCode() != code:
         return False, f"{rule['sense_pin']} is not on the net of {rule['shunt_pin']}"
-    from pcbenv.layout import copper_path_mm
-    if copper_path_mm(b, sense, shunt) is None:
-        return False, f"{rule['sense_pin']} is not connected by copper to {rule['shunt_pin']}"
-    isl = copper_islands(b, code, drop_pad=shunt)
+    isl, pieces = kelvin_islands(b, code, shunt)
     mine = isl[_pad_key(sense)]
     for lp in rule["load_pins"]:
         p = _pad(b, lp, ref_parts)
         if p is None or p.GetNetCode() != code:
             return False, f"{lp} is not on the net of {rule['shunt_pin']}"
         if isl.get(_pad_key(p)) == mine:
-            return False, (f"sense connection {rule['sense_pin']} shares copper with the load-current path from {lp}: "
-                           f"it must leave from the shunt pad {rule['shunt_pin']} itself (Kelvin)")
+            return False, (f"sense connection {rule['sense_pin']} shares copper with the load-current path from {lp} "
+                           f"outside the shunt pad: it must leave from the shunt pad {rule['shunt_pin']} itself, on "
+                           f"its own trace (Kelvin)")
+    sdf = _pad_sdf(shunt)
+    _, vias = net_tracks(b, code)
+    attached = False
+    for k, v in isl.items():
+        if v != mine:
+            continue
+        if k[0] == "s":
+            lay, x1, y1, x2, y2, w = pieces[k[1]]
+            attached = _seg_touches_pad(shunt, sdf, lay, x1, y1, x2, y2, w)
+        elif k[0] == "v":
+            vx, vy, vr = vias[k[1]]
+            attached = any(_seg_touches_pad(shunt, sdf, lay, vx, vy, vx, vy, 2 * vr) for lay in (pcbnew.F_Cu, pcbnew.B_Cu))
+        if attached:
+            break
+    if not attached:
+        return False, (f"sense connection {rule['sense_pin']} is not connected by its own copper to the shunt pad "
+                       f"{rule['shunt_pin']} (Kelvin)")
     return True, ""
 
 
@@ -475,9 +628,27 @@ def _near_interval(v: tuple, a: tuple, gap: float) -> tuple[float, float] | None
     return edge(tm, 0.0), edge(tm, 1.0)
 
 
-def parallel_length(b, victim_code: int, aggressor_code: int, gap: float) -> float:
-    """Length (mm) of the victim net's track centrelines within `gap` mm of an aggressor-net track
-    centreline on the same copper layer (union over aggressor segments)."""
+CROSS_ANGLE_DEG = 45.0
+
+
+def _angle_deg(a: tuple, c: tuple) -> float:
+    """Acute angle (degrees, 0..90) between the directions of segments a and c."""
+    ux, uy = a[2] - a[0], a[3] - a[1]
+    vx, vy = c[2] - c[0], c[3] - c[1]
+    nu, nv = math.hypot(ux, uy), math.hypot(vx, vy)
+    if nu == 0 or nv == 0:
+        return 0.0
+    cs = min(1.0, abs(ux * vx + uy * vy) / (nu * nv))
+    return math.degrees(math.acos(cs))
+
+
+def parallel_length(b, victim_code: int, aggressor_code: int, gap: float, same_layer_only: bool = False) -> float:
+    """Length (mm) of the victim net's track centrelines within `gap` mm (centreline to centreline,
+    in projection onto the board plane) of an aggressor-net track centreline (union over aggressor
+    segments). v2.1 (QA F3): tracks on BOTH copper layers count -- a victim running over / under the
+    switching node on the other layer couples at least as strongly -- except that an opposite-layer
+    pair crossing at >= CROSS_ANGLE_DEG degrees is a crossing, not a parallel run, and does not
+    count. `same_layer_only`: the v2.0 definition."""
     b = boardnet._as_board(b)
     vs, _ = net_tracks(b, victim_code)
     ags, _ = net_tracks(b, aggressor_code)
@@ -488,7 +659,7 @@ def parallel_length(b, victim_code: int, aggressor_code: int, gap: float) -> flo
             continue
         ivs = []
         for la, a1, b1, a2, b2, _wa in ags:
-            if la != lay:
+            if la != lay and (same_layer_only or _angle_deg((x1, y1, x2, y2), (a1, b1, a2, b2)) >= CROSS_ANGLE_DEG):
                 continue
             iv = _near_interval((x1, y1, x2, y2), (a1, b1, a2, b2), gap)
             if iv:
@@ -507,7 +678,7 @@ def parallel_length(b, victim_code: int, aggressor_code: int, gap: float) -> flo
     return total
 
 
-def separation_length(b, rule: dict, ref_parts: dict[str, str]) -> float | str:
+def separation_length(b, rule: dict, ref_parts: dict[str, str], same_layer_only: bool = False) -> float | str:
     b = boardnet._as_board(b)
     vp = [_pad(b, p, ref_parts) for p in rule["victim_pins"]]
     ap = [_pad(b, p, ref_parts) for p in rule["aggressor_pins"]]
@@ -518,7 +689,7 @@ def separation_length(b, rule: dict, ref_parts: dict[str, str]) -> float | str:
         for a in sorted({p.GetNetCode() for p in ap}):
             if v == a:
                 return "victim and aggressor pins share a net"
-            total += parallel_length(b, v, a, rule["min_gap_mm"])
+            total += parallel_length(b, v, a, rule["min_gap_mm"], same_layer_only)
     return total
 
 
@@ -532,8 +703,10 @@ def run_layout_rules(board, ctx: dict, ref_parts: dict[str, str]) -> list[Layout
             out.append(LayoutViolation("kelvin_sense", why))
     for r in ctx.get("switch_loop", []):
         a = loop_area(b, r, ref_parts)
-        if isinstance(a, str):
-            out.append(LayoutViolation("switch_loop_area", a))
+        if isinstance(a, str):   # QA F6: e.g. a pinout fault disconnects a loop leg
+            out.append(LayoutViolation("switch_loop_area", f"{r['name']}: loop area cannot be measured: {a} (the "
+                                                           f"loop must be a closed copper path; once it is, its "
+                                                           f"area must be ≤ {r['max_area_mm2']:g} mm²)"))
         elif a > r["max_area_mm2"] + EPS:
             out.append(LayoutViolation("switch_loop_area", f"{r['name']}: loop area {a:.1f} mm² > {r['max_area_mm2']} mm²"))
     for r in ctx.get("crystal", []):
@@ -625,11 +798,15 @@ def rules_md(ctx: dict, decoupling: bool = True) -> str:
     for r in ctx.get("kelvin", []):
         out += [f"**Kelvin sense connection** (current shunt {r['shunt']}): the ADC sense connection {r['sense_pin']} must "
                 f"leave from the shunt pad {r['shunt_pin']} itself, on its own trace -- not from a point on the "
-                f"load-current path. Check: delete pad {r['shunt_pin']}; the copper island (items of the net that touch, "
-                f"transitively) holding pad {r['sense_pin']} must not contain pad {', '.join(r['load_pins'])} (the load "
-                f"current's pin). So the sense trace and the load-current copper may meet only through the shunt pad, "
-                f"never by touching each other (not even inside the pad). The power-net width rule still applies to the "
-                f"sense trace (it is on the same net).", ""]
+                f"load-current path. Copper inside the outline of pad {r['shunt_pin']} is the pad itself: the sense "
+                f"trace and the load-current track may both run into the pad (e.g. both to its centre) and meet "
+                f"there. Check: delete pad {r['shunt_pin']} together with every piece of copper inside its outline "
+                f"(on the pad's layer: track centrelines are cut at the pad edge, and two items count as touching "
+                f"only where their copper overlaps outside the pad); the copper island (items of the net that touch, "
+                f"transitively) holding pad {r['sense_pin']} must still touch pad {r['shunt_pin']} and must not "
+                f"contain pad {', '.join(r['load_pins'])} (the load current's pin). So outside the shunt pad the sense "
+                f"trace must not touch, tee into or share any track or via with the load-current copper. The "
+                f"power-net width rule still applies to the sense trace (it is on the same net).", ""]
     for r in ctx.get("switch_loop", []):
         legs = r["legs"]
         seq = ", ".join(f"{a} -> {c}" for a, c in legs)
@@ -648,10 +825,12 @@ def rules_md(ctx: dict, decoupling: bool = True) -> str:
                 f"{' and '.join(a for a, _ in r['pairs'])}) must have no via at all.", ""]
     for r in ctx.get("separation", []):
         out += [f"**Analog / switching separation**: the analog net (the net of {', '.join(r['victim_pins'])}, the ADC "
-                f"input) must not run alongside the switching node (the net of {', '.join(r['aggressor_pins'])}). For "
-                f"tracks on the same copper layer, the total length of analog-net track centreline that lies within "
-                f"{r['min_gap_mm']:g} mm (centreline to centreline) of any switching-node track centreline must be "
-                f"≤ {r['max_parallel_mm']:g} mm (crossings on opposite layers do not count).", ""]
+                f"input) must not run alongside the switching node (the net of {', '.join(r['aggressor_pins'])}). The "
+                f"total length of analog-net track centreline that lies within {r['min_gap_mm']:g} mm (centreline to "
+                f"centreline, measured in projection onto the board plane) of any switching-node track centreline must "
+                f"be ≤ {r['max_parallel_mm']:g} mm. Tracks on BOTH copper layers count: an analog track running over "
+                f"or under the switching node on the other layer is a parallel run too. Only an opposite-layer "
+                f"crossing at an angle of {CROSS_ANGLE_DEG:g}° or more does not count.", ""]
     if decoupling:
         out += ["**Decoupling** (as stated under Design rules: copper path cap pad -> IC pin, plus straight-line "
                 "distance) is part of the same layout review.", ""]

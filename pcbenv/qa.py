@@ -177,7 +177,7 @@ def tier_quotas(n: int, mix: dict[str, float], available: dict[str, int] | None 
     return q
 
 
-def task_features(row: dict, meta: dict, public_text: str | None = None) -> dict:
+def task_features(row: dict, meta: dict, public_text: str | list | None = None) -> dict:
     """Strata keys and ambiguity score of one task. `public_text` (TASK.md + spec.json + parts/*.md)
     enables the latent-evidence check: a latent fault whose evidence text is missing from the
     public material is the strongest 'unfair task' signal."""
@@ -761,44 +761,22 @@ def _sentence(line: str, needle: str) -> str:
 
 
 def evidence_quotes(fault: dict, sources: list[tuple[str, str]]) -> list[dict]:
-    """For each evidence group of a latent fault (`latent.evidence_groups`): the first alternative
-    found in the public material, the file and the exact line/sentence it is in. `found` False =
-    no alternative of the group is public (the fault would be unfair)."""
-    from pcbenv.faults.latent import evidence_groups
+    """For each evidence group of a latent fault (`latent.evidence_groups`, matched by
+    `latent.match_evidence`: requirement lines only, v2.1): the first alternative found, the file and
+    the exact line/sentence it is in, and every file holding a match. `found` False = no alternative
+    of the group is public (the fault would be unfair)."""
+    from pcbenv.faults.latent import _alt_hit, match_evidence, requirement_lines
+    lines = requirement_lines(sources)
     out = []
-    for g in evidence_groups(fault):
-        hit = None
-        for alt in g:
-            if alt.startswith("line:"):
-                a, b = alt[5:].split("&", 1)
-                pa = re.compile(r"(?<![A-Za-z0-9])" + re.escape(a) + r"(?![A-Za-z0-9])")
-                for fname, text in sources:
-                    ln = next((x for x in text.splitlines() if pa.search(x) and b in x), None)
-                    if ln is not None:
-                        hit = (alt, fname, _sentence(ln, a))
-                        break
-            else:
-                for fname, text in sources:
-                    k = text.find(alt)
-                    if k >= 0:
-                        s0 = text.rfind("\n", 0, k) + 1
-                        s1 = text.find("\n", k)
-                        hit = (alt, fname, _sentence(text[s0: s1 if s1 >= 0 else len(text)], alt))
-                        break
-            if hit:
-                break
+    for m in match_evidence(fault, sources):
         files = []
-        if hit:
-            for fname, text in sources:
-                if hit[0].startswith("line:"):
-                    a, b = hit[0][5:].split("&", 1)
-                    pa = re.compile(r"(?<![A-Za-z0-9])" + re.escape(a) + r"(?![A-Za-z0-9])")
-                    if any(pa.search(x) and b in x for x in text.splitlines()):
-                        files.append(fname)
-                elif hit[0] in text:
+        if m["found"]:
+            for fname in dict.fromkeys(f for f, _ in lines):
+                if _alt_hit(m["alt"], [x for x in lines if x[0] == fname]):
                     files.append(fname)
-        out.append({"group": g, "found": hit is not None, "alt": hit[0] if hit else None,
-                    "file": hit[1] if hit else None, "quote": hit[2] if hit else None, "files": files})
+        needle = m["alt"].split(":", 1)[1] if m["found"] and m["alt"].startswith("@") else (m["alt"] or "")
+        out.append({"group": m["group"], "found": m["found"], "alt": m["alt"], "file": m["file"],
+                    "quote": _sentence(m["line"], needle) if m["found"] else None, "files": files})
     return out
 
 
@@ -1498,7 +1476,7 @@ def build(n: int, out: Path, seed: int, manifest: Path, tasks_root: Path, worker
         rows = [r for r in rows if tier_of(r) in mixd]
     metas = {r["id"]: json.loads((task_dir_of(tasks_root, r) / "hidden" / "meta.json").read_text())
              for r in rows}
-    pub = {r["id"]: public_text(task_dir_of(tasks_root, r)) for r in rows}
+    pub = {r["id"]: public_sources(task_dir_of(tasks_root, r)) for r in rows}
     chosen = select_tasks(rows, metas, n, seed, mixd, pub)
     chosen.sort(key=lambda r: (TIERS.index(tier_of(r)) if tier_of(r) in TIERS else 9, r["family"], r["id"]))
     out.mkdir(parents=True, exist_ok=True)

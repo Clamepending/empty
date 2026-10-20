@@ -67,6 +67,7 @@ def data(tmp_path):
 def test_canonical_split_and_matching():
     assert api.canonical_split("pcb-repair-v2-normal") == "v2/normal"
     assert api.canonical_split("pcb-repair-v2-hard-layout-holdout") == "v2/hard_layout_holdout"
+    assert api.canonical_split("pcb-repair-v2.1-hard-layout-holdout") == "v2/hard_layout_holdout"   # v2.1 bundles
     assert api.canonical_split("v2/hard") == "v2/hard"
     m = api.split_matches
     assert m("v2/normal", "v2/normal") and m("pcb-repair-v2-normal", "v2/normal")

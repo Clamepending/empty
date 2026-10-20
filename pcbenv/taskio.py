@@ -174,8 +174,11 @@ def render_task_md(golden: Golden, problem: str | None = None, hard: bool = Fals
         lines += ["## Problem report", "",
                   "This board was submitted for review. Check it against the spec below and fix anything "
                   "that is wrong (it may already be correct).", ""]
+    # v2.1 (QA F8): composite intents carry their own "## Spec" paragraph section; the assertion list
+    # then gets a distinct heading (no duplicate "## Spec" in hard-tier TASK.md)
+    spec_head = "## Spec assertions" if "## Spec" in golden.intent.splitlines() else "## Spec"
     lines += ["## Design intent", "", golden.intent.strip(), "",
-              "## Spec", "",
+              spec_head, "",
               "The design must satisfy these assertions (`pcbtool sim` runs them; full definitions in "
               "`spec.json`):", ""]
     lines += [describe_assertion(a) for a in spec["assertions"]]
@@ -250,6 +253,10 @@ def write_task(task_dir: str | os.PathLike, golden: Golden, golden_board: str,
         "board_w_mm": golden.board_w_mm, "board_h_mm": golden.board_h_mm,
         "difficulty": difficulty or {"measured": None, "predicted": None},
     }
+    from pcbenv.rules import symmetric_load_refs
+    sym = symmetric_load_refs(golden)
+    if sym:   # v2.1: only written when a family leaves a non-polar load connector's orientation open
+        meta["symmetric_refs"] = sym
     meta.update(extra_meta or {})
     _write_json(hid / "meta.json", meta)
     return root

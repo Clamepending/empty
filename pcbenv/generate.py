@@ -50,7 +50,8 @@ from dataclasses import asdict
 from multiprocessing import get_context
 from pathlib import Path
 
-GENERATOR_VERSION = "pcb-repair-v2"
+GENERATOR_VERSION = "pcb-repair-v2"     # normal tier (unchanged in v2.1: part of its task ids)
+DIST_NAME = "pcb-repair-v2.1"            # release bundle name: dist/pcb-repair-v2.1-<split>.tar.gz
 BOARD_SEED = 0
 N_FAULTS = ((1, 0.40), (2, 0.35), (3, 0.25))
 HINTS = (("explicit", 0.30), ("symptom", 0.40), ("vague", 0.30))
@@ -369,7 +370,7 @@ def pack(src_dir: str | Path, tar_path: str | Path, arc_root: str) -> None:
 V2_SPLITS = ("normal", "normal_holdout", "hard", "hard_holdout", "hard_layout", "hard_layout_holdout")
 
 
-def pack_all(root: str | Path, dist: str | Path, name: str = GENERATOR_VERSION) -> list[str]:
+def pack_all(root: str | Path, dist: str | Path, name: str = DIST_NAME) -> list[str]:
     """dist/<name>-<split>.tar.gz for every v2 split dir under `root` (e.g. tasks/v2)."""
     made = []
     for split in V2_SPLITS:

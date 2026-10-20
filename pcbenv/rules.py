@@ -13,7 +13,7 @@ How a candidate design is evaluated
   the hidden meta, never from the agent's files.
 - Every pin of every non-connector part is current-sensed, so pin currents and node voltages are
   available to the rules below. A design that does not simulate fails the check.
-- Analytic rules (flyback-diode orientation) use the design's nets only.
+- The flyback rule uses the design's nets plus the DC operating points (diode orientation).
 
 Rules (code: limit; violations are reported with the measured value):
 - `mcu_abs_max`       MCU8 pin voltage within [GND - 0.3 V, VDD + 0.3 V]; VDD - GND <= 6.0 V
@@ -29,7 +29,9 @@ Rules (code: limit; violations are reported with the measured value):
 - `resistor_power`    R: I^2*R <= 50 % of the footprint's rating (0603 0.1 W, 0805 0.125 W, 1206 0.5 W)
 - `capacitor_voltage` C: |V| <= 80 % of the footprint's rated voltage (0603 10 V, 0805 25 V, 1206 50 V)
 - `flyback`           every inductive load (from the golden's assertions) has a D_SCHOTTKY directly
-                      across it: cathode on the load's supply-side pin net, anode on its switched-pin net
+                      across it: one pin on each of the load's two nets, cathode on the supply side (the
+                      side at the higher potential while the load is energised; v2.1: judged by the
+                      load's terminals, not the connector pin labels -- see `check_flyback`)
 """
 from __future__ import annotations
 
@@ -109,7 +111,9 @@ ADDENDA: dict[str, str] = {
                    "**Design rule (inductive loads):** every inductive load (relay coil, solenoid, motor) must have a\n"
                    "flyback diode directly across it with the cathode on the load's supply-side terminal and the\n"
                    "anode on its switched terminal. A diode elsewhere (to ground, across the transistor, both ends\n"
-                   "on one net) does not clamp the turn-off spike, even though nothing is visible in DC.\n"),
+                   "on one net) does not clamp the turn-off spike, even though nothing is visible in DC.\n"
+                   "The rule concerns the load's two terminals; which connector pin carries which terminal is\n"
+                   "the connector's pinout, fixed by the design intent.\n"),
     "NPN": (f"## Absolute maximum ratings\n- VCEO {NPN_VCE_MAX:g} V, IC {NPN_IC_MAX * 1e3:g} mA continuous, "
             f"IB {NPN_IB_MAX * 1e3:g} mA.\n\n"
             f"**Design rule (switching):** when used as a saturated switch (VCE ≤ {NPN_SAT_VCE:g} V), the forced\n"
@@ -226,6 +230,50 @@ def rules_context(golden, only: list[str] | None = None) -> dict:
     if only:
         ctx["only"] = sorted(only)
     return ctx
+
+
+# ------------------------------------------------------------------ off-board load connectors (QA F5)
+POLAR_LOAD_WORDS = ("brushed DC motor",)
+
+
+def load_connectors(golden) -> list[dict]:
+    """2-pin connectors whose two pins are exactly the two terminals of an off-board load in the
+    golden's assertions: [{"ref", "pins", "inductive", "polar"}]. A load is polarised (a motor: the
+    pin order sets the direction of rotation) if the intent describes it as one of POLAR_LOAD_WORDS
+    or the family sets params["load_polar"]; relay coils, solenoids and heaters are not (the
+    nmos_switch family's "solenoid/motor" load counts as a solenoid)."""
+    from pcbenv.parts import PARTS as _P
+    out, seen = [], set()
+    polar = bool(golden.params.get("load_polar")) or any(w in golden.intent for w in POLAR_LOAD_WORDS)
+    for a in golden.assertions:
+        for ld in a.get("loads") or []:
+            if not ld.get("to"):
+                continue
+            ra, rb = ld["pin"].split(".", 1)[0], ld["to"].split(".", 1)[0]
+            c = golden.design["components"].get(ra)
+            if ra != rb or c is None or not c["part"].startswith("CONN") or len(_P[c["part"]].pins) != 2:
+                continue
+            if ra in seen:
+                continue
+            seen.add(ra)
+            out.append({"ref": ra, "pins": sorted([ld["pin"], ld["to"]]), "inductive": ld.get("l") is not None,
+                        "polar": polar and ld.get("l") is not None})
+    return out
+
+
+def _intent_fixes_pinout(intent: str, ref: str) -> bool:
+    import re
+    pats = (rf"\b{ref}\b[^\n]*\bpin 1 =", rf"\|\s*{ref}\s*\|\s*1\s*\|", rf"\b{ref} pin [12]\b")
+    return any(re.search(p, intent) for p in pats)
+
+
+def symmetric_load_refs(golden) -> list[str]:
+    """2-pin connectors of a NON-polar load whose pin order the public intent does not fix: the
+    topology gate treats their two pins as interchangeable (meta["symmetric_refs"]). Every current
+    family states the load connector's pinout ("J2 (pin 1 = supply, pin 2 = switched side)"), so this
+    is empty for all shipped tasks; a family that leaves the coil orientation open gets it for free."""
+    return sorted(c["ref"] for c in load_connectors(golden)
+                  if not c["polar"] and not _intent_fixes_pinout(golden.intent, c["ref"]))
 
 
 # ------------------------------------------------------------------ evaluation
@@ -399,17 +447,37 @@ def check_op(design: dict, op: OpPoint, tag: str) -> list[Violation]:
     return out
 
 
-def check_flyback(design: dict, ctx: dict) -> list[Violation]:
+FLYBACK_FWD_V = 0.05   # a flyback diode is never forward-biased by more than this in DC
+
+
+def check_flyback(design: dict, ctx: dict, ops: list[OpPoint] | None = None) -> list[Violation]:
+    """Every inductive load needs a D_SCHOTTKY directly across its two terminals (its K and A nets are
+    exactly the two nets of the load's pins), cathode on the supply side. v2.1 (QA F5): the load is
+    judged by its terminals, not by the connector's pin labels -- a non-polar coil plugged into a
+    2-pin connector with pins 1/2 exchanged still has the diode across it. The supply side is the
+    side at the higher potential while the load is energised: the diode must not be forward-biased
+    (V(A) - V(K) <= FLYBACK_FWD_V) at any DC operating point `ops`; if the load is never energised in
+    `ops` (or no ops are given), the cathode must be on the net of the context's supply pin."""
     net_of = {p: n for n, pins in design["nets"].items() for p in pins}
     out = []
     for ld in ctx.get("inductive_loads", []):
         ns, nw = net_of.get(ld["supply_pin"]), net_of.get(ld["switched_pin"])
-        ok = ns is not None and nw is not None and ns != nw and any(
-            net_of.get(f"{r}.K") == ns and net_of.get(f"{r}.A") == nw for r, _ in _comps(design, "D_SCHOTTKY"))
+        ok = False
+        if ns is not None and nw is not None and ns != nw:
+            for r, _ in _comps(design, "D_SCHOTTKY"):
+                k, a = net_of.get(f"{r}.K"), net_of.get(f"{r}.A")
+                if {k, a} != {ns, nw}:
+                    continue
+                rev = [op.v[f"{r}.K"] - op.v[f"{r}.A"] for op in ops or [] if f"{r}.K" in op.v and f"{r}.A" in op.v]
+                if any(x < -FLYBACK_FWD_V for x in rev):
+                    continue   # conducts while the load is on: across the load, but reversed
+                if any(x > FLYBACK_FWD_V for x in rev) or k == ns:
+                    ok = True
+                    break
         if not ok:
             out.append(Violation("flyback", f"inductive load {ld['supply_pin']}-{ld['switched_pin']} has no flyback "
-                                            f"diode across it (cathode on {ld['supply_pin']}'s net, anode on "
-                                            f"{ld['switched_pin']}'s net)"))
+                                            f"diode across it (a Schottky with one pin on each of the load's two nets, "
+                                            f"cathode on the supply side)"))
     return out
 
 
@@ -417,14 +485,16 @@ def run_rules(design: dict, ctx: dict) -> list[Violation]:
     """All rule violations of `design` under the hidden rule context. Never raises."""
     out: list[Violation] = []
     try:
-        out += check_flyback(design, ctx)
+        ops: list[OpPoint] = []
         for k, sc in enumerate(ctx.get("scenarios", [])):
             try:
                 op = operating_point(design, sc)
             except Exception as e:  # noqa: BLE001
                 out.append(Violation("simulation", f"operating point {k} does not simulate: {e}"[:300]))
                 continue
+            ops.append(op)
             out += check_op(design, op, f"condition {k}")
+        out = check_flyback(design, ctx, ops) + out
     except Exception as e:  # noqa: BLE001
         out.append(Violation("error", f"rule evaluation error: {type(e).__name__}: {e}"[:300]))
     only = ctx.get("only")

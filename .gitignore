@@ -24,3 +24,5 @@ runs/
 /data/
 *.egg-info/
 /my_policy.py
+# v2.0 task dirs archived before the v2.1 regeneration (QA F1-F9 fixes); kept for calibration regrading
+/tasks/v2.0_archive/

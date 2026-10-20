@@ -51,7 +51,10 @@ checked against absolute-maximum ratings (MCU pins within -0.3 V…VDD+0.3 V, op
 rails, LDO EN ≤ VIN, NMOS |VGS| ≤ 12 V, ...), current limits (MCU pins, LED IF by package, NPN IC/IB,
 forced beta ≤ 20 for a saturated switch), resistor power (I²R ≤ 50 % of the footprint rating:
 0603 0.1 W, 0805 0.125 W, 1206 0.5 W), capacitor voltage (≤ 80 % of 10/25/50 V for 0603/0805/1206)
-and flyback-diode orientation across inductive loads. Every rule is stated in the task's
+and flyback-diode orientation across inductive loads (v2.1: a Schottky with one pin on each of the load's
+two nets, cathode on the side at the higher potential while the load is energised -- judged by the load's
+terminals, so a non-polar coil plugged in with connector pins 1/2 exchanged is still clamped; the pin swap
+itself is the topology gate's business when the intent fixes the pinout). Every rule is stated in the task's
 `parts/<PART>.md` and TASK.md.
 
 - `meta["rules"]` (hard tier, `tier: "hard"`, `python3 -m pcbenv.generate --tier hard`): all rules.
@@ -85,7 +88,9 @@ topology gate's finding).
   twice per load because of an uninitialised-member bug. Only items KiCad reports with severity
   `error` count; items that KiCad's default severities leave at warning or ignore (silkscreen,
   dangling tracks, missing courtyards, ...) are not graded.
-- **Layout covers only power-net widths and decoupling distance / copper path length.** No signal integrity, return
+- **Layout covers only power-net widths and decoupling distance / copper path length** (plus, in the hard_layout
+  sub-tier, the `layout_rules` check: Kelvin sense, switching-loop area, crystal traces, analog/switching
+  separation; see SPEC §7 item 12 and the task's TASK.md for the exact definitions). No signal integrity, return
   paths, thermal, EMI or manufacturability (DFM) checks are performed.
 - **Binary reward hides partial progress.** Use `gates`/`checks` for diagnostics; they are not a
   calibrated partial-credit signal.

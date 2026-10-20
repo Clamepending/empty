@@ -25,7 +25,8 @@ Gates (all must hold, else the index is dropped with the reason):
   (d) oracle repair (hidden golden files) verifies 1.0
   (e) every fault still present in the combined files
   (f) fairness: every latent fault's evidence (`latent.evidence_groups`) is present in the public
-      text (TASK.md + spec.json + parts/*.md)
+      requirement text (v2.1: TASK.md minus problem report and assertion bullets, parts/*.md; the
+      matched line is recorded in meta as the fault's `evidence_matches`)
 """
 from __future__ import annotations
 
@@ -40,7 +41,7 @@ import traceback
 from collections import Counter
 from pathlib import Path
 
-HARD_VERSION = "pcb-repair-hard-v2"
+HARD_VERSION = "pcb-repair-hard-v2.1"
 BOARD_SEED = 0
 # v1 families that admit latent faults (the composites are listed in families.HARD_FAMILIES)
 V1_IN_HARD = ("ldo_reg", "led_driver", "mcu_i2c", "nmos_switch", "npn_switch")   # >= 2 latent types apply
@@ -196,11 +197,30 @@ def build_one_hard(args: tuple) -> dict:
     return out
 
 
-def _public_text(tdir: str) -> str:
+def _public_sources(tdir: str) -> list[tuple[str, str]]:
+    """[(public file, text)]: TASK.md, spec.json, parts/*.md (the evidence gate skips spec.json)."""
     pub = Path(tdir, "public")
-    parts = [(pub / "TASK.md").read_text(encoding="utf-8"), (pub / "spec.json").read_text(encoding="utf-8")]
-    parts += [f.read_text(encoding="utf-8") for f in sorted((pub / "parts").glob("*.md"))]
-    return "\n".join(parts)
+    out = [("TASK.md", (pub / "TASK.md").read_text(encoding="utf-8")),
+           ("spec.json", (pub / "spec.json").read_text(encoding="utf-8"))]
+    out += [(f"parts/{f.name}", f.read_text(encoding="utf-8")) for f in sorted((pub / "parts").glob("*.md"))]
+    return out
+
+
+def evidence_gate(lrecs: list, rec_dicts: list[dict], tdir: str) -> dict:
+    """(f) fairness: {latent type: missing evidence groups} (empty = every latent fault's requirement
+    sentence is public). Records each match -- the requirement line and its file -- in the fault's
+    hidden data as `evidence_matches` (v2.1, QA F4); `rec_dicts[i]` belongs to `lrecs[i]`."""
+    from pcbenv.faults.latent import match_evidence
+    srcs = _public_sources(tdir)
+    missing = {}
+    for i, r in enumerate(lrecs):
+        ms = match_evidence(r.to_dict(), srcs)
+        rec_dicts[i]["data"]["evidence_matches"] = [{"alt": m["alt"], "file": m["file"], "line": m["line"]}
+                                                    for m in ms if m["found"]]
+        miss = [m["group"] for m in ms if not m["found"]]
+        if miss:
+            missing[r.type] = miss
+    return missing
 
 
 def _build(index: int, seed: int, staging: str, log: list, secret: str) -> dict:
@@ -208,7 +228,7 @@ def _build(index: int, seed: int, staging: str, log: list, secret: str) -> dict:
     from pcbenv.board import build_board
     from pcbenv.faults import FAULT_TYPES, apply_fault
     from pcbenv.faults.common import canonical_board_file, design_hash
-    from pcbenv.faults.latent import (LATENT_TYPES, apply_latent, missing_evidence, still_present as latent_present,
+    from pcbenv.faults.latent import (LATENT_TYPES, apply_latent, still_present as latent_present,
                                       visible_failures)
     from pcbenv.families import FAMILIES
     from pcbenv.generate import _failing, _json_hash, _rank, _sha, _weighted, _weighted_order, _workdir_with, publish_names
@@ -369,9 +389,7 @@ def _build(index: int, seed: int, staging: str, log: list, secret: str) -> dict:
                        or any(t not in prompts.DATASHEET_INFERABLE for t in silent))
         (pub / "TASK.md").write_text(prompts.render_hard(golden, hint, sym, full_intent, mode), encoding="utf-8")
         # ---- (f) fairness: evidence of every latent fault is in the public text
-        text = _public_text(tdir)
-        missing = {r.type: missing_evidence(r.to_dict(), text) for r in lrecs}
-        missing = {k: v for k, v in missing.items() if v}
+        missing = evidence_gate(lrecs, rec_dicts, tdir)
         gates["evidence_public"] = not missing
         renames = publish_names(tdir, golden, f"{task_id}:names")
         meta = taskio.load_meta(tdir)

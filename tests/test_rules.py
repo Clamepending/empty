@@ -245,3 +245,44 @@ def test_verifier_grades_rules_only_with_context(tmp_path):
     r = verify(wd, str(td))
     assert r.reward == 0.0 and r.checks["rules"] is False and r.detail["rules"]
     assert os.path.exists(os.path.join(wd, "design.json"))
+
+
+def test_flyback_judged_by_load_terminals_not_connector_labels():
+    """v2.1 (QA F5): a non-polar coil on a 2-pin connector with pins 1/2 exchanged still has D1
+    across it, cathode on the supply side -> no flyback violation (v2.0 reported a false "no flyback
+    diode across it"); a diode reversed across the load is still a violation."""
+    from pcbenv.faults.common import swap_pins
+    for fam in ("nmos_switch", "npn_switch"):
+        g = _find(fam, lambda g: bool(R.rules_context(g)["inductive_loads"]))
+        ctx = R.rules_context(g)
+        ld = ctx["inductive_loads"][0]
+        d = copy.deepcopy(g.design)
+        swap_pins(d, ld["supply_pin"], ld["switched_pin"])
+        assert "flyback" not in _codes(d, ctx), fam
+        dname = next(r for r, c in g.design["components"].items() if c["part"] == "D_SCHOTTKY"
+                     and _net(g.design, f"{r}.A") == _net(g.design, ld["switched_pin"]))
+        na, nk = _net(g.design, f"{dname}.A"), _net(g.design, f"{dname}.K")
+        rev = _move(_move(g.design, f"{dname}.A", nk), f"{dname}.K", na)
+        assert "flyback" in _codes(rev, ctx), fam
+
+
+def test_load_connectors_and_symmetric_refs():
+    """2-pin load connectors: coils / solenoids / heaters are non-polar, a motor is polar. Every
+    family states the load connector's pinout in its intent, so no shipped task gets
+    meta["symmetric_refs"]; when a ref is listed, the topology gate accepts its two pins swapped."""
+    from pcbenv import design as D
+    from pcbenv.faults.common import swap_pins
+    from pcbenv.layout import same_topology
+    g = _find("nmos_switch", lambda g: g.params["kind"] == "inductive")
+    assert R.load_connectors(g) == [{"ref": "J2", "pins": ["J2.1", "J2.2"], "inductive": True, "polar": False}]
+    assert R.symmetric_load_refs(g) == []          # "J2 connects the off-board load: pin 1 = ..."
+    m = FAMILIES["sys_motor_ctrl"].generate(0)
+    assert [c["polar"] for c in R.load_connectors(m)] == [True]
+    import dataclasses
+    open_intent = dataclasses.replace(g, intent="A coil on J2 (either way round).")
+    assert R.symmetric_load_refs(open_intent) == ["J2"]
+    rp = {r: c["part"] for r, c in g.design["components"].items()}
+    d = copy.deepcopy(g.design)
+    swap_pins(d, "J2.1", "J2.2")
+    assert not same_topology(D.partition(d), D.partition(g.design), rp)
+    assert same_topology(D.partition(d), D.partition(g.design), rp, frozenset({"J2"}))
