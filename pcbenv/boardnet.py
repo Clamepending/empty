@@ -131,14 +131,27 @@ def footprint_fingerprint(fp: "pcbnew.FOOTPRINT") -> str:
     pads = sorted(_pad_repr(p) for p in c.Pads())
     crt = sorted(_shape_repr(g) for g in c.GraphicalItems()
                  if g.GetLayer() in (pcbnew.F_CrtYd, pcbnew.B_CrtYd) and isinstance(g, pcbnew.PCB_SHAPE))
-    try:
-        ties = sorted(str(t) for t in c.GetNetTiePadGroups())
-    except Exception:  # pragma: no cover
-        ties = []
+    ties = net_tie_groups(c)
+    copper = sorted((int(g.GetLayer()),) + _shape_repr(g) for g in c.GraphicalItems()
+                    if g.GetLayer() in (pcbnew.F_Cu, pcbnew.B_Cu) and isinstance(g, pcbnew.PCB_SHAPE))
     fpl = (int(c.GetAttributes()), _um(c.GetLocalClearance()), _um(c.GetLocalSolderMaskMargin()),
            _um(c.GetLocalSolderPasteMargin()), round(c.GetLocalSolderPasteMarginRatio(), 4),
            int(c.GetZoneConnection()), bool(c.AllowMissingCourtyard()), tuple(ties))
-    return _h((pads, crt, fpl))
+    return _h((pads, crt, fpl, tuple(copper)))
+
+
+def net_tie_groups(fp: "pcbnew.FOOTPRINT") -> list:
+    """Net-tie pad groups of a footprint as sorted pad-number tuples, plus its IsNetTie flag.
+
+    KiCad 7.0.11's GetNetTiePadGroups() returns an unwrapped SWIG std::vector, so the groups are
+    read per pad through GetNetTiePads(). No exception is swallowed here: a footprint whose
+    net-tie information cannot be read makes the fingerprint (and so the grade) fail closed."""
+    groups = set()
+    for p in fp.Pads():
+        tied = fp.GetNetTiePads(p)
+        if tied:
+            groups.add(tuple(sorted({str(q.GetNumber()) for q in tied} | {str(p.GetNumber())})))
+    return [bool(fp.IsNetTie())] + sorted(groups)
 
 
 _PLUGIN = None

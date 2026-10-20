@@ -1,15 +1,23 @@
-"""Task generator + refresh engine (G4 / G10).
+"""Task generator + refresh engine (G4 / G10), v2 layout.
 
-    python3 -m pcbenv.generate --out tasks --start-seed 0 --count 820 --workers 4
-    python3 -m pcbenv.generate --out tasks/refresh-100000 --start-seed 100000 --count 120 \
-        --dedupe-against tasks/manifest.jsonl
-    python3 -m pcbenv.generate --pack tasks --dist dist        # deterministic tarballs only
+    # normal tier (v1 families), 20 % holdout, generation secret in tasks/.secret (git-ignored)
+    python3 -m pcbenv.generate --tier normal --out tasks/v2/normal --holdout-out tasks/v2/normal_holdout \
+        --start 0 --count 1030 --workers 4 --secret tasks/.secret --private tasks/private/normal.jsonl
+    # hard tier (pcbenv/generate_hard.py)
+    python3 -m pcbenv.generate --tier hard --out tasks/v2/hard --holdout-out tasks/v2/hard_holdout ...
+    # refresh run (G10): new indices, deduped against the shipped manifest
+    python3 -m pcbenv.generate --tier normal --out tasks/refresh-v2/normal --start 100000 --count 120 \
+        --holdout-frac 0 --dedupe-against tasks/manifest.jsonl --secret tasks/.secret
+    python3 -m pcbenv.generate --combine tasks/v2/normal tasks/v2/hard --manifest tasks/manifest.jsonl
+    python3 -m pcbenv.generate --pack tasks/v2 --dist dist          # deterministic tarballs only
 
-For every seed s in [start, start+count): family = FAMILY_ORDER[s % 10], golden = generate(s),
-golden board = build_board(golden, seed 0); 1-3 faults (40/35/25 %) are injected with disjoint
-targets in a fixed category order (connectivity, value, DRC-clean board faults, DRC-breaking
-board faults) so later faults can neither undo nor block earlier ones. Hint level 30/40/30 %
-(explicit / symptom / vague). Every task is gated:
+Task index i in [start, start+count): family = V1_FAMILIES[i % 10], generator seed =
+HMAC(secret, i) (`pcbenv/taskids.py`; ids are opaque `pcbr2-normal-<hmac8>`, public manifests carry
+no seeds, the private manifest does), golden = generate(seed), golden board = build_board(golden,
+seed 0); 1-3 faults (40/35/25 %) are injected with disjoint targets in a fixed category order
+(connectivity, value, DRC-clean board faults, DRC-breaking board faults) so later faults can neither
+undo nor block earlier ones. Hint level 30/40/30 % (explicit / symptom / vague). Public net names
+not referenced in the public text are neutralised (`pcbenv/netnames.py`, RT34). Every task is gated:
   (a) the golden files verify 1.0;
   (b) the faulted public files verify 0.0;
   (c) each fault re-applied ALONE to the golden (same rng, same exclusions -> same choice,
@@ -19,7 +27,7 @@ board faults) so later faults can neither undo nor block earlier ones. Hint leve
 Failing tasks are dropped with the reason. Accepted tasks are deduplicated (golden design hash
 + fault set, and faulted design.json hash) against each other and `--dedupe-against`
 manifests, then split: the `round(holdout_frac * N)` tasks with the smallest sha256(task id)
-go to <out>/holdout, the rest to <out>/train. Same arguments -> same task ids and bytes.
+go to --holdout-out, the rest to --out. Same arguments (and secret) -> same task ids and bytes.
 """
 from __future__ import annotations
 
@@ -42,7 +50,7 @@ from dataclasses import asdict
 from multiprocessing import get_context
 from pathlib import Path
 
-GENERATOR_VERSION = "pcb-repair-v1"
+GENERATOR_VERSION = "pcb-repair-v2"
 BOARD_SEED = 0
 N_FAULTS = ((1, 0.40), (2, 0.35), (3, 0.25))
 HINTS = (("explicit", 0.30), ("symptom", 0.40), ("vague", 0.30))
@@ -54,8 +62,9 @@ DRC_BREAKING = {"clearance_violation", "broken_trace", "short_between_nets", "fo
 
 
 def family_order() -> list[str]:
-    from pcbenv.families import FAMILIES
-    return sorted(FAMILIES)
+    """Normal tier: the v1 families only (the composite sys_* families are hard-tier)."""
+    from pcbenv.families import V1_FAMILIES
+    return list(V1_FAMILIES)
 
 
 def _rank(ftype: str) -> int:
@@ -185,18 +194,27 @@ def predicted_difficulty(n: int, hint: str, n_invisible: int) -> str:
 
 
 def build_one(args: tuple) -> dict:
-    seed, staging = args
+    index, staging, secret = args
+    from pcbenv.taskids import task_seed
+    seed = task_seed(secret, "normal", index)
     t0 = time.monotonic()
     log: list = []
     try:
-        out = _build_one(seed, staging, log)
+        out = _build_one(index, seed, staging, log, secret)
     except Exception as e:  # noqa: BLE001
         out = {"ok": False, "reason": f"exception: {type(e).__name__}: {e}", "trace": traceback.format_exc()[-1500:]}
-    out.update(seed=seed, inject_log=log, seconds=round(time.monotonic() - t0, 2))
+    out.update(index=index, seed=seed, inject_log=log, seconds=round(time.monotonic() - t0, 2))
     return out
 
 
-def _build_one(seed: int, staging: str, log: list) -> dict:
+def publish_names(tdir: str, golden, salt: str) -> dict[str, str]:
+    """RT34: neutral names for the public nets that TASK.md / spec.json do not mention."""
+    from pcbenv import netnames
+    rp = {r: c["part"] for r, c in golden.design["components"].items()}
+    return netnames.neutralise_public(tdir, rp, salt)
+
+
+def _build_one(index: int, seed: int, staging: str, log: list, secret: str) -> dict:
     from pcbenv import prompts, taskio
     from pcbenv.board import build_board
     from pcbenv.faults import apply_fault
@@ -205,7 +223,8 @@ def _build_one(seed: int, staging: str, log: list) -> dict:
     from pcbenv.golden import Golden
     from pcbenv.verify import verify
 
-    fam = family_order()[seed % len(family_order())]
+    from pcbenv.taskids import task_id as make_task_id
+    fam = family_order()[index % len(family_order())]
     golden: Golden = FAMILIES[fam].generate(seed)
     # all tiers (QA F5): the resistor power rule is stated (parts/R.md) and graded (meta rules_power);
     # resistor footprints of the golden are upsized where the family's choice breaks it
@@ -231,7 +250,7 @@ def _build_one(seed: int, staging: str, log: list) -> dict:
         design, fboard, records, plan = state
         gd_hash = design_hash(golden.design)
         fault_keys = sorted(r.key() for r in records)
-        task_id = f"pcbr-{fam}-{seed}-{_json_hash([gd_hash, fault_keys, hint, GENERATOR_VERSION])[:8]}"
+        task_id = make_task_id(secret, "normal", index, _json_hash([gd_hash, fault_keys, hint, GENERATOR_VERSION]))
         tdir = os.path.join(staging, task_id)
 
         gates: dict = {}
@@ -275,9 +294,10 @@ def _build_one(seed: int, staging: str, log: list) -> dict:
             prompts.add_power_rule_note(prompts.render(golden, hint, rec_dicts, sym, full_intent), golden),
             encoding="utf-8")
         n_inv = sum(r.invisible_to_drc_erc for r in records)
+        renames = publish_names(tdir, golden, f"{task_id}:names")
         meta = taskio.load_meta(tdir)
         meta.update(faults=rec_dicts, hint_level=hint, intent="full" if full_intent else "reduced",
-                    generator=GENERATOR_VERSION,
+                    generator=GENERATOR_VERSION, tier="normal", index=index, public_net_renames=renames,
                     difficulty={"measured": None, "predicted": predicted_difficulty(len(records), hint, n_inv)})
         taskio._write_json(Path(tdir, "hidden", "meta.json"), meta)
         # (a) golden files, (b) faulted public, (d) oracle repair
@@ -303,7 +323,8 @@ def _build_one(seed: int, staging: str, log: list) -> dict:
     if not gates["all_faults_present"]:
         reasons.append("a fault was cancelled by another")
     entry = {
-        "id": task_id, "family": fam, "seed": seed, "board_seed": BOARD_SEED,
+        "id": task_id, "task_id": task_id, "tier": "normal", "family": fam, "seed": seed, "index": index,
+        "board_seed": BOARD_SEED,
         "faults": [{"type": r.type, "category": r.category, "detail": r.detail,
                     "invisible_to_drc_erc": r.invisible_to_drc_erc} for r in records],
         "n_faults": len(records), "n_faults_target": n,
@@ -322,11 +343,12 @@ def _build_one(seed: int, staging: str, log: list) -> dict:
 
 # ------------------------------------------------------------------ packing
 def pack(src_dir: str | Path, tar_path: str | Path, arc_root: str) -> None:
-    """Deterministic .tar.gz of src_dir: sorted entries, mtime 0, uid/gid 0, no gzip timestamp."""
+    """Deterministic .tar.gz of src_dir: sorted entries, mtime 0, uid/gid 0, no gzip timestamp.
+    `generation_stats.json` (generator bookkeeping) is left out."""
     src = Path(src_dir)
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode="w", format=tarfile.PAX_FORMAT) as tf:
-        paths = sorted(p for p in src.rglob("*"))
+        paths = sorted(p for p in src.rglob("*") if p.name != "generation_stats.json")
         for p in [src] + paths:
             rel = arc_root if p == src else f"{arc_root}/{p.relative_to(src).as_posix()}"
             ti = tarfile.TarInfo(rel)
@@ -344,13 +366,18 @@ def pack(src_dir: str | Path, tar_path: str | Path, arc_root: str) -> None:
             gz.write(buf.getvalue())
 
 
-def pack_all(out: str | Path, dist: str | Path, name: str = GENERATOR_VERSION) -> list[str]:
+V2_SPLITS = ("normal", "normal_holdout", "hard", "hard_holdout")
+
+
+def pack_all(root: str | Path, dist: str | Path, name: str = GENERATOR_VERSION) -> list[str]:
+    """dist/<name>-<split>.tar.gz for every v2 split dir under `root` (e.g. tasks/v2)."""
     made = []
-    for split in ("train", "holdout"):
-        d = Path(out) / split
+    for split in V2_SPLITS:
+        d = Path(root) / split
         if d.is_dir():
-            tp = Path(dist) / f"{name}-{split}.tar.gz"
-            pack(d, tp, f"{name}-{split}")
+            tag = split.replace("_", "-")
+            tp = Path(dist) / f"{name}-{tag}.tar.gz"
+            pack(d, tp, f"{name}-{tag}")
             made.append(str(tp))
     return made
 
@@ -363,43 +390,58 @@ def load_manifest(path: str | Path) -> list[dict]:
     return [json.loads(line) for line in p.read_text().splitlines() if line.strip()]
 
 
-def generate(out: str, start: int, count: int, holdout_frac: float = 0.2, workers: int = 4,
-             dedupe_against: list[str] | None = None, log=print) -> dict:
-    from pcbenv.faults import FAULT_TYPES
+PRIVATE_KEYS = ("seed", "index")   # never in a public manifest (RT37); kept in the private manifest
+
+
+def public_row(e: dict) -> dict:
+    return {k: v for k, v in e.items() if k not in PRIVATE_KEYS}
+
+
+def _clear(d: Path) -> None:
+    """Remove a previous run's output: task dirs, _staging, manifest/stats. Refuses anything else."""
+    if not d.exists():
+        return
+    for c in sorted(d.iterdir()):
+        if c.is_dir() and (c.name == "_staging" or (c / "public").is_dir() or (c / "hidden").is_dir()):
+            shutil.rmtree(c)
+        elif c.is_file() and c.name in ("manifest.jsonl", "generation_stats.json"):
+            c.unlink()
+        else:
+            raise RuntimeError(f"refusing to clear {d}: unexpected entry {c.name}")
+
+
+def run_pool(fn, jobs: list, workers: int, log, every: int = 25, maxtasks: int = 6) -> list[dict]:
     t0 = time.monotonic()
-    outp = Path(out)
-    for sub in ("train", "holdout", "_staging"):
-        if (outp / sub).exists():
-            shutil.rmtree(outp / sub)
-    staging = outp / "_staging"
-    staging.mkdir(parents=True)
+    if workers <= 1:
+        return [fn(j) for j in jobs]
+    results = []
+    with get_context("spawn").Pool(workers, maxtasksperchild=maxtasks) as pool:
+        for i, r in enumerate(pool.imap(fn, jobs, chunksize=1)):
+            results.append(r)
+            if (i + 1) % every == 0:
+                log(f"  {i + 1}/{len(jobs)} done, {sum(x['ok'] for x in results)} ok ({time.monotonic() - t0:.0f} s)")
+    return results
+
+
+def finalize(results: list[dict], outp: Path, holdp: Path, staging: Path, holdout_frac: float,
+             tasks_root: Path, dedupe_against: list[str] | None, private: str | None) -> tuple[list, list]:
+    """Dedupe, split (smallest sha256(id) -> holdout), move into place, write manifests.
+    Returns (accepted, dropped). Public manifest rows carry no seed/index (RT37)."""
     seen_pairs, seen_fhash, seen_ids = set(), set(), set()
     for m in dedupe_against or []:
         for e in load_manifest(m):
-            seen_pairs.add((e["golden_design_hash"], e["fault_set"]))
-            seen_fhash.add(e["faulted_design_hash"])
-            seen_ids.add(e["id"])
-    seeds = list(range(start, start + count))
-    jobs = [(s, str(staging)) for s in seeds]
-    results = []
-    if workers <= 1:
-        results = [build_one(j) for j in jobs]
-    else:
-        with get_context("spawn").Pool(workers, maxtasksperchild=6) as pool:
-            for i, r in enumerate(pool.imap(build_one, jobs, chunksize=1)):
-                results.append(r)
-                if (i + 1) % 25 == 0:
-                    log(f"  {i + 1}/{len(jobs)} seeds done, {sum(x['ok'] for x in results)} ok "
-                        f"({time.monotonic() - t0:.0f} s)")
+            seen_pairs.add((e.get("golden_design_hash"), e.get("fault_set")))
+            seen_fhash.add(e.get("faulted_design_hash"))
+            seen_ids.add(e.get("id"))
     accepted, dropped = [], []
     for r in results:
         if not r["ok"]:
-            dropped.append({"seed": r["seed"], "family": r.get("family"), "reason": r["reason"]})
+            dropped.append({"index": r["index"], "family": r.get("family"), "reason": r["reason"]})
             continue
         e = r["entry"]
         key = (e["golden_design_hash"], e["fault_set"])
         if key in seen_pairs or e["faulted_design_hash"] in seen_fhash or e["id"] in seen_ids:
-            dropped.append({"seed": r["seed"], "family": e["family"], "reason": "duplicate"})
+            dropped.append({"index": r["index"], "family": e["family"], "reason": "duplicate"})
             shutil.rmtree(staging / e["id"], ignore_errors=True)
             continue
         seen_pairs.add(key)
@@ -410,14 +452,50 @@ def generate(out: str, start: int, count: int, holdout_frac: float = 0.2, worker
     by_hash = sorted(accepted, key=lambda e: hashlib.sha256(e["id"].encode()).hexdigest())
     hold = {e["id"] for e in by_hash[:n_hold]}
     for e in accepted:
-        e["split"] = "holdout" if e["id"] in hold else "train"
-        dst = outp / e["split"] / e["id"]
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        shutil.move(str(staging / e["id"]), str(dst))
+        dst_root = holdp if e["id"] in hold else outp
+        e["holdout"] = e["id"] in hold
+        e["split"] = Path(os.path.relpath(dst_root, tasks_root)).as_posix()
+        e["path"] = f"{e['split']}/{e['id']}"
+        dst_root.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(staging / e["id"]), str(dst_root / e["id"]))
     shutil.rmtree(staging, ignore_errors=True)
-    with open(outp / "manifest.jsonl", "w", encoding="utf-8") as f:
-        for e in accepted:
-            f.write(json.dumps(e, sort_keys=True) + "\n")
+    for d, rows in ((outp, [e for e in accepted if not e["holdout"]]), (holdp, [e for e in accepted if e["holdout"]])):
+        if rows or d == outp:
+            d.mkdir(parents=True, exist_ok=True)
+            with open(d / "manifest.jsonl", "w", encoding="utf-8") as f:
+                for e in rows:
+                    f.write(json.dumps(public_row(e), sort_keys=True) + "\n")
+    if private:
+        pp = Path(private)
+        pp.parent.mkdir(parents=True, exist_ok=True)
+        with open(pp, "w", encoding="utf-8") as f:
+            for e in accepted:
+                f.write(json.dumps({"id": e["id"], "tier": e.get("tier"), "family": e["family"], "index": e["index"],
+                                    "seed": e["seed"], "split": e["split"]}, sort_keys=True) + "\n")
+            for d in dropped:
+                f.write(json.dumps({"dropped": True, **d}, sort_keys=True) + "\n")
+    return accepted, dropped
+
+
+def generate(out: str, start: int, count: int, holdout_frac: float = 0.2, workers: int = 4,
+             dedupe_against: list[str] | None = None, log=print, holdout_out: str | None = None,
+             secret: str = "default", private: str | None = None, tasks_root: str | None = None) -> dict:
+    """Normal tier: task indices [start, start+count). `secret` is the secret itself (see
+    `taskids.load_secret`); `holdout_out` defaults to `<out>_holdout`; split names in the manifest
+    are the split dirs relative to `tasks_root` (default: the parent of `out`)."""
+    from pcbenv.faults import FAULT_TYPES
+    from pcbenv.taskids import secret_fingerprint
+    t0 = time.monotonic()
+    outp = Path(out)
+    holdp = Path(holdout_out) if holdout_out else Path(f"{out}_holdout")
+    troot = Path(tasks_root) if tasks_root else outp.parent
+    for d in (outp, holdp):
+        _clear(d)
+    staging = outp / "_staging"
+    staging.mkdir(parents=True)
+    jobs = [(i, str(staging), secret) for i in range(start, start + count)]
+    results = run_pool(build_one, jobs, workers, log)
+    accepted, dropped = finalize(results, outp, holdp, staging, holdout_frac, troot, dedupe_against, private)
 
     # statistics (per fault type: attempts / validity / detection)
     per_type = {t: {"attempts": 0, "applied": 0, "invalid": 0, "not_applicable": 0, "alone_checked": 0,
@@ -446,9 +524,9 @@ def generate(out: str, start: int, count: int, holdout_frac: float = 0.2, worker
     for s in per_type.values():
         s["families"] = sorted(s["families"])
     stats = {
-        "args": {"out": str(out), "start_seed": start, "count": count, "holdout_frac": holdout_frac,
-                 "dedupe_against": dedupe_against or []},
-        "generator": GENERATOR_VERSION,
+        "args": {"tier": "normal", "out": str(out), "holdout_out": str(holdp), "start_index": start, "count": count,
+                 "holdout_frac": holdout_frac, "dedupe_against": dedupe_against or []},
+        "generator": GENERATOR_VERSION, "secret_fingerprint": secret_fingerprint(secret),
         "seconds": round(time.monotonic() - t0, 1),
         "accepted": len(accepted), "dropped": len(dropped),
         "drop_reasons": dict(Counter(d["reason"].split(":")[0] for d in dropped)),
@@ -464,122 +542,55 @@ def generate(out: str, start: int, count: int, holdout_frac: float = 0.2, worker
     return stats
 
 
+def combine(manifests: list[str], out: str) -> int:
+    """Concatenate per-split public manifests into one (e.g. tasks/manifest.jsonl)."""
+    rows = [r for m in manifests for r in load_manifest(m)]
+    Path(out).write_text("".join(json.dumps(public_row(r), sort_keys=True) + "\n" for r in rows), encoding="utf-8")
+    return len(rows)
+
+
 def _pct(a: int, b: int) -> str:
     return "n/a" if not b else f"{100.0 * a / b:.1f} %"
 
 
-def render_report(out: str, refresh: str | None = None, dist: str = "dist") -> str:
-    """reports/g4_faults.md from <out>/generation_stats.json + manifest (and a refresh run)."""
-    from pcbenv.faults import FAULT_TYPES
-    st = json.loads((Path(out) / "generation_stats.json").read_text())
-    man = load_manifest(Path(out) / "manifest.jsonl")
-    a = st["args"]
-    L = ["# G4 / G10 — fault injector, task generator, refresh engine", "",
-         "Generated by `python3 -m pcbenv.generate --report " + str(out)
-         + (f" --refresh {refresh}" if refresh else "") + "` from the generator's own statistics "
-         "(`generation_stats.json`) and manifest. Nothing here is hand-edited.", "",
-         "## Commands", "", "```",
-         f"python3 -m pcbenv.generate --out {a['out']} --start-seed {a['start_seed']} --count {a['count']} "
-         f"--holdout-frac {a['holdout_frac']} --workers 4",
-         f"python3 -m pcbenv.generate --pack {a['out']} --dist {dist}"]
-    if refresh:
-        ra = json.loads((Path(refresh) / "generation_stats.json").read_text())["args"]
-        L.append(f"python3 -m pcbenv.generate --out {ra['out']} --start-seed {ra['start_seed']} --count {ra['count']} "
-                 f"--holdout-frac {ra['holdout_frac']} --workers 4 "
-                 + " ".join(f"--dedupe-against {m}" for m in ra["dedupe_against"]))
-    L += ["python3 -m pytest -q tests/test_faults.py tests/test_generate.py", "```", "",
-          "Generation is deterministic: the same arguments give the same task ids and byte-identical files "
-          "(tested in `tests/test_generate.py::test_generation_deterministic`, 4 vs 2 workers).", "",
-          "## Fault types", "",
-          "validity = injection produced loadable, schema-valid files (applied / (applied + invalid)); "
-          "detection = the fault applied ALONE to the golden scores 0.0 in `pcbenv.verify` (gate c, every "
-          "task); invisible = share of shipped instances whose fault alone leaves DRC and ERC clean "
-          "(measured, not declared). Attempts include not-applicable tries.", "",
-          "| type | category | families (shipped) | attempts | injected | shipped | validity | detection | DRC/ERC-invisible |",
-          "|---|---|---|---|---|---|---|---|---|"]
-    for t, ft in FAULT_TYPES.items():
-        v = st["per_type"][t]
-        L.append(f"| `{t}` | {ft.category} | {len(v['families'])}: {', '.join(v['families'])} | {v['attempts']} | "
-                 f"{v['applied']} | {v['in_shipped']} | {_pct(v['applied'], v['applied'] + v['invalid'])} | "
-                 f"{_pct(v['alone_detected'], v['alone_checked'])} ({v['alone_detected']}/{v['alone_checked']}) | "
-                 f"{_pct(v['invisible_in_shipped'], v['in_shipped'])} |")
-    n = len(man)
-    inv = sum(e["has_invisible"] for e in man)
-    L += ["", "## Shipped set", "",
-          f"- tasks: **{n}** (train {st['per_split'].get('train', 0)}, holdout {st['per_split'].get('holdout', 0)} = "
-          f"{_pct(st['per_split'].get('holdout', 0), n)})",
-          f"- tasks with ≥1 DRC/ERC-invisible fault: **{inv}/{n} = {_pct(inv, n)}** (threshold ≥ 40 %)",
-          f"- faulted public files parse/validate: {sum('parse' not in e['faulted_failing'] for e in man)}/{n}",
-          "- every shipped task passed: golden 1.0, faulted 0.0, each fault alone 0.0, oracle repair 1.0, "
-          "all faults still present in the combined files",
-          f"- generation time: {st['seconds']:.0f} s for {a['count']} seeds (4 workers)",
-          f"- seeds tried: {a['count']} (start {a['start_seed']}); dropped: {st['dropped']} "
-          f"({', '.join(f'{k}: {v}' for k, v in st['drop_reasons'].items()) or 'none'})", "",
-          "| family | tasks |", "|---|---|"]
-    L += [f"| {k} | {v} |" for k, v in st["per_family"].items()]
-    L += ["", "| faults per task | tasks | share |", "|---|---|---|"]
-    L += [f"| {k} | {v} | {_pct(v, n)} |" for k, v in st["per_n_faults"].items()]
-    L += ["", "| hint level | tasks | share | of which full intent |", "|---|---|---|---|"]
-    for k, v in st["per_hint"].items():
-        full = sum(e["hint_level"] == k and e.get("intent") == "full" for e in man)
-        L.append(f"| {k} | {v} | {_pct(v, n)} | {full} |")
-    diff = Counter(e["difficulty_predicted"] for e in man)
-    L += ["", "Predicted difficulty (heuristic, to be replaced by G6 measurements): "
-          + ", ".join(f"{k} {v}" for k, v in sorted(diff.items())), ""]
-    for split in ("train", "holdout"):
-        tp = Path(dist) / f"{GENERATOR_VERSION}-{split}.tar.gz"
-        if tp.exists():
-            L.append(f"- `{tp}`: {tp.stat().st_size / 1e6:.1f} MB, sha256 `{_sha(tp)}`")
-    if st["dropped_tasks"]:
-        L += ["", "### Dropped seeds", ""] + [f"- seed {d['seed']} ({d['family']}): {d['reason']}"
-                                             for d in st["dropped_tasks"]]
-    if refresh:
-        rs = json.loads((Path(refresh) / "generation_stats.json").read_text())
-        rman = load_manifest(Path(refresh) / "manifest.jsonl")
-        rinv = sum(e["has_invisible"] for e in rman)
-        L += ["", "## G10 refresh run", "",
-              f"- seeds {rs['args']['start_seed']}..{rs['args']['start_seed'] + rs['args']['count'] - 1} "
-              f"({rs['args']['count']} tried), deduped against {', '.join(rs['args']['dedupe_against'])}",
-              f"- **{rs['accepted']} new gated, deduped tasks** (threshold ≥ 100); dropped {rs['dropped']} "
-              f"({', '.join(f'{k}: {v}' for k, v in rs['drop_reasons'].items()) or 'none'})",
-              f"- invisible-fault share {_pct(rinv, len(rman))}; families "
-              + ", ".join(f"{k} {v}" for k, v in rs["per_family"].items()),
-              f"- time: {rs['seconds']:.0f} s"]
-    return "\n".join(L) + "\n"
-
-
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python3 -m pcbenv.generate", description=__doc__.split("\n")[0])
-    ap.add_argument("--out", default="tasks", help="output root (train/, holdout/, manifest.jsonl)")
-    ap.add_argument("--start-seed", "--seed", dest="start", type=int, default=0)
-    ap.add_argument("--count", type=int, default=10, help="number of seeds to try")
+    ap.add_argument("--tier", choices=("normal", "hard"), default="normal")
+    ap.add_argument("--out", default=None, help="train split dir (default tasks/v2/<tier>)")
+    ap.add_argument("--holdout-out", default=None, help="holdout split dir (default <out>_holdout)")
+    ap.add_argument("--tasks-root", default="tasks", help="manifest split names are relative to this dir")
+    ap.add_argument("--start", "--start-seed", "--seed", dest="start", type=int, default=0, help="first task index")
+    ap.add_argument("--count", type=int, default=10, help="number of task indices to try")
     ap.add_argument("--holdout-frac", type=float, default=0.2)
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--dedupe-against", action="append", default=[], help="manifest.jsonl to dedupe against")
-    ap.add_argument("--pack", metavar="TASKS_ROOT", help="only write deterministic tarballs of TASKS_ROOT/{train,holdout}")
+    ap.add_argument("--secret", default=None, help="generation-secret file (default tasks/.secret) or 'default' "
+                    "for the documented public reproducibility secret")
+    ap.add_argument("--create-secret", action="store_true", help="create the secret file if missing")
+    ap.add_argument("--private", default=None, help="private manifest (ids -> index/seed), e.g. tasks/private/normal.jsonl")
+    ap.add_argument("--combine", nargs="*", metavar="SPLIT_DIR", help="only write --manifest from these split dirs")
+    ap.add_argument("--manifest", default="tasks/manifest.jsonl")
+    ap.add_argument("--pack", metavar="V2_ROOT", help="only write deterministic tarballs of V2_ROOT/<split>")
     ap.add_argument("--dist", default="dist", help="tarball directory for --pack")
-    ap.add_argument("--report", metavar="TASKS_ROOT", help="only render the G4 report for TASKS_ROOT")
-    ap.add_argument("--refresh", help="refresh-run output dir to include in --report")
-    ap.add_argument("--report-md", default="reports/g4_faults.md")
-    ap.add_argument("--tier", choices=("v1", "hard"), default="v1",
-                    help="hard: G12 hard tier (pcbenv/generate_hard.py); --out defaults to tasks/hard")
-    ap.add_argument("--holdout-out", default="tasks/hard_holdout", help="--tier hard: holdout split directory")
     a = ap.parse_args(argv)
-    if a.tier == "hard":
-        from pcbenv.generate_hard import generate_hard
-        out = a.out if a.out != "tasks" else "tasks/hard"
-        st = generate_hard(out, a.holdout_out, a.start, a.count, a.holdout_frac, a.workers)
-        print(json.dumps({k: v for k, v in st.items() if k != "dropped_tasks"}, indent=2))
-        return 0 if st["accepted"] else 1
-    if a.report:
-        Path(a.report_md).write_text(render_report(a.report, a.refresh, a.dist), encoding="utf-8")
-        print(f"wrote {a.report_md}")
+    if a.combine is not None:
+        ms = [str(Path(d) / "manifest.jsonl") for d in a.combine]
+        print(f"wrote {a.manifest}: {combine(ms, a.manifest)} rows")
         return 0
     if a.pack:
         for p in pack_all(a.pack, a.dist):
-            print(f"wrote {p} ({os.path.getsize(p) / 1e6:.1f} MB, sha256 {_sha(p)[:16]})")
+            print(f"wrote {p} ({os.path.getsize(p) / 1e6:.1f} MB, sha256 {_sha(p)})")
         return 0
-    st = generate(a.out, a.start, a.count, a.holdout_frac, a.workers, a.dedupe_against)
+    from pcbenv.taskids import load_secret
+    secret = load_secret(a.secret, create=a.create_secret)
+    out = a.out or f"tasks/v2/{a.tier}"
+    if a.tier == "hard":
+        from pcbenv.generate_hard import generate_hard
+        st = generate_hard(out, a.holdout_out or f"{out}_holdout", a.start, a.count, a.holdout_frac, a.workers,
+                           secret=secret, private=a.private, tasks_root=a.tasks_root, dedupe_against=a.dedupe_against)
+    else:
+        st = generate(out, a.start, a.count, a.holdout_frac, a.workers, a.dedupe_against,
+                      holdout_out=a.holdout_out, secret=secret, private=a.private, tasks_root=a.tasks_root)
     print(json.dumps({k: v for k, v in st.items() if k not in ("per_type", "dropped_tasks")}, indent=2))
     return 0 if st["accepted"] else 1
 

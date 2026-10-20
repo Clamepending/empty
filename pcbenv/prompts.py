@@ -20,13 +20,32 @@ from pcbenv import design as D
 from pcbenv.drc import run_drc
 from pcbenv.golden import Golden
 from pcbenv.parts import PARTS
-from pcbenv.taskio import _UNITS, _fmt, render_task_md
+from pcbenv.taskio import _UNITS, _fmt, levels_txt, render_task_md
 
 HINT_LEVELS = ("explicit", "symptom", "vague")
 
 REDUCED_NOTE = ("_Connection details are intentionally not repeated here: wire each part as its datasheet in "
                 "`parts/` describes (pinout and application notes), so that the circuit does what the purpose, "
                 "interfaces and spec above require._")
+
+
+def _drop_empty_sections(lines: list[str]) -> list[str]:
+    """Remove markdown headings left with no content before the next heading of the same or a
+    higher level (after the connection bullets were dropped)."""
+    def level(line: str) -> int:
+        s = line.lstrip()
+        return len(s) - len(s.lstrip("#")) if s.startswith("#") and s.lstrip("#").startswith(" ") else 0
+    out = []
+    for i, line in enumerate(lines):
+        lv = level(line)
+        if lv:
+            j = i + 1
+            while j < len(lines) and not lines[j].strip():
+                j += 1
+            if j == len(lines) or 0 < level(lines[j]) <= lv:
+                continue
+        out.append(line)
+    return out
 
 
 def reduce_intent(intent: str) -> str:
@@ -44,6 +63,7 @@ def reduce_intent(intent: str) -> str:
         if s.startswith("Topology:"):
             continue
         out.append(line)
+    out = _drop_empty_sections(out)
     text, blank = [], False
     for line in out:
         if not line.strip():
@@ -86,7 +106,7 @@ def sim_symptoms(golden: Golden, design: dict) -> list[str]:
         elif t == "dc_voltage":
             out.append(f"Bench: {a['net_pin']} reads {m}, expected {_rng_txt(a)} (`{r.name}`).")
         elif t == "rise_time":
-            out.append(f"Scope: the edge on {a['net_pin']} takes {m} (10–90 %), spec allows {_rng_txt(a)} "
+            out.append(f"Scope: the edge on {a['net_pin']} takes {m} ({levels_txt(a)}), spec allows {_rng_txt(a)} "
                        f"(`{r.name}`).")
         elif t == "ac_gain":
             out.append(f"Network analyser: gain {a['in_pin']} → {a['out_pin']} at {_fmt(a['freq'], 'Hz')} is "
@@ -122,7 +142,7 @@ def erc_symptoms(design: dict) -> list[str]:
     return ["Schematic ERC reports " + ", ".join(f"{n}× {k}" for k, n in sorted(c.items())) + "."]
 
 
-def board_symptoms(golden: Golden, design: dict, board_path: str) -> list[str]:
+def board_symptoms(golden: Golden, design: dict, board_path: str, decoupling: bool = True) -> list[str]:
     out = []
     rp = {r: c["part"] for r, c in golden.design["components"].items()}
     info = boardnet.board_info(board_path, parts=rp)
@@ -138,7 +158,7 @@ def board_symptoms(golden: Golden, design: dict, board_path: str) -> list[str]:
     if "power_width" in codes:
         out.append("Layout review: a track on a net with a required minimum width (see the layout rules) is narrower "
                    "than that width.")
-    if "decoupling" in codes:
+    if "decoupling" in codes and decoupling:
         out.append("Layout review: a decoupling capacitor sits too far from the IC pin it decouples.")
     return out
 
@@ -159,11 +179,14 @@ def silent_symptom(ftype: str) -> str:
     return SILENT_SYMPTOMS.get(ftype, GENERIC_SILENT)
 
 
-def symptoms(golden: Golden, design: dict, board_path: str, silent_types: list[str]) -> list[str]:
+def symptoms(golden: Golden, design: dict, board_path: str, silent_types: list[str],
+             decoupling: bool = True) -> list[str]:
     """Measured symptoms of the faulted files + a bring-up observation for each fault that no
-    check except the hidden topology comparison would reveal (`silent_types`)."""
+    check except the hidden topology comparison would reveal (`silent_types`). `decoupling=False`
+    (hard tier without a visible placement fault): no decoupling-layout symptom, since there it
+    could only come from a latent fault."""
     out = sim_symptoms(golden, design) + erc_symptoms(design) + drc_symptoms(board_path)
-    out += board_symptoms(golden, design, board_path)
+    out += board_symptoms(golden, design, board_path, decoupling)
     for t in silent_types:
         s = silent_symptom(t)
         if s not in out:
@@ -281,9 +304,17 @@ def render_hard(golden: Golden, level: str, symptom_lines: list[str], full_inten
     from pcbenv.taskio import TOOLS_TEXT
     if level not in ("symptom", "vague"):
         raise ValueError(level)
+    from pcbenv.taskio import decoupling_lines
     g = golden if full_intent else replace(golden, intent=hard_intent(golden.intent))
-    text = render_task_md(g, problem_text(level, golden, [], symptom_lines))
-    text = text.replace("\n## Deliverable\n", "\n" + DESIGN_RULES_MD + "\n## Deliverable\n", 1)
+    text = render_task_md(g, problem_text(level, golden, [], symptom_lines), hard=True)
+    rules_md = DESIGN_RULES_MD
+    if golden.decoupling:
+        rules_md += ("\n**Decoupling** (graded as part of `layout`; `pcbtool` does not check it, `spec.json` lists it "
+                     "under `design_rules`): each capacitor's pad on the IC pin's net must reach that pin within the "
+                     "given length of copper path (shortest path along the net's tracks, vias and pads, pad centre to "
+                     "pad centre), and every pad of the capacitor must lie within the given straight-line distance "
+                     "of the pin:\n\n" + "\n".join(decoupling_lines(golden.decoupling)) + "\n")
+    text = text.replace("\n## Deliverable\n", "\n" + rules_md + "\n## Deliverable\n", 1)
     old = "- Grading is pass/fail: topology, consistency, DRC, ERC, spec, component values and layout "
     if old in text:
         text = text.replace(old, "- Grading is pass/fail: topology, consistency, DRC, ERC, spec, component values, "

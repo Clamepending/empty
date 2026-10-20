@@ -29,7 +29,10 @@ WHERE = {  # families to search for an applicable instance of each type
     "led_underrated": ["led_driver", "npn_switch"], "weak_base_drive": ["npn_switch"],
     "flyback_misplaced": ["nmos_switch", "npn_switch"], "connector_pin_swap": ["mcu_i2c", "nmos_switch"],
     "mcu_pin_swap": ["mcu_i2c"], "decap_swapped": ["ldo_reg"], "bias_wrong_rail": ["opamp_inv", "opamp_noninv"],
+    "pullup_wrong_rail": ["sys_sensor_node", "sys_clocked_mcu"], "decap_wrong_rail": ["ldo_reg"],
+    "protection_bypassed": ["sys_clocked_mcu", "sys_sensor_node"],
 }
+LATENT_FAILS = {"rules", "topology", "layout"}   # layout: the hard tier's decoupling design rule
 
 
 def _pcbtool(wd: str, *args: str) -> subprocess.CompletedProcess:
@@ -67,7 +70,7 @@ def latent_cases(tmp_path_factory):
         g, gb, d, b, rec = found
         td = root / f"task_{t}"
         taskio.write_task(td, g, gb, public_design=d, public_board=b, faults=[rec.to_dict()],
-                          extra_meta={"tier": "hard", "rules": R.rules_context(g)})
+                          extra_meta={"tier": "hard", "rules": R.rules_context(g)}, hard=True)
         (td / "public" / "tools.json").write_text(json.dumps({"mode": "full"}))
         out[t] = (str(td), g, rec)
     return out
@@ -88,7 +91,7 @@ def test_latent_valid_invisible_detected(latent_cases, ftype, tmp_path):
     assert "all local checks pass" in p.stdout
     r = verify(wd, td)
     failing = {k for k, v in {**r.gates, **r.checks}.items() if not v}
-    assert r.reward == 0.0 and failing and failing <= {"rules", "topology"}, (failing, r.detail)
+    assert r.reward == 0.0 and failing and failing <= LATENT_FAILS, (failing, r.detail)
     if "rules" in rec.data["detected_by"]:
         assert "rules" in failing
     if "topology" in rec.data["detected_by"]:
@@ -108,7 +111,8 @@ def _repair_with_pcbtool(wd: str, golden: dict, rec) -> None:
         if cur["value"] != c["value"]:
             assert _pcbtool(wd, "set-value", ref, c["value"]).returncode == 0
     for pin, (old, new) in sorted(rec.data.get("moves", {}).items()):
-        assert _pcbtool(wd, "connect", pin, old).returncode == 0
+        p = _pcbtool(wd, "connect", pin, old)
+        assert p.returncode == 0, p.stderr
         touched |= {old, new} - {None}
     for n in sorted(touched):
         _pcbtool(wd, "unroute", n)
@@ -157,29 +161,38 @@ def test_parts_prints_task_datasheet(latent_cases, tmp_path):
 # ------------------------------------------------------------------ hard generator
 def test_hard_generator_gates(tmp_path):
     from pcbenv.generate_hard import generate_hard
-    st = generate_hard(str(tmp_path / "hard"), str(tmp_path / "hold"), 200000, 6, 0.2, workers=2,
+    from pcbenv.faults.latent import missing_evidence
+    st = generate_hard(str(tmp_path / "hard"), str(tmp_path / "hold"), 0, 8, 0.2, workers=4,
                        log=lambda *_: None)
     assert st["accepted"] >= 4
     from pcbenv.generate import load_manifest
-    for e in load_manifest(tmp_path / "hard" / "manifest.jsonl"):
+    rows = load_manifest(tmp_path / "hard" / "manifest.jsonl") + load_manifest(tmp_path / "hold" / "manifest.jsonl")
+    assert len(rows) == st["accepted"]
+    for e in rows:
         g = e["gates"]
         assert g["golden"] == 1.0 and g["faulted"] == 0.0 and g["oracle_repair"] == 1.0 and g["all_faults_present"]
-        assert g["each_fault_detected"] == [0.0] * e["n_faults"]
-        assert 2 <= e["n_faults"] <= 4 and e["n_latent"] >= 1
+        assert g["each_fault_detected"] == [0.0] * e["n_faults"] and g["evidence_public"]
+        assert 3 <= e["n_faults"] <= 6 and e["n_latent"] >= 2 and "seed" not in e
         assert e["hint_level"] in ("symptom", "vague") and e["tools_mode"] in ("full", "no_autoroute")
         for a in e["alone"]:
             if a.get("latent"):
-                assert a["tool_visible"] == [] and set(a["failing"]) <= {"rules", "topology"}
+                assert a["tool_visible"] == [] and set(a["failing"]) <= LATENT_FAILS
         tdir = tmp_path / e["path"]
         meta = taskio.load_meta(tdir)
         assert meta["tier"] == "hard" and meta["rules"]["scenarios"]
         assert json.loads((tdir / "public" / "tools.json").read_text())["mode"] == e["tools_mode"]
         md = (tdir / "public" / "TASK.md").read_text()
         assert "## Design rules" in md and "does not check" in md
+        spec = json.loads((tdir / "public" / "spec.json").read_text())
+        assert spec["decoupling"] == [] and spec["design_rules"]["decoupling"] == meta["decoupling"]
+        text = "\n".join([md, json.dumps(spec)] + [f.read_text() for f in sorted((tdir / "public" / "parts").glob("*.md"))])
         for f in meta["faults"]:  # no fault names / details leak into the public prompt
             assert f["type"] not in md and f["detail"] not in md
-    # deterministic: same seeds, different worker count -> byte-identical task trees
-    generate_hard(str(tmp_path / "hard2"), str(tmp_path / "hold2"), 200000, 6, 0.2, workers=1, log=lambda *_: None)
+            if f["category"] == "latent":   # fairness: the evidence is public
+                assert not missing_evidence(f, text), (e["id"], f["type"])
+    assert st["composite_share"] >= 0.5
+    # deterministic: same indices, different worker count -> byte-identical task trees
+    generate_hard(str(tmp_path / "hard2"), str(tmp_path / "hold2"), 0, 8, 0.2, workers=2, log=lambda *_: None)
 
     def tree(*roots):
         return {f"{r.name}/{p.relative_to(r)}": p.read_bytes() for r in roots for p in sorted(r.rglob("*"))
@@ -191,7 +204,7 @@ def test_hard_generator_gates(tmp_path):
 
 # ------------------------------------------------------------------ v1 verdicts unchanged
 def _v1_sample(n: int = 50) -> list[Path]:
-    root = Path(ROOT) / "tasks" / "train"
+    root = Path(ROOT) / "tasks" / "v2" / "normal"
     if not root.is_dir():
         return []
     ids = sorted(p.name for p in root.iterdir() if (p / "hidden" / "meta.json").exists())
@@ -200,8 +213,9 @@ def _v1_sample(n: int = 50) -> list[Path]:
 
 @pytest.mark.parametrize("td", _v1_sample(), ids=lambda p: p.name)
 def test_v1_task_verdicts_unchanged(td, tmp_path):
+    """Normal-tier (v1-family) tasks never get the hard-tier `rules` check; shipped verdicts hold."""
     meta = taskio.load_meta(td)
-    assert "rules" not in meta and "tier" not in meta
+    assert "rules" not in meta and meta.get("tier") == "normal"
     r = verify(str(td / "public"), str(td))
     assert r.reward == 0.0 and "rules" not in r.checks
     wd = tmp_path / "oracle"

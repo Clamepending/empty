@@ -45,9 +45,11 @@ def validate(d: dict) -> None:
         value = c.get("value", "")
         if not isinstance(value, str):
             raise DesignError(f"{ref}: value must be a string")
+        if any(ord(ch) < 0x20 or ord(ch) == 0x7F for ch in value):
+            raise DesignError(f"{ref}: value contains control characters")
         if part.value_required:
             try:
-                if parse_value(value) <= 0:
+                if parse_value(value, c["part"]) <= 0:
                     raise DesignError(f"{ref}: value must be positive")
             except ValueError as e:
                 raise DesignError(f"{ref}: {e}") from None

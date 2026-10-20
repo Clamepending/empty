@@ -19,7 +19,7 @@ fresh temp workdir and graded by `verify_isolated` (one `python3 -I` subprocess 
 `workers` in parallel). Returns `[{"id", "reward", "gates", "checks", "error"}]` in input order.
 
 CLI:
-    python3 -m pcbenv.adapters.jsonl export --tasks tasks [--split train] --out train.jsonl
+    python3 -m pcbenv.adapters.jsonl export --tasks tasks [--split v2/normal] --out train.jsonl
     python3 -m pcbenv.adapters.jsonl score --tasks tasks --predictions preds.jsonl [--out scores.jsonl] [--workers 8]
 """
 from __future__ import annotations

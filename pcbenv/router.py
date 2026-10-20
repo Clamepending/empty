@@ -315,8 +315,10 @@ class Router:
         y, x = divmod(r, self.W)
         return L, self.x0 + x * self.p, self.y0 + y * self.p
 
-    def route_net(self, net: int, pad_ids: list[int], w: float) -> NetResult:
-        """Route one net connecting the pads `pad_ids` (indices into self.pads)."""
+    def route_net(self, net: int, pad_ids: list[int], w: float, first: list[int] | None = None) -> NetResult:
+        """Route one net connecting the pads `pad_ids` (indices into self.pads). `first`: pads (in
+        `pad_ids`) joined to the tree first, in this order (decoupling: IC pin, then its cap)."""
+        first_local = [pad_ids.index(i) for i in (first or []) if i in pad_ids]
         if len(pad_ids) < 2:
             return NetResult()
         lay, vb = self.blocked_maps(net, w)
@@ -333,6 +335,8 @@ class Router:
         cx = sum(pd.x for pd in pads) / len(pads)
         cy = sum(pd.y for pd in pads) / len(pads)
         start = min(range(len(pads)), key=lambda k: (math.hypot(pads[k].x - cx, pads[k].y - cy), k))
+        if first_local:
+            start = first_local[0]
         tree: list[int] = list(terms[start])
         tree_set = set(tree)
         connected = {start}
@@ -352,6 +356,9 @@ class Router:
                 if best is None or d < best[0]:
                     best = (d, k)
             k = best[1]
+            pending = [i for i in first_local if i not in connected]
+            if pending:
+                k = pending[0]
             tset = set(terms[k])
             hit = tset & tree_set
             if hit:  # pads overlap / already touched by the tree

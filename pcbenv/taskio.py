@@ -25,7 +25,7 @@ from pathlib import Path
 
 from pcbenv import design as D
 from pcbenv.golden import Golden
-from pcbenv.parts import PARTS
+from pcbenv.parts import PARTS, datasheet_text
 
 PUBLIC_FILES = ("design.json", "board.kicad_pcb")
 TOOLS_TEXT = """\
@@ -81,6 +81,12 @@ def _source_kind(s: dict) -> str:
     return f"{dc if dc is not None else 0} V DC source"
 
 
+def levels_txt(a: dict) -> str:
+    """'30-70 %' for a rise_time assertion's `levels` (default 10-90 %)."""
+    lo, hi = a.get("levels") or (0.1, 0.9)
+    return f"{lo * 100:.0f}-{hi * 100:.0f} %"
+
+
 def describe_assertion(a: dict) -> str:
     """One plain-English line for a spec assertion."""
     t = a.get("type")
@@ -95,7 +101,7 @@ def describe_assertion(a: dict) -> str:
     elif t == "cutoff":
         what = f"-3 dB frequency from {a['in_pin']} to {a['out_pin']}"
     elif t == "rise_time":
-        what = f"10-90 % transition time at {a['net_pin']}"
+        what = f"{levels_txt(a)} transition time at {a['net_pin']}"
     elif t == "analytic" and a.get("check") == "xtal_load":
         return (f"- `{a.get('name')}`: crystal {a['xtal']} effective load capacitance within "
                 f"±{a.get('tol', 0.1) * 100:.0f} % of its rated CL (stray {_fmt(a.get('cstray', 0), 'F')})")
@@ -123,16 +129,26 @@ def anchor_pin(pins: list[str]) -> str:
     return (conn or pins or [""])[0]
 
 
-def public_spec(golden: Golden) -> dict:
+def public_spec(golden: Golden, hard: bool = False) -> dict:
+    """spec.json. Hard tier: the decoupling rules move to `design_rules` (stated and graded, but
+    not run by `pcbtool`, like the other datasheet design rules)."""
     nets = golden.design["nets"]
-    return {
+    out = {
         "title": golden.design.get("title", ""),
         "assertions": golden.assertions,
         "power_nets": [{"net": n, "anchor_pin": anchor_pin(nets.get(n, [])), "min_width_mm": w}
                        for n, w in sorted(golden.power_nets.items())],
-        "decoupling": golden.decoupling,
+        "decoupling": [] if hard else golden.decoupling,
         "value_bounds": golden.value_bounds,
     }
+    if hard:
+        out["design_rules"] = {"decoupling": golden.decoupling}
+    return out
+
+
+def decoupling_lines(decoupling: list[dict]) -> list[str]:
+    return [f"- {d['cap']} within {d.get('max_path_mm', d['max_mm'])} mm of copper path of {d['ic_pin']} "
+            f"(and within {d['max_mm']} mm straight-line)" for d in decoupling]
 
 
 _VALUE_UNITS = {"R": "Ω", "C": "F", "L": "H"}
@@ -148,9 +164,9 @@ def value_bound_lines(design: dict, bounds: dict) -> list[str]:
     return out
 
 
-def render_task_md(golden: Golden, problem: str | None = None) -> str:
+def render_task_md(golden: Golden, problem: str | None = None, hard: bool = False) -> str:
     """TASK.md text. `problem` (markdown) describes the reported symptoms of a faulted task."""
-    spec = public_spec(golden)
+    spec = public_spec(golden, hard)
     lines = [f"# Task: {golden.design.get('title', golden.family)}", ""]
     if problem:
         lines += ["## Problem report", "", problem.strip(), ""]
@@ -167,8 +183,11 @@ def render_task_md(golden: Golden, problem: str | None = None) -> str:
         lines += ["", "Layout: every track of these nets must be at least the given width:", ""]
         lines += [f"- {p['net']} (the net of {p['anchor_pin']}): ≥ {p['min_width_mm']} mm" for p in spec["power_nets"]]
     if spec["decoupling"]:
-        lines += ["", "Decoupling: every pad of each capacitor within the given distance of the IC pin's pad:", ""]
-        lines += [f"- {d['cap']} within {d['max_mm']} mm of {d['ic_pin']}" for d in spec["decoupling"]]
+        lines += ["", "Decoupling: each capacitor's pad on the IC pin's net must reach the IC pin's pad within the given "
+                  "length of copper path (shortest path along that net's tracks, vias and pads, pad centre to pad "
+                  "centre; a cap wired to the pin the long way round does not decouple it), and every pad of the "
+                  "capacitor must lie within the given straight-line distance of the IC pin's pad:", ""]
+        lines += decoupling_lines(spec["decoupling"])
     if spec["value_bounds"]:
         lines += ["", "Component values: each value must lie in its acceptable range (inclusive; `value_bounds` in "
                   "`spec.json`). Ranges come from the datasheets and the design intent; values the assertions "
@@ -180,6 +199,9 @@ def render_task_md(golden: Golden, problem: str | None = None) -> str:
               "- Edit only `design.json` (the schematic of record) and `board.kicad_pcb` (the layout).",
               "- Do not add, remove or rename components; keep each component's part.",
               "- Keep the two files consistent: same connectivity, values and footprints on both.",
+              "- Values: `<number><SI prefix><unit>` such as `4.7k`, `100n`, `10kΩ`, `1meg`; unit letters, if any, "
+              "must match the part (R: Ω/ohm/R, C: F, L: H, crystal: Hz); no spaces or control characters inside "
+              "(full grammar: \"Value notation\" in `parts/R.md`, `parts/C.md`, ...).",
               "- Do not change the board outline, add zones, or add DRC exclusions.",
               "- Footprints must be unmodified library footprints from the part's allowed list "
               "(see `parts/<PART>.md`).",
@@ -197,7 +219,7 @@ def write_task(task_dir: str | os.PathLike, golden: Golden, golden_board: str,
                public_design: dict | None = None, public_board: str | None = None,
                faults: list[dict] | None = None, task_id: str | None = None, board_seed: int = 0,
                alt_partitions: list | None = None, difficulty: dict | None = None,
-               problem: str | None = None, extra_meta: dict | None = None) -> Path:
+               problem: str | None = None, extra_meta: dict | None = None, hard: bool = False) -> Path:
     """Write a complete task dir. Public design/board default to the golden ones."""
     root = Path(task_dir)
     pub, hid = root / "public", root / "hidden"
@@ -208,12 +230,12 @@ def write_task(task_dir: str | os.PathLike, golden: Golden, golden_board: str,
     pd = public_design if public_design is not None else golden.design
     D.save(pd, pub / "design.json")
     shutil.copyfile(public_board or golden_board, pub / "board.kicad_pcb")
-    (pub / "TASK.md").write_text(render_task_md(golden, problem), encoding="utf-8")
-    _write_json(pub / "spec.json", public_spec(golden))
+    (pub / "TASK.md").write_text(render_task_md(golden, problem, hard), encoding="utf-8")
+    _write_json(pub / "spec.json", public_spec(golden, hard))
     used = sorted({c["part"] for c in golden.design["components"].values()} |
                   {c["part"] for c in pd["components"].values() if c.get("part") in PARTS})
     for p in used:
-        (pub / "parts" / f"{p}.md").write_text(PARTS[p].datasheet, encoding="utf-8")
+        (pub / "parts" / f"{p}.md").write_text(datasheet_text(p), encoding="utf-8")
     D.save(golden.design, hid / "golden_design.json")
     shutil.copyfile(golden_board, hid / "golden_board.kicad_pcb")
     meta = {

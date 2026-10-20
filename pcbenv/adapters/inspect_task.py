@@ -64,7 +64,7 @@ def sample_dict(ref: api.TaskRef | str) -> dict:
     }
 
 
-def build_samples(tasks_root: str | os.PathLike = "tasks", split: str | None = "train",
+def build_samples(tasks_root: str | os.PathLike = "tasks", split: str | None = "v2/normal",
                   limit: int | None = None) -> list[dict]:
     return [sample_dict(r) for r in api.list_tasks(tasks_root, split=split)[:limit]]
 
@@ -129,7 +129,7 @@ def _scorer():
     return pcb_verifier()
 
 
-def pcb_repair(tasks_root: str = "tasks", split: str | None = "train", limit: int | None = None,
+def pcb_repair(tasks_root: str = "tasks", split: str | None = "v2/normal", limit: int | None = None,
                message_limit: int = 100, tool_timeout: int = 180, sandbox: str | None = None):
     """The Inspect Task. `sandbox` = path to a compose file (default docker/compose.inspect.yaml)."""
     _require_inspect()

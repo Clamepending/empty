@@ -5,25 +5,79 @@ datasheet is self-contained so an agent can solve tasks from the task folder alo
 """
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass, field
 from typing import Callable
 
 FOOTPRINT_ROOT = "/usr/share/kicad/footprints"
 
-_SI = {"p": 1e-12, "n": 1e-9, "u": 1e-6, "µ": 1e-6, "m": 1e-3, "": 1.0, "k": 1e3, "K": 1e3, "M": 1e6, "G": 1e9}
-_VALUE_RE = re.compile(r"^\s*([0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)\s*([pnuµmkKMG]?)\s*[a-zA-ZΩ]*\s*$")
+_SI = {"p": 1e-12, "n": 1e-9, "u": 1e-6, "µ": 1e-6, "μ": 1e-6, "m": 1e-3, "": 1.0, "k": 1e3, "K": 1e3,
+       "M": 1e6, "meg": 1e6, "MEG": 1e6, "Meg": 1e6, "G": 1e9}
+# number, optional SI prefix (mega also as SPICE "meg"), optional unit letters (checked per part below)
+_VALUE_RE = re.compile(r"(?P<num>(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][-+]?[0-9]+)?)"
+                       r"(?P<pre>meg|MEG|Meg|[pnuµμmkKMG])?(?P<unit>[A-Za-zΩΩ]*)")
+_OHM = ("", "Ω", "Ω", "ohm", "Ohm", "R")
+# unit letters a value may carry, by part (anything else is rejected, e.g. "100nH" on a capacitor)
+VALUE_UNITS: dict[str, tuple[str, ...]] = {"R": _OHM, "C": ("", "F"), "L": ("", "H"),
+                                           "XTAL": ("", "Hz"), "XTAL_CL18": ("", "Hz")}
+VALUE_GRAMMAR_MD = """\
+## Value notation (all parts)
+
+A value is `<number><SI prefix?><unit?>`, e.g. `4.7k`, `100n`, `2.2u`, `10R`, `1meg`, `1.5e3`:
+- number: digits with an optional decimal point and an optional exponent (`1e3`); no sign, no
+  digit grouping, no RKM notation (`4k7`);
+- SI prefix (case-sensitive): `p` `n` `u`/`µ`/`μ` (micro) `m` (milli) `k`/`K` `M`/`meg`/`MEG` (mega) `G`;
+  an exponent and a prefix together (`1e3k`) are rejected;
+- unit letters, optional, must match the part: R `Ω`/`ohm`/`Ohm`/`R`; C `F`; L `H`; crystals `Hz`;
+  other parts none (`100nH` on a capacitor is rejected);
+- no whitespace or control characters inside the value (leading/trailing spaces are ignored).
+
+design.json and the board must carry the same value; they are compared as numbers (`1k` == `1000`).
+"""
 
 
-def parse_value(s: str) -> float:
-    """Parse an SI value string ("4.7k", "100n", "10m", "1M", "2.2") to a float.
+def parse_value(s: str, part: str | None = None) -> float:
+    """Parse an SI value string ("4.7k", "100n", "10m", "1M", "1meg", "2.2", "10kΩ") to a float.
 
-    Trailing unit letters (F, H, Ohm, V) are ignored. Raises ValueError on garbage.
+    Grammar: see VALUE_GRAMMAR_MD. With `part`, unit letters must be one the part allows
+    (`VALUE_UNITS`); without it, any unit of any part is accepted. Raises ValueError otherwise.
     """
-    m = _VALUE_RE.match(s)
+    if not isinstance(s, str):
+        raise ValueError(f"bad value: {s!r}")
+    m = _VALUE_RE.fullmatch(s.strip(" "))
     if not m:
         raise ValueError(f"bad value: {s!r}")
-    return float(m.group(1)) * _SI[m.group(2)]
+    num, pre, unit = m.group("num"), m.group("pre") or "", m.group("unit")
+    if pre and ("e" in num or "E" in num):
+        raise ValueError(f"bad value: {s!r} (exponent and SI prefix together)")
+    allowed = VALUE_UNITS.get(part, ("",)) if part is not None else {u for us in VALUE_UNITS.values() for u in us}
+    if unit not in allowed:
+        raise ValueError(f"bad value: {s!r} (unit {unit!r} not allowed"
+                         + (f" for part {part})" if part is not None else ")"))
+    x = float(num) * _SI[pre]
+    if not math.isfinite(x):
+        raise ValueError(f"bad value: {s!r} (not finite)")
+    return x
+
+
+def values_equal(a: str, b: str, part: str | None = None) -> bool:
+    """Same value on board and design: equal strings, or both parse (for `part`) to the same number."""
+    if a == b:
+        return True
+    try:
+        x, y = parse_value(a, part), parse_value(b, part)
+    except ValueError:
+        return False
+    return abs(x - y) <= 1e-9 * max(abs(x), abs(y))
+
+
+def datasheet_text(name: str) -> str:
+    """Datasheet as written into a task's `parts/<PART>.md`: the part's datasheet, plus the value
+    notation section for parts that carry a value."""
+    part = PARTS[name]
+    text = part.datasheet.rstrip() + "\n"
+    return text + ("\n" + VALUE_GRAMMAR_MD if part.value_required else "")
 
 
 def format_value(x: float) -> str:

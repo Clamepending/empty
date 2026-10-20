@@ -2,7 +2,7 @@
 
 ```python
 env = PcbRepairEnv(max_steps=40)
-obs = env.reset("tasks/train/<id>")        # {"task_md", "files", "workdir"}
+obs = env.reset("tasks/v2/normal/<id>")        # {"task_md", "files", "workdir"}
 obs, reward, terminated, truncated, info = env.step({"tool": "pcbtool", "args": ["check"]})
 obs, reward, terminated, truncated, info = env.step({"tool": "bash", "cmd": "cat design.json"})
 obs, reward, terminated, truncated, info = env.step({"tool": "submit"})   # grades, ends the episode

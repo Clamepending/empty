@@ -120,7 +120,7 @@ def _verify(workdir: str, task_dir: str, td: str) -> VerifyResult:
 
     from pcbenv import boardnet, drc, erc, layout, sim
     from pcbenv import design as D
-    from pcbenv.parts import PARTS
+    from pcbenv.parts import PARTS, values_equal
 
     res = VerifyResult(0.0)
     meta, gdesign, gboard_path = _hidden(task_dir)
@@ -205,7 +205,7 @@ def _verify(workdir: str, task_dir: str, td: str) -> VerifyResult:
     if info.partition != dpart:
         msgs.append("board connectivity != design.json: " + _partition_diff(info.partition, dpart))
     for ref in sorted(comps):
-        if ref in info.values and info.values[ref] != comps[ref].get("value", ""):
+        if ref in info.values and not values_equal(info.values[ref], comps[ref].get("value", ""), comps[ref]["part"]):
             msgs.append(f"{ref}: board value {info.values[ref]!r} != design value {comps[ref].get('value', '')!r}")
     _fail(res, "consistency", msgs, True)
 

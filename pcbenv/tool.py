@@ -188,7 +188,8 @@ def _consistency(d: dict, info) -> list[str]:
         if ref not in info.footprints:
             out.append(f"{ref}: missing on board")
             continue
-        if info.values[ref] != c.get("value", ""):
+        from pcbenv.parts import values_equal
+        if not values_equal(info.values[ref], c.get("value", ""), c.get("part")):
             out.append(f"{ref}: value design {c.get('value', '')!r} vs board {info.values[ref]!r}")
         if info.footprints[ref] != c["footprint"]:
             out.append(f"{ref}: footprint design {c['footprint']} vs board {info.footprints[ref]}")
@@ -280,14 +281,15 @@ def cmd_parts(a) -> int:
             return 1
         # the task's own copy of the datasheet (hard-tier tasks add a ratings section); identical to
         # the library text for v1 tasks
+        from pcbenv.parts import datasheet_text
         local = os.path.join(_wd(), "parts", f"{p.name}.md")
-        text = p.datasheet
+        text = datasheet_text(p.name)
         if os.path.isfile(local) and not os.path.islink(local) and os.path.getsize(local) < 200_000:
             try:
                 with open(local, encoding="utf-8") as f:
                     text = f.read()
             except (OSError, UnicodeDecodeError):
-                text = p.datasheet
+                text = datasheet_text(p.name)
         print(text.rstrip())
         print("\n## Pins (pcbenv)\n| Pin | Pad | Type | Required |\n|---|---|---|---|")
         for n, i in p.pins.items():
@@ -502,8 +504,31 @@ def _default_width(d: dict, net: str) -> float:
     return drc.RULES["default_track_width"]
 
 
-def route_net(board, net: str, width: float) -> tuple[int, int]:
-    """Rip up `net` and route it among all other copper. Returns (segments, vias) added."""
+def decap_first(router_pads, code: int, decoupling: list[dict] | None, parts: dict[str, str] | None) -> list[int]:
+    """Router pad indices to join first on net `code`: each decoupling rule's IC pin, then its cap's
+    pad on that net (keeps the cap's copper path to the pin short)."""
+    from pcbenv.parts import PARTS
+    key_idx = {g.key: i for i, g in enumerate(router_pads)}
+    out: list[int] = []
+    for dc in decoupling or []:
+        ref, pin = str(dc.get("ic_pin", ".")).split(".", 1)
+        part = PARTS.get((parts or {}).get(ref, ""))
+        if part is None or pin not in part.pins:
+            continue
+        ip = key_idx.get(f"{ref}.{part.pins[pin].pad}")
+        if ip is None or router_pads[ip].net != code:
+            continue
+        cps = [key_idx[k] for k in (f"{dc.get('cap')}.1", f"{dc.get('cap')}.2")
+               if k in key_idx and router_pads[key_idx[k]].net == code]
+        if cps:
+            out += [i for i in (ip, cps[0]) if i not in out]
+    return out
+
+
+def route_net(board, net: str, width: float, decoupling: list[dict] | None = None,
+              parts: dict[str, str] | None = None) -> tuple[int, int]:
+    """Rip up `net` and route it among all other copper. Returns (segments, vias) added.
+    `decoupling` rules (spec.json) + `parts` (ref -> part): their caps are joined right after the IC pin."""
     import pcbnew
 
     from pcbenv import board as B
@@ -541,11 +566,19 @@ def route_net(board, net: str, width: float) -> tuple[int, int]:
     if len(mine) < 2:
         return 0, 0
     try:
-        res = router.route_net(code, mine, max(width, R["track_min"]))
+        res = router.route_net(code, mine, max(width, R["track_min"]), decap_first(router.pads, code, decoupling, parts))
     except RouteError as e:
         raise ToolError(f"routing failed: {e} (move parts or unroute blocking nets, then retry)") from None
     B.add_copper(board, SimpleNamespace(segs=res.segs, vias=res.vias))
     return len(res.segs), len(res.vias)
+
+
+def _spec_decoupling() -> list[dict]:
+    try:
+        sp = load_spec()
+        return list(sp.get("decoupling", [])) + list((sp.get("design_rules") or {}).get("decoupling", []))
+    except Exception:  # noqa: BLE001 - no / unreadable spec.json: plain routing
+        return []
 
 
 def cmd_route(a) -> int:
@@ -555,7 +588,7 @@ def cmd_route(a) -> int:
     d = load_design()
     board = load_board()
     width = a.width if a.width is not None else _default_width(d, a.net)
-    ns, nv = route_net(board, a.net, width)
+    ns, nv = route_net(board, a.net, width, _spec_decoupling(), part_map(d))
     save_both(d, board)
     print(f"routed net {a.net} at {width} mm: {ns} segments, {nv} vias")
     return 0

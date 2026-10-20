@@ -16,7 +16,7 @@ from pcbenv.adapters.gym_like import anthropic_style_tools, tool_call_to_action,
 
 tools = anthropic_style_tools()                       # or openai_style_tools()
 with PcbRepairEnv(max_steps=40) as env:
-    obs = env.reset("tasks/train/<task_id>")
+    obs = env.reset("tasks/v2/normal/<task_id>")
     prompt = obs["task_md"]                           # first user message
     done = False
     while not done:

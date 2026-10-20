@@ -189,6 +189,16 @@ def check_bounds(design: dict, bounds: dict[str, list[float]]) -> None:
             raise ValueError(f"golden {ref}={c['value']} outside its bound {bounds[ref]}")
 
 
+# decoupling: allowed copper path cap pad -> IC pin (RT31; max_mm stays the straight-line limit).
+# Small v1 boards 6 mm, dense composite boards (several ICs on one rail) 8 mm.
+MAX_PATH_MM = 6.0
+MAX_PATH_MM_COMPOSITE = 8.0
+
+
+def with_path_limit(decoupling: list[dict], limit: float = MAX_PATH_MM) -> list[dict]:
+    return [dict(dc, max_path_mm=dc.get("max_path_mm", limit)) for dc in decoupling]
+
+
 def golden(family: str, seed: int, b: Builder, assertions: list[dict], power_nets: dict[str, float],
            decoupling: list[dict], intent: str, params: dict, big: bool = False,
            value_bounds: dict[str, list[float]] | None = None) -> Golden:
@@ -199,6 +209,7 @@ def golden(family: str, seed: int, b: Builder, assertions: list[dict], power_net
     limits = getattr(value_bounds, "limits", None)
     if limits:
         params = dict(params, datasheet_limits={k: list(v) for k, v in sorted(limits.items())})
+    decoupling = with_path_limit(decoupling)
     return Golden(family=family, seed=seed, design=design, assertions=assertions, power_nets=power_nets,
                   decoupling=decoupling, intent=intent.strip() + "\n", params=params, board_w_mm=w, board_h_mm=h,
                   value_bounds=vb)

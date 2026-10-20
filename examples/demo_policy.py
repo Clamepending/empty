@@ -11,7 +11,7 @@ It solves single value faults; anything else (topology, footprint, layout faults
 unfixed and scores 0 -- it is a demo of the plumbing, not a baseline.
 
     python3 examples/demo_policy.py --make-demo /tmp/pcb_demo      # build a value-fault task, solve it
-    python3 examples/demo_policy.py tasks/train/<task_id> [...] --transcript runs/demo.jsonl
+    python3 examples/demo_policy.py tasks/v2/normal/<task_id> [...] --transcript runs/demo.jsonl
 """
 from __future__ import annotations
 

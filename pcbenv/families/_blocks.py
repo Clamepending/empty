@@ -92,7 +92,7 @@ class Composite:
         return d
 
     def golden(self, intent_head: str, board: tuple[float, float]) -> Golden:
-        from pcbenv.families._common import check_bounds, parts_summary
+        from pcbenv.families._common import MAX_PATH_MM_COMPOSITE, check_bounds, parts_summary, with_path_limit
         design = self.b.design()
         vb = {k: list(v) for k, v in sorted(self.vb.out.items())}
         check_bounds(design, vb)
@@ -113,7 +113,7 @@ class Composite:
         if self.vb.limits:
             self.params["datasheet_limits"] = {k: list(v) for k, v in sorted(self.vb.limits.items())}
         return Golden(family=self.family, seed=self.seed, design=design, assertions=self.assertions,
-                      power_nets=dict(sorted(self.power_nets.items())), decoupling=self.decoupling, intent=intent,
+                      power_nets=dict(sorted(self.power_nets.items())), decoupling=with_path_limit(self.decoupling, MAX_PATH_MM_COMPOSITE), intent=intent,
                       params=self.params, board_w_mm=float(board[0]), board_h_mm=float(board[1]), value_bounds=vb)
 
 

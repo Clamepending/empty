@@ -5,7 +5,7 @@
     export ANTHROPIC_API_KEY=...              # or `ant auth login`; never hard-code keys
     python3 examples/run_with_claude.py MODEL_ID --tasks tasks --split train --limit 5 \
         --transcript runs/claude.jsonl
-    python3 examples/run_with_claude.py MODEL_ID tasks/train/<task_id>
+    python3 examples/run_with_claude.py MODEL_ID tasks/v2/normal/<task_id>
 
 Built on `pcbenv.adapters.rollout.run_agent` (episode loop + JSONL calibration log) and
 `gym_like.anthropic_style_tools()` (bash / pcbtool / submit tool definitions). The assistant's
@@ -94,7 +94,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("model", help="Anthropic model id, e.g. claude-opus-5-5")
     ap.add_argument("task_dirs", nargs="*")
     ap.add_argument("--tasks", help="tasks root (uses manifest.jsonl if present)")
-    ap.add_argument("--split", default="train")
+    ap.add_argument("--split", default="v2/normal", help="manifest split, e.g. v2/normal or v2/hard")
     ap.add_argument("--limit", type=int)
     ap.add_argument("--max-steps", type=int, default=50)
     ap.add_argument("--max-tokens", type=int, default=16000)

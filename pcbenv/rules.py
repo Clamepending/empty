@@ -145,7 +145,8 @@ for _c in ("CONN2", "CONN3", "CONN4"):
 
 def hard_datasheet(part: str) -> str:
     """Datasheet text for hard-tier tasks: the v1 datasheet + the ratings / design-rule addendum."""
-    base = PARTS[part].datasheet.rstrip() + "\n"
+    from pcbenv.parts import datasheet_text
+    base = datasheet_text(part).rstrip() + "\n"
     add = ADDENDA.get(part, "")
     return base + ("\n" + add if add else "")
 

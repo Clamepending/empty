@@ -14,3 +14,10 @@ redteam/_tasks/
 /tasks/refresh-*/holdout/
 /tasks/refresh-*/_staging/
 runs/
+# v2 (see reports/v2_generation.md): task dirs ship as dist/pcb-repair-v2-*.tar.gz + tasks/manifest.jsonl;
+# the generation secret and the private manifests (seeds) never leave this machine
+/tasks/.secret
+/tasks/private/
+/tasks/v2/*/pcbr2-*/
+/tasks/v2/*/_staging/
+/tasks/refresh-v2/

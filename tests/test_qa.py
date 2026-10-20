@@ -41,18 +41,18 @@ def test_build_deterministic(built):
 def test_never_holdout(built):
     a, _, sa, _ = built
     holdout = {json.loads(l)["id"] for l in MANIFEST.read_text().splitlines() if l.strip()
-               and json.loads(l)["split"] != "train"}
+               and qa.is_holdout_row(json.loads(l))}
     assert holdout, "manifest has holdout tasks to exclude"
     assert not {s["id"] for s in sa} & holdout
     rows = qa.load_train_rows(MANIFEST, TASKS)
     assert not {r["id"] for r in rows} & holdout
-    assert all((TASKS / "train" / r["id"]).is_dir() for r in rows)
+    assert all(qa.task_dir_of(TASKS, r).is_dir() and "holdout" not in r["split"] for r in rows)
     text = "".join(p.read_text() for p in (a / "packets").rglob("README.md"))
-    assert "tasks/holdout" not in text and not any(h in text for h in holdout)
+    assert "holdout/" not in text and not any(h in text for h in holdout)
 
 
 def test_build_packet_refuses_holdout(tmp_path):
-    fake = tmp_path / "tasks" / "holdout" / "pcbr-x-0-0"  # never touches the real holdout split
+    fake = tmp_path / "tasks" / "v2" / "normal_holdout" / "pcbr2-normal-00000000"  # never the real holdout split
     fake.mkdir(parents=True)
     with pytest.raises(ValueError):
         qa.build_packet({"id": fake.name, "family": "x", "faults": []}, fake, tmp_path / "out", 1, [])
@@ -63,7 +63,8 @@ def test_readme_contains_task_md_verbatim_and_verdicts(built):
     for s in sa:
         p = a / "packets" / s["packet"]
         readme = (p / "README.md").read_text(encoding="utf-8")
-        task_md = (TASKS / "train" / s["id"] / "public" / "TASK.md").read_text(encoding="utf-8")
+        row = next(r for r in qa.load_train_rows(MANIFEST, TASKS) if r["id"] == s["id"])
+        task_md = (qa.task_dir_of(TASKS, row) / "public" / "TASK.md").read_text(encoding="utf-8")
         assert task_md.rstrip("\n") in readme
         assert "Reviewer-only" in readme and "### 2.3 Verifier verdicts" in readme
         assert s["faulted_reward"] == 0.0 and s["golden_reward"] == 1.0
@@ -111,7 +112,7 @@ def test_tally_pending_partial_complete(built, tmp_path):
 
 def test_selection_stratified_and_overweights_ambiguity():
     rows = qa.load_train_rows(MANIFEST, TASKS)
-    metas = {r["id"]: json.loads((TASKS / "train" / r["id"] / "hidden" / "meta.json").read_text()) for r in rows}
+    metas = {r["id"]: json.loads((qa.task_dir_of(TASKS, r) / "hidden" / "meta.json").read_text()) for r in rows}
     ch = qa.select_tasks(rows, metas, 100, 7)
     assert len({r["id"] for r in ch}) == 100
     assert {r["family"] for r in ch} == {r["family"] for r in rows}

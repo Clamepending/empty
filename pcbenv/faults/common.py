@@ -210,7 +210,8 @@ def reroute(board, golden: Golden, nets: list[str], tries: int = 4) -> None:
             if len(pads_of_net(board, n)) < 2:
                 continue
             try:
-                route_net(board, n, net_width(golden, n))
+                route_net(board, n, net_width(golden, n), golden.decoupling,
+                          {r: c["part"] for r, c in golden.design["components"].items()})
             except ToolError as e:
                 failed, last = n, str(e)
                 break

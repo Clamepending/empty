@@ -2,13 +2,13 @@
 
 ```python
 from pcbenv import api
-tasks = api.list_tasks("tasks", split="train")          # [TaskRef, ...]
+tasks = api.list_tasks("tasks", split="v2/normal")      # [TaskRef, ...] (splits: v2/normal, v2/hard, ...)
 task = api.load_task(tasks[0].path)                       # public view: TASK.md, spec, file list
 with api.PcbRepairEnv(max_steps=40) as env:               # gym-like episode (see harness.py)
     obs = env.reset(task.path)
     ...
 res = api.verify(workdir, tasks[0].path)                  # VerifyResult(reward 0/1, gates, checks)
-api.extract_tasks("dist/pcb-repair-train.tar.gz", "tasks")  # safe tarball extraction
+api.extract_tasks("dist/pcb-repair-v2-normal.tar.gz", "tasks")  # safe tarball extraction
 ```
 Names in `__all__` are the stable surface (semver, see docs/VERSIONING.md); anything else in
 `pcbenv` may change between minor versions.

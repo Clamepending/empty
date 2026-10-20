@@ -96,7 +96,7 @@ def value_violations(design: dict, bounds: dict) -> list[str]:
             continue
         raw = c.get("value", "")
         try:
-            x = parse_value(raw)
+            x = parse_value(raw, c.get("part"))
         except Exception:  # noqa: BLE001
             x = float("nan")
         if not (math.isfinite(x) and lo * (1 - 1e-9) <= x <= hi * (1 + 1e-9)):

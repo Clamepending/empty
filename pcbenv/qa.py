@@ -3,8 +3,8 @@
     python3 -m pcbenv.qa build --n 100 --out qa/packets --seed 7 [--workers 4]
     python3 -m pcbenv.qa tally qa/packets
 
-Only TRAIN tasks are ever used (manifest `split == "train"` AND the dir lives under
-`tasks/train/`); holdout tasks are refused. A packet is `<out>/<nn>-<task_id>/`:
+Only TRAIN tasks are ever used (manifest row not holdout AND no path part of the task dir contains
+"holdout", e.g. `tasks/v2/normal/` or `tasks/v2/hard/`); holdout tasks are refused. A packet is `<out>/<nn>-<task_id>/`:
 
 - `README.md`   TASK.md verbatim (what the agent sees) + reviewer-only section (faults, reference
                 fix as a diff, verifier verdicts on faulted and golden files, spec assertions
@@ -64,17 +64,27 @@ notes: ""
 
 
 # ====================================================================== task selection
+def is_holdout_row(r: dict) -> bool:
+    return bool(r.get("holdout")) or "holdout" in str(r.get("split", ""))
+
+
+def task_dir_of(tasks_root: Path, r: dict) -> Path:
+    """`tasks_root/<split>/<id>` (v2 splits are paths such as `v2/normal`)."""
+    return tasks_root / str(r.get("split", "")) / r["id"]
+
+
 def load_train_rows(manifest: Path, tasks_root: Path) -> list[dict]:
-    """Manifest rows of TRAIN tasks whose directory exists under `tasks_root/train`."""
+    """Manifest rows of TRAIN (non-holdout) tasks whose directory exists under `tasks_root/<split>`
+    (v1: split `train`; v2: `v2/normal`, `v2/hard`)."""
     rows = []
     for line in manifest.read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
         r = json.loads(line)
-        if r.get("split") != "train":
+        if is_holdout_row(r):
             continue
-        d = tasks_root / "train" / r["id"]
-        if (tasks_root / "holdout" / r["id"]).exists() or not d.is_dir():
+        d = task_dir_of(tasks_root, r)
+        if not d.is_dir() or any("holdout" in part for part in d.resolve().parts):
             continue
         rows.append(r)
     return sorted(rows, key=lambda r: r["id"])
@@ -650,7 +660,7 @@ def _verdict_table(fres: dict, gres: dict) -> list[str]:
 def build_packet(row: dict, task_dir: Path, out_dir: Path, nn: int, reasons: list[str], width: int = 2) -> dict:
     """Write one packet dir. Returns a summary row for the index."""
     task_dir = Path(task_dir)
-    if "holdout" in task_dir.resolve().parts:
+    if any("holdout" in part for part in task_dir.resolve().parts):
         raise ValueError(f"refusing holdout task {task_dir}")
     meta = json.loads((task_dir / "hidden" / "meta.json").read_text(encoding="utf-8"))
     fdesign = json.loads((task_dir / "public" / "design.json").read_text(encoding="utf-8"))
@@ -753,7 +763,7 @@ def build_packet(row: dict, task_dir: Path, out_dir: Path, nn: int, reasons: lis
         L += ["", "### 2.6 Layout rules", ""]
         L += [f"- power net `{n}` (golden pins {', '.join(meta.get('power_net_pins', {}).get(n, []))}): "
               f"every track ≥ {w} mm" for n, w in sorted(pn.items())]
-        L += [f"- decoupling: `{d['cap']}` within {d['max_mm']} mm of `{d['ic_pin']}`" for d in dc]
+        L += [f"- decoupling: `{d['cap']}` within {d.get('max_path_mm', d['max_mm'])} mm of copper path (and {d['max_mm']} mm straight-line) of `{d['ic_pin']}`" for d in dc]
     if meta.get("alt_partitions"):
         L += ["", f"Alternative accepted topologies: {len(meta['alt_partitions'])} (see meta.json)."]
     L += ["", "## 3. Review", "",
@@ -840,16 +850,16 @@ def render_index(summaries: list[dict], n: int, seed: int) -> str:
 def build(n: int, out: Path, seed: int, manifest: Path, tasks_root: Path, workers: int = 4,
           index: Path | None = None) -> list[dict]:
     rows = load_train_rows(manifest, tasks_root)
-    metas = {r["id"]: json.loads((tasks_root / "train" / r["id"] / "hidden" / "meta.json").read_text())
+    metas = {r["id"]: json.loads((task_dir_of(tasks_root, r) / "hidden" / "meta.json").read_text())
              for r in rows}
     chosen = select_tasks(rows, metas, n, seed)
     chosen.sort(key=lambda r: (r["family"], r["id"]))
     out.mkdir(parents=True, exist_ok=True)
     for old in out.iterdir():
-        if old.is_dir() and re.match(r"\d\d+-pcbr-", old.name):
+        if old.is_dir() and re.match(r"\d\d+-pcbr2?-", old.name):
             shutil.rmtree(old)
     width = max(2, len(str(len(chosen))))
-    jobs = [(r, str(tasks_root / "train" / r["id"]), str(out), i + 1, task_features(r, metas[r["id"]])["reasons"], width)
+    jobs = [(r, str(task_dir_of(tasks_root, r)), str(out), i + 1, task_features(r, metas[r["id"]])["reasons"], width)
             for i, r in enumerate(chosen)]
     if workers > 1 and len(jobs) > 1:
         import multiprocessing as mp

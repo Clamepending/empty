@@ -330,6 +330,21 @@ def route_board(board: "pcbnew.BOARD", golden: Golden, netcodes: dict[str, int],
         return (max(p.x for p in ps) - min(p.x for p in ps)) + (max(p.y for p in ps) - min(p.y for p in ps))
 
     order = sorted((c for c in net_pads if len(net_pads[c]) >= 2), key=lambda c: (span(c), c))
+    # decoupling (RT31): the cap is joined right after its IC pin, so the copper path stays short
+    key_idx = {g.key: i for i, g in enumerate(router.pads)}
+    first: dict[int, list[int]] = {}
+    for dc in golden.decoupling:
+        ref, pin = dc["ic_pin"].split(".", 1)
+        part = PARTS[golden.design["components"][ref]["part"]]
+        ip = key_idx.get(f"{ref}.{part.pins[pin].pad}")
+        if ip is None or router.pads[ip].net <= 0:
+            continue
+        code = router.pads[ip].net
+        cps = [key_idx[k] for k in (f"{dc['cap']}.1", f"{dc['cap']}.2") if k in key_idx
+               and router.pads[key_idx[k]].net == code]
+        if cps:
+            first.setdefault(code, [])
+            first[code] += [i for i in (ip, cps[0]) if i not in first[code]]
     last_err = None
     for _ in range(max_orders):
         if time.monotonic() > deadline:
@@ -338,7 +353,7 @@ def route_board(board: "pcbnew.BOARD", golden: Golden, netcodes: dict[str, int],
         failed = None
         for code in order:
             try:
-                router.route_net(code, net_pads[code], widths[code])
+                router.route_net(code, net_pads[code], widths[code], first.get(code))
             except RouteError as e:
                 failed, last_err = code, e
                 break
@@ -450,6 +465,18 @@ def canonical_board_file(path: str, salt: str) -> None:
     canonicalize_uuids(path, salt)
 
 
+def _long_decap_paths(board: "pcbnew.BOARD", golden: Golden, margin: float = 0.9) -> list[str]:
+    """Decoupling caps whose copper path to the IC pin exceeds `margin` x the allowed length."""
+    from pcbenv.layout import decoupling_path_mm, max_path_mm
+    rp = {r: c["part"] for r, c in golden.design["components"].items()}
+    out = []
+    for dc in golden.decoupling:
+        d = decoupling_path_mm(board, dc["cap"], dc["ic_pin"], rp)
+        if d is None or d > margin * max_path_mm(dc):
+            out.append(f"{dc['cap']}->{dc['ic_pin']} {d if d is None else round(d, 2)}")
+    return out
+
+
 def build_board(golden: Golden, out_path: str, seed: int, pitch: float = 0.1,
                 time_budget_s: float = 60.0) -> dict:
     """Build, route, DRC-check and save. Returns build stats. Raises BuildError."""
@@ -473,6 +500,10 @@ def build_board(golden: Golden, out_path: str, seed: int, pitch: float = 0.1,
             errors.append(f"attempt {attempt}: {e}")
             continue
         add_copper(board, router)
+        long_decaps = _long_decap_paths(board, golden)
+        if long_decaps:
+            errors.append(f"attempt {attempt}: decoupling copper path too long: {long_decaps}")
+            continue
         with tempfile.TemporaryDirectory(prefix="pcbbuild_") as td:
             tmp = os.path.join(td, "board.kicad_pcb")
             if not pcbnew.SaveBoard(tmp, board, True):

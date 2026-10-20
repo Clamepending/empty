@@ -26,7 +26,19 @@ Types
 - decap_swapped         two decoupling caps on different rails exchange rails while sitting at
                         their (public) IC pins                                                    [topology]
 - bias_wrong_rail       a bias / bypass / reset part returned to the supply instead of GND where
-                        DC and AC behaviour do not change (VMID bypass, input bias R, NRST cap)  [topology]
+                        DC and AC behaviour do not change (VMID bypass, input bias R, NRST cap,
+                        anti-alias cap of an ADC divider)                                        [topology]
+- pullup_wrong_rail     an MCU I/O pull-up (I2C) returned to the higher input rail instead of the
+                        MCU's rail: the line idles above VDD (abs max)                           [rules+topology]
+- decap_wrong_rail      a decoupling cap next to its IC pin but wired to another rail            [topology+layout]
+- protection_bypassed   the series reverse-polarity Schottky bypassed (its cathode net merged into
+                        the raw input): every on-state sim still passes                          [topology]
+
+Hard tier (v2): the decoupling rules are stated in TASK.md / spec.json `design_rules` but not run
+by pcbtool, so `decap_swapped` / `decap_wrong_rail` are graded by the verifier's layout check (copper
+path from the cap pad to the named IC pin) and the topology gate. `evidence_groups` lists the
+public text that makes each fault deducible; the hard generator drops a task whose public files
+miss any of it.
 """
 from __future__ import annotations
 
@@ -50,14 +62,14 @@ from pcbenv.parts import PARTS, format_value, parse_value
 # ------------------------------------------------------------------ tool-equivalent checks
 def visible_failures(golden: Golden, design: dict, board_path: str) -> list[str]:
     """Everything `pcbtool check` would report for (design, board) in a task made from `golden`
-    (spec.json = taskio.public_spec(golden)). Empty list = the tool sees nothing wrong."""
+    (spec.json = taskio.public_spec(golden, hard=True)). Empty list = the tool sees nothing wrong."""
     from pcbenv import taskio, tool
     out: list[str] = []
     try:
         D.validate(design)
     except D.DesignError as e:
         return [f"design invalid: {e}"]
-    spec = taskio.public_spec(golden)
+    spec = taskio.public_spec(golden, hard=True)
     board = load_board(board_path)
     info = boardnet.board_info(board, design=design)
     out += [f"consistency: {m}" for m in tool._consistency(design, info)]
@@ -139,10 +151,15 @@ def _swap_footprints_on_board(golden: Golden, board_path: str, fps: dict[str, st
         shutil.copyfile(tmp, board_path)
 
 
+_WANT: list[str | None] = [None]   # apply_latent(want=...): only the candidate with this description
+
+
 def _realise(lt: LatentType, golden: Golden, design: dict, board_path: str, rng: random.Random, exclude: set[str],
              salt: str, cands: list[Cand], ctx: dict) -> FaultRecord | None:
     cands = list(cands)
     rng.shuffle(cands)
+    if _WANT[0] is not None:
+        cands = [c for c in cands if c.desc == _WANT[0]]
     base_rules = {(v.code, v.detail) for v in rules.run_rules(design, ctx)}
     for c in cands:
         d2 = copy_design(design)
@@ -320,14 +337,37 @@ def _decap_swapped(lt, golden, design, board_path, rng, exclude, salt, ctx):
     return _realise(lt, golden, design, board_path, rng, exclude, salt, cands, ctx)
 
 
+def input_rails(design: dict) -> set[str]:
+    """Nets carrying the raw / protected input supply: J1.1's net, the cathode net of a series
+    Schottky fed from it (composites: VIN_RAW -> D -> VIN), and every LDO VIN net."""
+    gnd = net_of(design, "J1.2")
+    raw = net_of(design, "J1.1")
+    out = {raw}
+    for d in _comps(design, "D_SCHOTTKY"):
+        if raw is not None and net_of(design, f"{d}.A") == raw:
+            out.add(net_of(design, f"{d}.K"))
+    out |= {net_of(design, f"{u}.VIN") for u in _comps(design, "LDO_ADJ")}
+    return out - {None, gnd}
+
+
+def supply_rails(design: dict) -> set[str]:
+    """Every supply net: the input rails plus the nets of IC supply pins (LDO VOUT, MCU VDD,
+    op-amp V+). J1.1 alone is not "the" supply on composites (VIN_RAW sits before a protection
+    diode and the logic runs from an LDO rail)."""
+    gnd = net_of(design, "J1.2")
+    out = set(input_rails(design))
+    for u, pins in (("MCU8", ("VDD",)), ("OPAMP", ("V+",)), ("LDO_ADJ", ("VOUT",))):
+        for ref in _comps(design, u):
+            out |= {net_of(design, f"{ref}.{p}") for p in pins}
+    return out - {None, gnd}
+
+
 def _bias_wrong_rail(lt, golden, design, board_path, rng, exclude, salt, ctx):
-    gnd, sup = net_of(design, "J1.2"), net_of(design, "J1.1")
+    gnd = net_of(design, "J1.2")
     cands = []
     if gnd is None:
         return None
-    rails = {sup} | {net_of(design, f"{u}.{p}") for u in _comps(design, ("MCU8", "OPAMP", "LDO_ADJ"))
-                     for p in ("VDD", "V+", "VOUT") if f"{u}.{p}" in {x for ps in design["nets"].values() for x in ps}}
-    rails -= {None, gnd}
+    rails = supply_rails(design)
     decaps = {d["cap"] for d in golden.decoupling}
     for r in _comps(design, ("R", "C")):
         if design["components"][r]["part"] not in ("R", "C") or r in decaps:
@@ -343,6 +383,68 @@ def _bias_wrong_rail(lt, golden, design, board_path, rng, exclude, salt, ctx):
             cands.append(Cand(f"{gpin} returned to {rail} instead of GND", {"pin": gpin, "net": rail,
                                                                            "golden_net": gnd},
                               moves=[(gpin, rail)]))
+    return _realise(lt, golden, design, board_path, rng, exclude, salt, cands, ctx)
+
+
+def _pullup_wrong_rail(lt, golden, design, board_path, rng, exclude, salt, ctx):
+    """A pull-up on an MCU I/O line returned to a higher input rail instead of the MCU's own rail
+    (the line idles above VDD: abs-max violation, ESD diodes back-power the MCU)."""
+    cands = []
+    io = ("SDA", "SCL", "NRST", "PA0", "PA1", "PA2")
+    higher = input_rails(design)
+    for u in _comps(design, "MCU8"):
+        vdd = net_of(design, f"{u}.VDD")
+        io_nets = {net_of(design, f"{u}.{p}") for p in io} - {None}
+        for r in _comps(design, "R"):
+            if design["components"][r]["part"] != "R":
+                continue
+            n1, n2 = net_of(design, f"{r}.1"), net_of(design, f"{r}.2")
+            for rp, rail, other in ((f"{r}.1", n1, n2), (f"{r}.2", n2, n1)):
+                if rail != vdd or other not in io_nets:
+                    continue
+                for hi in sorted(higher - {vdd}):
+                    cands.append(Cand(f"pull-up {r} on {other} returned to {hi} instead of the MCU rail {vdd}",
+                                      {"ref": r, "pin": rp, "net": hi, "golden_net": vdd, "mcu": u},
+                                      moves=[(rp, hi)]))
+    return _realise(lt, golden, design, board_path, rng, exclude, salt, cands, ctx)
+
+
+def _decap_wrong_rail(lt, golden, design, board_path, rng, exclude, salt, ctx):
+    """A decoupling cap stays next to its IC pin (the public rule names the pin) but its supply pad
+    is wired to another rail: the pin is left undecoupled."""
+    gnd = net_of(design, "J1.2")
+    rails = supply_rails(design)
+    cands = []
+    for dc in golden.decoupling:
+        cap = dc["cap"]
+        if cap not in design["components"]:
+            continue
+        pins = [f"{cap}.{p}" for p in ("1", "2") if net_of(design, f"{cap}.{p}") not in (None, gnd)]
+        if len(pins) != 1:
+            continue
+        own = net_of(design, pins[0])
+        for rail in sorted(rails - {own}):
+            cands.append(Cand(f"{cap} sits at {dc['ic_pin']} but decouples {rail} instead of {own}",
+                              {"cap": cap, "ic_pin": dc["ic_pin"], "pin": pins[0], "net": rail, "golden_net": own},
+                              moves=[(pins[0], rail)]))
+    return _realise(lt, golden, design, board_path, rng, exclude, salt, cands, ctx)
+
+
+def _protection_bypassed(lt, golden, design, board_path, rng, exclude, salt, ctx):
+    """The series reverse-polarity Schottky is bypassed: everything on its cathode net is wired to
+    the raw input (the diode ends up with both pins on one net). All on-state sims still pass
+    (more headroom), but a reversed supply now reaches the LDO and the rest of the board."""
+    raw = net_of(design, "J1.1")
+    cands = []
+    for d in _comps(design, "D_SCHOTTKY"):
+        if raw is None or net_of(design, f"{d}.A") != raw:
+            continue
+        k = net_of(design, f"{d}.K")
+        if k is None or k == raw:
+            continue
+        moved = sorted(design["nets"][k])
+        cands.append(Cand(f"reverse-polarity diode {d} bypassed: {k} wired straight to the input {raw}",
+                          {"diode": d, "net": k, "raw": raw}, moves=[(p, raw) for p in moved]))
     return _realise(lt, golden, design, board_path, rng, exclude, salt, cands, ctx)
 
 
@@ -373,23 +475,91 @@ LATENT_TYPES: dict[str, LatentType] = {t.name: t for t in (
     LatentType("bias_wrong_rail", "topology", (),
                "design intent (full text kept): bias / bypass / reset parts returned to GND; MCU8 / OPAMP application "
                "notes", True, _bias_wrong_rail),
+    LatentType("pullup_wrong_rail", "rules+topology", ("mcu_abs_max", "mcu_pin_current"),
+               "parts/MCU8.md abs-max (no pin above VDD + 0.3 V, e.g. via a pull-up to a higher rail); intent: the "
+               "MCU's rail and its pull-ups", False, _pullup_wrong_rail),
+    LatentType("decap_wrong_rail", "topology", (),
+               "TASK.md Design rules / spec.json design_rules: each decoupling cap is named with its IC pin", False,
+               _decap_wrong_rail),
+    LatentType("protection_bypassed", "topology", (),
+               "design intent: rails line (input -> reverse-polarity diode -> VIN) and the protection bullet", False,
+               _protection_bypassed),
 )}
 
 
+# ------------------------------------------------------------------ fairness: public evidence
+_ADDENDUM_KEYS = {
+    "resistor_underrated": [["the continuous dissipation P = I²·R of every resistor"]],
+    "capacitor_underrated": [["the DC working voltage across a capacitor must not exceed 80 %"]],
+    "led_underrated": [["the forward current must not exceed 80 % of the package maximum"]],
+    "weak_base_drive": [["**Design rule (switching):**"]],
+    "flyback_misplaced": [["**Design rule (inductive loads):**"]],
+    "pullup_wrong_rail": [["by a pull-up to a higher rail"]],
+}
+
+
+def evidence_groups(rec: dict) -> list[list[str]]:
+    """Text that must appear in the task's public material (TASK.md + spec.json + parts/*.md) for
+    this latent fault to be deducible: every group needs one alternative present. An alternative
+    `line:A&B` needs A and B on one line."""
+    t, d = rec["type"], rec.get("data", {})
+    groups = [list(g) for g in _ADDENDUM_KEYS.get(t, [])]
+    if t in ("resistor_underrated", "capacitor_underrated", "led_underrated"):
+        size = d["footprint"].split(":")[1].split("_")[1]
+        groups.append([f"| {size} |"])
+    if t == "connector_pin_swap" or t == "mcu_pin_swap":
+        for pin in d["pins"]:
+            ref, p = pin.split(".", 1)
+            alts = [f"{ref}.{p}"]
+            alts += [f"| {ref} | {p} |", f"{ref} pin {p}"] if t == "connector_pin_swap" else [f"| {p} |"]
+            groups.append(alts)
+    if t in ("decap_swapped", "decap_wrong_rail"):
+        for cap in d.get("caps") or [d["cap"]]:
+            groups.append([f"- {cap} within"])
+    if t == "decap_wrong_rail":
+        groups.append([d["ic_pin"]])
+    if t == "bias_wrong_rail":
+        groups.append([f"line:{d['pin'].split('.')[0]}&GND"])
+    if t == "pullup_wrong_rail":
+        groups.append([f"line:{d['ref']}&{d['golden_net']}", f"| VDD | supply, {d['golden_net']} rail |"])
+    if t == "protection_bypassed":
+        groups.append(["reverse-polarity diode -> VIN", f"Schottky {d['diode']} in series"])
+    return groups
+
+
+def missing_evidence(rec: dict, public_text: str) -> list[list[str]]:
+    """Evidence groups of `rec` with no alternative present in `public_text`."""
+    import re as _re
+    lines = public_text.splitlines()
+
+    def has(alt: str) -> bool:
+        if alt.startswith("line:"):
+            a, b = alt[5:].split("&", 1)
+            pa = _re.compile(r"(?<![A-Za-z0-9])" + _re.escape(a) + r"(?![A-Za-z0-9])")
+            return any(pa.search(ln) and b in ln for ln in lines)
+        return alt in public_text
+    return [g for g in evidence_groups(rec) if not any(has(a) for a in g)]
+
+
 def apply_latent(name: str, golden: Golden, design: dict, board_path: str, rng: random.Random,
-                 exclude: set[str] | frozenset = frozenset(), salt: str = "", ctx: dict | None = None
-                 ) -> FaultRecord | None:
+                 exclude: set[str] | frozenset = frozenset(), salt: str = "", ctx: dict | None = None,
+                 want: str | None = None) -> FaultRecord | None:
     """Apply latent fault `name` in place (None if not applicable). The input state must itself be
     clean for the tool (the hard generator applies latent faults first, to the golden), and the
-    result is asserted to stay clean (`visible_failures` empty)."""
+    result is asserted to stay clean (`visible_failures` empty). `want`: only the candidate whose
+    description is `want` (the hard generator picks each latent fault on the pristine golden and
+    then applies exactly that one on top of the others)."""
     lt = LATENT_TYPES[name]
     ctx = ctx if ctx is not None else rules.rules_context(golden)
     if _design_visible(golden, design):
         raise NotApplicable("latent faults must be applied to a tool-clean design")
+    _WANT[0] = want
     try:
         rec = lt.fn(lt, golden, design, board_path, rng, set(exclude), f"{salt}:{name}", ctx)
     except NotApplicable:
         return None
+    finally:
+        _WANT[0] = None
     if rec is not None:
         assert not visible_failures(golden, design, board_path), f"latent {name} became visible"
     return rec
