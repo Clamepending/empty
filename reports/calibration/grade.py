@@ -39,7 +39,7 @@ FORBIDDEN = [
     (re.compile(r"import\s+pcbenv|from\s+pcbenv|import\s+pcbnew|pcbenv\.(verify|families|generate|faults)"), "imports pcbenv/pcbnew"),
     (re.compile(r"\.tar\.gz|dist/pcb-repair"), "task bundle"),
 ]
-JOB_RE = re.compile(r"/calib/w/job(\d{4})")
+JOB_RE = re.compile(r"/calib\d*/w/job(\d{4})")
 
 
 def _tool_inputs(transcript: Path):
@@ -53,7 +53,8 @@ def _tool_inputs(transcript: Path):
         if not isinstance(content, list):
             continue
         for block in content:
-            if isinstance(block, dict) and block.get("type") == "tool_use":
+            # The final StructuredOutput is the agent's self-report, not an action; audit actions only.
+            if isinstance(block, dict) and block.get("type") == "tool_use" and block.get("name") != "StructuredOutput":
                 yield json.dumps(block.get("input", {}))
 
 
