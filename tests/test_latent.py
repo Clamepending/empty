@@ -217,7 +217,8 @@ def test_v1_task_verdicts_unchanged(td, tmp_path):
     meta = taskio.load_meta(td)
     assert "rules" not in meta and meta.get("tier") == "normal"
     r = verify(str(td / "public"), str(td))
-    assert r.reward == 0.0 and "rules" not in r.checks
+    # normal tier: only the all-tier resistor power rule (rules_power), never the hard-tier rule set
+    assert r.reward == 0.0 and ("rules" in r.checks) == bool(meta.get("rules_power"))
     wd = tmp_path / "oracle"
     taskio.copy_public(td, wd)
     shutil.copyfile(td / "hidden" / "golden_design.json", wd / "design.json")

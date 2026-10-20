@@ -690,9 +690,9 @@ def build_packet(row: dict, task_dir: Path, out_dir: Path, nn: int, reasons: lis
     rel = os.path.relpath(task_dir, pdir)
 
     L: list[str] = [f"# QA packet {num}: `{row['id']}`", "",
-                    "| family | seed | hint level | intent in TASK.md | faults | predicted difficulty |",
+                    "| family | tier | hint level | intent in TASK.md | faults | predicted difficulty |",
                     "|---|---|---|---|---|---|",
-                    f"| {row['family']} | {row['seed']} | {row['hint_level']} | {row.get('intent', '')} | "
+                    f"| {row['family']} | {row.get('tier', 'v1')} | {row['hint_level']} | {row.get('intent', '')} | "
                     f"{row['n_faults']} | {row.get('difficulty_predicted', '')} |", "",
                     f"Task files: [`{rel}/public/`]({rel}/public/) (what the agent gets) and "
                     f"[`{rel}/hidden/`]({rel}/hidden/) (grader only). "
