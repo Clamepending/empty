@@ -78,29 +78,43 @@
 {"audited": true, "contaminated": true, "failed": ["layout_rules"], "job": 78, "model": "sonnet", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard_layout-d813ab04", "violations": ["repo path: {\"command\": \"cd /tmp/claude-0/-home-user-empty/a6a9d60f-1a72-5631-9ae7-c98f6792bd99/scratchpad/calib4/w/job0078 && P=/home/user/empty/bin/pcbtool\\n$P drc -v 2>&"]}
 {"audited": true, "contaminated": false, "failed": ["layout"], "job": 79, "model": "sonnet", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard_layout-40094825", "violations": []}
 {"audited": true, "contaminated": false, "failed": ["layout"], "job": 80, "model": "sonnet", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard_layout-01b22c23", "violations": []}
-{"failed": [], "job": 81, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-d813ab04"}
-{"failed": [], "job": 82, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-bdd9e6f0"}
-{"failed": ["drc"], "job": 83, "model": "haiku", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard_layout-5dd2d0dd"}
-{"failed": ["drc", "layout", "layout_rules"], "job": 84, "model": "haiku", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard_layout-42763916"}
-{"failed": ["layout"], "job": 85, "model": "haiku", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard_layout-cb718096"}
-{"failed": [], "job": 86, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-2be8bad4"}
-{"failed": [], "job": 87, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-40094825"}
-{"failed": [], "job": 88, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-11f2f9c8"}
-{"failed": [], "job": 89, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-3c727d99"}
-{"failed": [], "job": 90, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-f52fa24a"}
-{"failed": [], "job": 91, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-b42579b0"}
-{"failed": ["topology", "erc", "layout_rules", "rules", "spec"], "job": 92, "model": "haiku", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard_layout-87fcf9da"}
-{"failed": ["drc", "layout_rules"], "job": 93, "model": "haiku", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard_layout-4c5e1153"}
-{"failed": [], "job": 94, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-f7d8d9c0"}
-{"failed": [], "job": 95, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-93114aa9"}
-{"failed": [], "job": 96, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-436cc245"}
-{"failed": [], "job": 97, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-01b22c23"}
-{"failed": [], "job": 98, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-516dc21b"}
-{"failed": [], "job": 99, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-bb5ffc1c"}
-{"failed": [], "job": 100, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-36a2853a"}
-{"failed": ["drc", "layout_rules"], "job": 101, "model": "haiku", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard_layout-d637291f"}
-{"failed": ["drc", "layout_rules"], "job": 102, "model": "haiku", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard_layout-5251622f"}
-{"failed": [], "job": 103, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-7250830c"}
-{"failed": [], "job": 104, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-3241441c"}
-{"failed": [], "job": 105, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-36755ea8"}
-{"failed": [], "job": 106, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-6df1719a"}
+{"audited": true, "contaminated": false, "failed": [], "job": 81, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-d813ab04", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 82, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-bdd9e6f0", "violations": []}
+{"audited": true, "contaminated": false, "failed": ["drc"], "job": 83, "model": "haiku", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard_layout-5dd2d0dd", "violations": []}
+{"audited": true, "contaminated": false, "failed": ["drc", "layout", "layout_rules"], "job": 84, "model": "haiku", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard_layout-42763916", "violations": []}
+{"audited": true, "contaminated": false, "failed": ["layout"], "job": 85, "model": "haiku", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard_layout-cb718096", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 86, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-2be8bad4", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 87, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-40094825", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 88, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-11f2f9c8", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 89, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-3c727d99", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 90, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-f52fa24a", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 91, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-b42579b0", "violations": []}
+{"audited": true, "contaminated": false, "failed": ["topology", "erc", "layout_rules", "rules", "spec"], "job": 92, "model": "haiku", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard_layout-87fcf9da", "violations": []}
+{"audited": true, "contaminated": false, "failed": ["drc", "layout_rules"], "job": 93, "model": "haiku", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard_layout-4c5e1153", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 94, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-f7d8d9c0", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 95, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-93114aa9", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 96, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-436cc245", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 97, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-01b22c23", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 98, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-516dc21b", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 99, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-bb5ffc1c", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 100, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-36a2853a", "violations": []}
+{"audited": true, "contaminated": false, "failed": ["drc", "layout_rules"], "job": 101, "model": "haiku", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard_layout-d637291f", "violations": []}
+{"audited": true, "contaminated": false, "failed": ["drc", "layout_rules"], "job": 102, "model": "haiku", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard_layout-5251622f", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 103, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-7250830c", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 104, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-3241441c", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 105, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-36755ea8", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 106, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-6df1719a", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 107, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-19e4bbf9", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 108, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-80ef7583", "violations": []}
+{"audited": true, "contaminated": false, "failed": ["topology", "layout", "layout_rules"], "job": 109, "model": "haiku", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard_layout-ca6e9d26", "violations": []}
+{"audited": true, "contaminated": false, "failed": ["layout_rules"], "job": 110, "model": "haiku", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard_layout-9da45b08", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 111, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-212b8b95", "violations": []}
+{"audited": true, "contaminated": false, "failed": ["drc", "layout", "layout_rules"], "job": 112, "model": "haiku", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard_layout-fc765caf", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 113, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-1d0a315f", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 114, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-5883f69e", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 115, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-90ffe48e", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 116, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-41b3a1a1", "violations": []}
+{"audited": true, "contaminated": true, "failed": ["layout"], "job": 117, "model": "haiku", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard_layout-1f2c9491", "violations": ["repo path: {\"command\": \"cd /tmp/claude-0/-home-user-empty/a6a9d60f-1a72-5631-9ae7-c98f6792bd99/scratchpad/calib4/w/job0117 && grep -n 'Edge.Cuts' board.kicad_pcb | head -8"]}
+{"audited": true, "contaminated": true, "failed": ["drc", "layout_rules"], "job": 118, "model": "haiku", "oracle": 1.0, "reward": 0.0, "task_id": "pcbr2-hard_layout-00100f79", "violations": ["repo path: {\"command\": \"cd /tmp/claude-0/-home-user-empty/a6a9d60f-1a72-5631-9ae7-c98f6792bd99/scratchpad/calib4/w/job0117 && grep -n 'Edge.Cuts' board.kicad_pcb | head -8"]}
+{"audited": true, "contaminated": false, "failed": [], "job": 119, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-7c7461b6", "violations": []}
+{"audited": true, "contaminated": false, "failed": [], "job": 120, "model": "haiku", "oracle": 1.0, "reward": 1.0, "task_id": "pcbr2-hard_layout-7436ad47", "violations": []}

@@ -20,7 +20,7 @@ One graded attempt per (task, model) unless stated; reward is binary (1 = every 
 | v2-hard | haiku | 44 | 44 | 0 | 0 | 44/44 (100 %) [92–100] |
 | v2-hard | sonnet | 44 | 44 | 0 | 0 | 25/44 (57 %) [42–70] |
 | v2-hard | opus | 44 | 44 | 0 | 0 | 42/44 (95 %) [85–99] |
-| v2-hard_layout | haiku | 26 | 26 | 0 | 26 | 19/26 (73 %) [54–86] |
+| v2-hard_layout | haiku | 40 | 40 | 2 | 0 | 28/38 (74 %) [58–85] |
 | v2-hard_layout | sonnet | 40 | 40 | 4 | 0 | 7/36 (19 %) [10–35] |
 | v2-hard_layout | opus | 40 | 40 | 0 | 0 | 38/40 (95 %) [83–99] |
 
@@ -137,48 +137,48 @@ Cells are `k/n (rate)`; most cells have n ≤ 10, so read them as descriptive, n
 
 | group | haiku | sonnet | opus |
 |---|---|---|---|
-| sys_clocked_mcu | 8/9 (89 %) | 2/17 (12 %) | 15/17 (88 %) |
-| sys_motor_ctrl | 11/17 (65 %) | 5/19 (26 %) | 23/23 (100 %) |
+| sys_clocked_mcu | 14/16 (88 %) | 2/17 (12 %) | 15/17 (88 %) |
+| sys_motor_ctrl | 14/22 (64 %) | 5/19 (26 %) | 23/23 (100 %) |
 
 **By number of injected faults**
 
 | group | haiku | sonnet | opus |
 |---|---|---|---|
-| 3 | 6/7 (86 %) | 2/10 (20 %) | 12/12 (100 %) |
-| 4 | 7/10 (70 %) | 3/11 (27 %) | 12/13 (92 %) |
-| 5 | 5/6 (83 %) | 1/10 (10 %) | 10/10 (100 %) |
-| 6 | 1/3 (33 %) | 1/5 (20 %) | 4/5 (80 %) |
+| 3 | 10/11 (91 %) | 2/10 (20 %) | 12/12 (100 %) |
+| 4 | 9/13 (69 %) | 3/11 (27 %) | 12/13 (92 %) |
+| 5 | 7/10 (70 %) | 1/10 (10 %) | 10/10 (100 %) |
+| 6 | 2/4 (50 %) | 1/5 (20 %) | 4/5 (80 %) |
 
 **By hint level**
 
 | group | haiku | sonnet | opus |
 |---|---|---|---|
-| symptom | 9/11 (82 %) | 4/20 (20 %) | 20/21 (95 %) |
-| vague | 10/15 (67 %) | 3/16 (19 %) | 18/19 (95 %) |
+| symptom | 16/20 (80 %) | 4/20 (20 %) | 20/21 (95 %) |
+| vague | 12/18 (67 %) | 3/16 (19 %) | 18/19 (95 %) |
 
 **By tool mode**
 
 | group | haiku | sonnet | opus |
 |---|---|---|---|
 | full | 1/2 (50 %) | 0/2 (0 %) | 2/2 (100 %) |
-| no_autoroute | 18/24 (75 %) | 7/34 (21 %) | 36/38 (95 %) |
+| no_autoroute | 27/36 (75 %) | 7/34 (21 %) | 36/38 (95 %) |
 
 **By latent fault type present in the task** (a task counts once per latent type it contains)
 
 | latent fault type | haiku | sonnet | opus |
 |---|---|---|---|
-| analog_near_switch | 4/5 (80 %) | 1/4 (25 %) | 6/6 (100 %) |
-| bias_wrong_rail | 3/3 (100 %) | 2/6 (33 %) | 7/7 (100 %) |
-| capacitor_underrated | 4/5 (80 %) | 1/6 (17 %) | 6/6 (100 %) |
-| connector_pin_swap | 5/6 (83 %) | 0/8 (0 %) | 9/9 (100 %) |
-| crystal_far | 3/4 (75 %) | 1/6 (17 %) | 5/6 (83 %) |
-| crystal_via | 4/4 (100 %) | 1/9 (11 %) | 9/9 (100 %) |
-| decap_long_path | 6/8 (75 %) | 1/13 (8 %) | 11/13 (85 %) |
-| kelvin_sense_tap | 6/8 (75 %) | 3/12 (25 %) | 13/13 (100 %) |
-| mcu_pin_swap | 1/5 (20 %) | 3/8 (38 %) | 9/9 (100 %) |
-| protection_bypassed | 3/4 (75 %) | 1/6 (17 %) | 4/6 (67 %) |
+| analog_near_switch | 4/6 (67 %) | 1/4 (25 %) | 6/6 (100 %) |
+| bias_wrong_rail | 7/7 (100 %) | 2/6 (33 %) | 7/7 (100 %) |
+| capacitor_underrated | 5/6 (83 %) | 1/6 (17 %) | 6/6 (100 %) |
+| connector_pin_swap | 6/8 (75 %) | 0/8 (0 %) | 9/9 (100 %) |
+| crystal_far | 4/5 (80 %) | 1/6 (17 %) | 5/6 (83 %) |
+| crystal_via | 8/9 (89 %) | 1/9 (11 %) | 9/9 (100 %) |
+| decap_long_path | 9/12 (75 %) | 1/13 (8 %) | 11/13 (85 %) |
+| kelvin_sense_tap | 9/13 (69 %) | 3/12 (25 %) | 13/13 (100 %) |
+| mcu_pin_swap | 3/9 (33 %) | 3/8 (38 %) | 9/9 (100 %) |
+| protection_bypassed | 4/5 (80 %) | 1/6 (17 %) | 4/6 (67 %) |
 | pullup_wrong_rail | 3/3 (100 %) | 0/2 (0 %) | 3/3 (100 %) |
-| switch_loop_spread | 2/6 (33 %) | 2/7 (29 %) | 8/8 (100 %) |
+| switch_loop_spread | 3/7 (43 %) | 2/7 (29 %) | 8/8 (100 %) |
 
 ## 3. Failure taxonomy (clean failed rollouts)
 
@@ -222,24 +222,24 @@ Failures invisible to `pcbtool check` (latent connectivity or unrun rules): sonn
 
 | check | haiku | sonnet | opus |
 |---|---|---|---|
-| failed rollouts | 7/26 | 29/36 | 2/40 |
-| `drc` failed | 5 | 0 | 0 |
+| failed rollouts | 10/38 | 29/36 | 2/40 |
+| `drc` failed | 6 | 0 | 0 |
 | `erc` failed | 1 | 0 | 0 |
-| `layout` failed | 2 | 14 | 2 |
-| `layout_rules` failed | 5 | 21 | 0 |
+| `layout` failed | 4 | 14 | 2 |
+| `layout_rules` failed | 8 | 21 | 0 |
 | `rules` failed | 1 | 1 | 0 |
 | `spec` failed | 1 | 0 | 0 |
-| `topology` failed | 1 | 2 | 0 |
+| `topology` failed | 2 | 2 | 0 |
 
 **Diligence buckets** (failed rollouts per model)
 
 | bucket | haiku | sonnet | opus |
 |---|---|---|---|
-| latent connectivity left (topology only + unrun rules) | 0 | 2 | 0 |
-| only rules pcbtool does not run | 1 | 27 | 2 |
-| submitted with a pcbtool-visible failure | 6 | 0 | 0 |
+| latent connectivity left (topology only + unrun rules) | 1 | 2 | 0 |
+| only rules pcbtool does not run | 2 | 27 | 2 |
+| submitted with a pcbtool-visible failure | 7 | 0 | 0 |
 
-Failures invisible to `pcbtool check` (latent connectivity or unrun rules): haiku 1/7 (14 %), sonnet 29/29 (100 %), opus 2/2 (100 %).
+Failures invisible to `pcbtool check` (latent connectivity or unrun rules): haiku 3/10 (30 %), sonnet 29/29 (100 %), opus 2/2 (100 %).
 
 ## 4. Contamination exclusions
 
@@ -251,6 +251,8 @@ A rollout is excluded when the transcript audit (`reports/calibration/grade.py:a
 | v2-hard_layout | 56 | sonnet | pcbr2-hard_layout-bb5ffc1c | 0.0 | repo path |
 | v2-hard_layout | 77 | sonnet | pcbr2-hard_layout-f7d8d9c0 | 1.0 | repo path |
 | v2-hard_layout | 78 | sonnet | pcbr2-hard_layout-d813ab04 | 0.0 | repo path |
+| v2-hard_layout | 117 | haiku | pcbr2-hard_layout-1f2c9491 | 0.0 | repo path |
+| v2-hard_layout | 118 | haiku | pcbr2-hard_layout-00100f79 | 0.0 | repo path |
 
 Audit coverage:
 
@@ -258,7 +260,7 @@ Audit coverage:
 |---|---|---|---|---|
 | v1-normal (historical, v1 task set) | 250 | 250 | 0 | 0 |
 | v2-hard | 132 | 132 | 0 | 0 |
-| v2-hard_layout | 106 | 80 | 26 | 4 |
+| v2-hard_layout | 120 | 120 | 0 | 6 |
 
 ## 5. Oracle and gate controls
 
@@ -268,7 +270,7 @@ Calibration samples (oracle = golden files restored into the agent's workdir and
 |---|---|---|---|---|
 | v1-normal (historical, v1 task set) | not recorded | 50/50 | 50/50 | 50/50 |
 | v2-hard | 132/132 | 44/44 | 44/44 | 44/44 |
-| v2-hard_layout | 106/106 | 40/40 | 40/40 | 40/40 |
+| v2-hard_layout | 120/120 | 40/40 | 40/40 | 40/40 |
 
 Full shipped set re-verified after the DRC-rules fix (`reports/v2/recheck_all_tasks_after_drc_fix.jsonl`):
 
@@ -460,7 +462,7 @@ sha256 prefixes of the exact bytes read:
 | `reports/calibration/rollouts.jsonl` | 98aaed3ece7aa91f |
 | `reports/calibration/v2hard/FINDINGS.md` | 61da848b5a34e9e4 |
 | `reports/calibration/v2hard/rollouts.jsonl` | 07aad45a9fb9ba7f |
-| `reports/calibration/v2hard_layout/rollouts.jsonl` | 0ea4c96fcfd18832 |
+| `reports/calibration/v2hard_layout/rollouts.jsonl` | 4e0a0d3c6bad5bf9 |
 | `reports/v2/orchestrator_test_run.txt` | dd43909acce0dba5 |
 | `reports/v2/recheck_all_tasks_after_drc_fix.jsonl` | 4b91d133eb3588b4 |
 | `tasks/manifest.jsonl` | 0b5a75b610ddb8d4 |
