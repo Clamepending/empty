@@ -1,0 +1,33 @@
+........................................................................ [ 54%]
+...........................................................F             [100%]
+=================================== FAILURES ===================================
+____________ test_exploit_RT70_public_board_uuids_not_seed_derived _____________
+
+    def test_exploit_RT70_public_board_uuids_not_seed_derived():
+        """RT70 (leak, low): a public board's UUIDs must not be a deterministic function of the HIDDEN
+        generator seed. 148/1464 v2 public boards (those `publish_names` had nothing to rename, so the
+        board kept the fault-injection salt `<seed>:<fault_type>` instead of the public `<task_id>:names`
+        one) carry UUIDs = sha256("<seed>:<type>:<type>:<i>"). The seed is a 48-bit keyed value and the
+        fault type is hidden, so it is not practically brute-forceable, but public artifact bytes should
+        derive only from public data. EXPECTED TO FAIL until the publisher re-canonicalizes every
+        published board with a public-only salt. Scanned sparsely to stay fast."""
+        import re
+        rows = [m for m in H._manifest() if str(m.get("split", "")).startswith("v2/")]
+        leaked = []
+        for m in rows[::7]:
+            T = os.path.join(str(H.ROOT), "tasks", m["path"])
+            uu = re.findall(r"\((?:tstamp|uuid) ([0-9a-f-]{36})\)", open(os.path.join(T, "public", "board.kicad_pcb")).read())
+            if not uu or uu[0] in {_uuid_from_salt(f"{m['id']}:names", i) for i in range(3)}:
+                continue
+            meta = json.load(open(os.path.join(T, "hidden", "meta.json")))
+            s = meta["seed"]
+            if any(uu[0] == _uuid_from_salt(f"{s}:{f['type']}:{f['type']}", 0) for f in meta["faults"]):
+                leaked.append(m["id"])
+>       assert not leaked, f"{len(leaked)} public boards carry seed-derived UUIDs, e.g. {leaked[:3]}"
+E       AssertionError: 11 public boards carry seed-derived UUIDs, e.g. ['pcbr2-normal-f1c81e65', 'pcbr2-normal-0d1f2443', 'pcbr2-normal-03237c42']
+E       assert not ['pcbr2-normal-f1c81e65', 'pcbr2-normal-0d1f2443', 'pcbr2-normal-03237c42', 'pcbr2-normal-eb33f8ab', 'pcbr2-normal-f70324d3', 'pcbr2-normal-2706c683', ...]
+
+redteam/test_redteam.py:352: AssertionError
+=========================== short test summary info ============================
+FAILED redteam/test_redteam.py::test_exploit_RT70_public_board_uuids_not_seed_derived
+1 failed, 131 passed in 247.41s (0:04:07)

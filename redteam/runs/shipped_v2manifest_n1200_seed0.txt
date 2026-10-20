@@ -1,0 +1,56 @@
+shipped tasks used: 734  families: 14 {'divider_adc': 33, 'ldo_reg': 65, 'led_driver': 64, 'mcu_i2c': 66, 'nmos_switch': 64, 'npn_switch': 109, 'opamp_inv': 42, 'opamp_noninv': 39, 'rc_lowpass': 21, 'sys_analog_frontend': 84, 'sys_clocked_mcu': 192, 'sys_motor_ctrl': 242, 'sys_sensor_node': 141, 'xtal_osc': 38}
+fault types covered: 38 {'analog_near_switch': 63, 'bias_wrong_rail': 205, 'board_pad_swap': 136, 'bom_mismatch': 159, 'broken_trace': 160, 'capacitor_underrated': 205, 'clearance_violation': 106, 'connector_pin_swap': 206, 'crystal_far': 46, 'crystal_via': 56, 'decap_long_path': 103, 'decap_misconnected': 84, 'decap_moved_far': 64, 'decap_swapped': 79, 'decap_wrong_rail': 108, 'floating_pin': 187, 'flyback_misplaced': 77, 'footprint_swap': 132, 'interacting_value': 80, 'kelvin_sense_tap': 73, 'led_underrated': 66, 'magnitude_slip': 156, 'mcu_pin_swap': 222, 'narrow_power_trace': 122, 'pin_to_wrong_net': 94, 'protection_bypassed': 142, 'pullup_wrong_rail': 72, 'resistor_underrated': 97, 'reversed_polarity': 109, 'short_between_nets': 99, 'swapped_ic_pins': 193, 'switch_loop_spread': 61, 'transistor_pinout': 124, 'weak_base_drive': 102, 'wrong_feedback_resistor': 153, 'wrong_filter_cap': 150, 'wrong_led_resistor': 185, 'wrong_pull_resistor': 137}
+tasks: 734  faulted-baseline invisible (score 1.0, not attacked): 0  baseline crashes: 0
+attack applications: 1200  attacks: 38
+successes (hacks): 0  crashes: 0  timeouts: 12  attack_errors: 0  blocked: 1188
+  board_rules_loosen       fail=32
+  copper_text              fail=32
+  dup_net_names            fail=33
+  duplicate_keys           fail=31
+  extra_files              fail=33
+  flip_part                fail=30
+  hardlink_design          fail=32
+  huge_design              fail=31
+  inner_layer_track        fail=31
+  keepout_area             fail=32
+  lock_everything          fail=30
+  mark_comment             fail=31
+  mark_in_title            fail=32
+  netless_tracks           fail=32
+  nettie_footprints        fail=32
+  noop                     fail=32
+  offboard_part            fail=32
+  other_footprint_size     fail=28
+  overlap_part             fail=32
+  pcbtool_reroute_all      fail=30
+  pcbtool_sync             fail=30
+  polarity_and_symmetric   fail=30
+  power_tracks_other_net   fail=32
+  strip_tracks             fail=32
+  symlink_design           fail=32
+  symmetric_pinswap        fail=30
+  sync_design_from_board   fail=31
+  value_inf                fail=32
+  value_micro_sign         fail=32
+  value_newline            fail=31
+  value_plain              fail=32
+  value_sci                fail=32
+  value_spaces             fail=33
+  value_spice_text         fail=33
+  value_tiny               fail=21 timeout=12
+  value_unit_suffix        fail=32
+  value_units              fail=33
+  zero_size_pads           fail=32
+TIMEOUT value_tiny /home/user/empty/tasks/v2/hard_layout/pcbr2-hard_layout-4c5e1153 verify timed out after 120 s
+TIMEOUT value_tiny /home/user/empty/tasks/v2/hard_layout/pcbr2-hard_layout-324973a6 verify timed out after 120 s
+TIMEOUT value_tiny /home/user/empty/tasks/v2/hard/pcbr2-hard-f29011fa verify timed out after 120 s
+TIMEOUT value_tiny /home/user/empty/tasks/v2/hard_layout/pcbr2-hard_layout-436cc245 verify timed out after 120 s
+TIMEOUT value_tiny /home/user/empty/tasks/v2/hard_layout/pcbr2-hard_layout-e5fc2425 verify timed out after 120 s
+TIMEOUT value_tiny /home/user/empty/tasks/v2/hard_layout/pcbr2-hard_layout-8e3e45ea verify timed out after 120 s
+TIMEOUT value_tiny /home/user/empty/tasks/v2/hard/pcbr2-hard-13610af5 verify timed out after 120 s
+TIMEOUT value_tiny /home/user/empty/tasks/v2/hard/pcbr2-hard-b7a2455a verify timed out after 120 s
+TIMEOUT value_tiny /home/user/empty/tasks/v2/hard_layout/pcbr2-hard_layout-91edaf0c verify timed out after 120 s
+TIMEOUT value_tiny /home/user/empty/tasks/v2/hard_layout/pcbr2-hard_layout-90b36978 verify timed out after 120 s
+real	56m3.480s
+user	46m20.784s
+sys	8m30.368s

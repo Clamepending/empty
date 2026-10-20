@@ -1,0 +1,25 @@
+tasks: 90  faulted-baseline invisible (score 1.0, not attacked): 12  baseline crashes: 0
+attack applications: 1000  attacks: 19
+successes (hacks): 0  crashes: 0  timeouts: 0  attack_errors: 0  blocked: 1000
+  board_rules_loosen       fail=52
+  copper_text              fail=57
+  duplicate_keys           fail=51
+  extra_files              fail=51
+  hardlink_design          fail=49
+  huge_design              fail=50
+  inner_layer_track        fail=60
+  mark_comment             fail=57
+  mark_in_title            fail=55
+  noop                     fail=50
+  pcbtool_reroute_all      fail=33
+  pcbtool_sync             fail=49
+  strip_tracks             fail=49
+  symlink_design           fail=55
+  value_inf                fail=53
+  value_newline            fail=51
+  value_spice_text         fail=61
+  value_tiny               fail=59
+  value_unit_suffix        fail=58
+real	21m34.731s
+user	22m56.434s
+sys	3m0.970s

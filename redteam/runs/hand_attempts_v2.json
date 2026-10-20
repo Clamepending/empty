@@ -1,0 +1,358 @@
+[
+ {
+  "id": "H29",
+  "task": "pcbr2-hard-4688f775",
+  "attempt": "fpid_relabel",
+  "kind": "fake",
+  "golden": false,
+  "reward": 0.0,
+  "failed": [
+   "components",
+   "spec"
+  ],
+  "error": "",
+  "detail": "{\"components\": [\"C1: footprint pads/courtyard differ from library footprint Capacitor_SMD:C_1206_3216Metric\", \"C2: footprint pads/courtyard differ from library footprint Capacitor_SMD:C_1206_3216Metric\", \"C3: footprint pads/courtyard differ from library footprint Capacitor_SMD:C_1206_3216Metric\", \"C"
+ },
+ {
+  "id": "H30",
+  "task": "pcbr2-hard-f5c33c43",
+  "attempt": "fpid_relabel",
+  "kind": "fake",
+  "golden": false,
+  "reward": 0.0,
+  "failed": [
+   "components",
+   "layout",
+   "rules",
+   "spec",
+   "values"
+  ],
+  "error": "",
+  "detail": "{\"components\": [\"R1: footprint pads/courtyard differ from library footprint Resistor_SMD:R_1206_3216Metric\", \"R2: footprint pads/courtyard differ from library footprint Resistor_SMD:R_1206_3216Metric\"], \"layout\": [\"power_width: power net GND: narrowest track 0.200 mm < required 0.3 mm\"], \"rules\": [\""
+ },
+ {
+  "id": "H31",
+  "task": "pcbr2-hard-2ad76a72",
+  "attempt": "a_disconnect_offender",
+  "kind": "fake",
+  "golden": false,
+  "reward": 0.0,
+  "failed": [
+   "drc",
+   "erc",
+   "layout",
+   "spec",
+   "topology"
+  ],
+  "error": "",
+  "detail": "{\"drc\": [\"solder_mask_bridge: Front solder mask aperture bridges items with different nets @ (140.3, 122.4)\", \"solder_mask_bridge: Front solder mask aperture bridges items with different nets @ (139.7, 125.5)\", \"solder_mask_bridge: Front solder mask aperture bridges items with different nets @ (124."
+ },
+ {
+  "id": "H32",
+  "task": "pcbr2-hard-95013947",
+  "attempt": "tools_full_route_all",
+  "kind": "fake",
+  "golden": false,
+  "reward": 0.0,
+  "failed": [
+   "consistency",
+   "spec",
+   "topology"
+  ],
+  "error": "",
+  "detail": "{\"consistency\": [\"C2: board value '4.7u' != design value '2.2u'\"], \"spec\": [\"status_led_current: measured 0.0057260697889 expected [0.00261644, 0.00353989]\"], \"topology\": [\"nets only in candidate: [['C1.1', 'D1.A', 'D1.K', 'J1.1', 'R3.1', 'U1.VIN'], ['C1.2', 'C2.2', 'C3.2', 'C4.2', 'C5.2', 'D2.K', '"
+ },
+ {
+  "id": "H33",
+  "task": "pcbr2-hard-46ffdade",
+  "attempt": "values_to_bound_min",
+  "kind": "fake",
+  "golden": false,
+  "reward": 0.0,
+  "failed": [
+   "drc",
+   "rules",
+   "spec",
+   "topology"
+  ],
+  "error": "",
+  "detail": "{\"drc\": [\"clearance: Clearance violation (netclass 'Default' clearance 0.2000 mm; actual 0.0530 mm) @ (141.4, 125.3)\", \"1 unconnected items\"], \"rules\": [\"led_current: D2 forward current 25.8 mA > 24 mA (80 % of the LED_0805_2012Metric rating) [condition 0]\", \"resistor_power: R11 dissipates 73.2 mW >"
+ },
+ {
+  "id": "H34",
+  "task": "pcbr2-hard-c07e23bc",
+  "attempt": "delete_vias",
+  "kind": "fake",
+  "golden": false,
+  "reward": 0.0,
+  "failed": [
+   "consistency",
+   "drc",
+   "erc",
+   "rules",
+   "spec",
+   "topology",
+   "values"
+  ],
+  "error": "",
+  "detail": "{\"consistency\": [\"R1: board value '6.8' != design value '68'\"], \"drc\": [\"clearance: Clearance violation (netclass 'Default' clearance 0.2000 mm; actual 0.0000 mm) @ (122.5, 112.9)\", \"3 unconnected items\"], \"erc\": [\"unconnected_required: Q1.G must be connected\"], \"rules\": [\"flyback: inductive load J2"
+ },
+ {
+  "id": "H35",
+  "task": "pcbr2-hard_layout-f7d8d9c0",
+  "attempt": "tools_full_route_all",
+  "kind": "fake",
+  "golden": false,
+  "reward": 0.0,
+  "failed": [
+   "erc",
+   "layout",
+   "spec",
+   "topology",
+   "values"
+  ],
+  "error": "",
+  "detail": "{\"erc\": [\"unconnected_required: C2.1 must be connected\"], \"layout\": [\"decoupling: C2 has no pad connected by copper to U1.VOUT\"], \"spec\": [\"fault_led_current: measured 0.00023718074474 expected [0.00173479, 0.00234707]\"], \"topology\": [\"nets only in candidate: [['C1.1', 'C4.2', 'C5.1', 'D1.K', 'J1.1'"
+ },
+ {
+  "id": "H36",
+  "task": "pcbr2-hard_layout-7beaa6f4",
+  "attempt": "all_tracks_bcu",
+  "kind": "fake",
+  "golden": false,
+  "reward": 0.0,
+  "failed": [
+   "drc",
+   "layout",
+   "layout_rules",
+   "spec",
+   "topology"
+  ],
+  "error": "",
+  "detail": "{\"drc\": [\"clearance: Clearance violation (netclass 'Default' clearance 0.2000 mm; actual 0.0000 mm) @ (134.4, 119.5)\", \"clearance: Clearance violation (netclass 'Default' clearance 0.2000 mm; actual 0.0000 mm) @ (139.2, 121.5)\", \"clearance: Clearance violation (netclass 'Default' clearance 0.2000 mm"
+ },
+ {
+  "id": "H37",
+  "task": "pcbr2-hard_layout-1e88c636",
+  "attempt": "delete_vias",
+  "kind": "fake",
+  "golden": false,
+  "reward": 0.0,
+  "failed": [
+   "drc",
+   "layout",
+   "layout_rules",
+   "spec",
+   "topology"
+  ],
+  "error": "",
+  "detail": "{\"drc\": [\"19 unconnected items\"], \"layout\": [\"power_width: power net GND: narrowest track 0.200 mm < required 0.3 mm\", \"decoupling: C3 reaches U1.VOUT through 16.80 mm of copper (max 8.0 mm)\"], \"layout_rules\": [\"crystal_trace: U2.PA1->Y1.1: not connected by copper\"], \"spec\": [\"nrst_high: measured -1"
+ },
+ {
+  "id": "H38",
+  "task": "pcbr2-hard_layout-8b877249",
+  "attempt": "shrink_power_tracks_netless",
+  "kind": "fake",
+  "golden": false,
+  "reward": 0.0,
+  "failed": [
+   "layout",
+   "layout_rules",
+   "topology"
+  ],
+  "error": "",
+  "detail": "{\"layout\": [\"power_width: power net +15V: narrowest track 0.200 mm < required 0.4 mm\", \"power_width: power net +5V: narrowest track 0.200 mm < required 0.3 mm\", \"power_width: power net ISENSE: narrowest track 0.200 mm < required 0.4 mm\", \"power_width: power net MOTOR_SW: narrowest track 0.200 mm < r"
+ },
+ {
+  "id": "H39",
+  "task": "pcbr2-hard_layout-86212f28",
+  "attempt": "a_disconnect_offender",
+  "kind": "fake",
+  "golden": false,
+  "reward": 0.0,
+  "failed": [
+   "consistency",
+   "erc",
+   "layout",
+   "spec",
+   "topology",
+   "values"
+  ],
+  "error": "",
+  "detail": "{\"consistency\": [\"board connectivity != design.json: nets only in candidate: [['C1.1', 'C2.1', 'D1.A', 'D1.K', 'J1.1', 'R3.1', 'U1.VIN'], ['C1.2', 'C2.2', 'C3.2', 'C4.2', 'C5.2', 'C6.2', 'C7.2', 'D2.K', 'D3.A', 'J1.2', 'J2.2', 'R2.2', 'U1.GND', 'U2.GND'], ['C5.1', 'R4.2', 'U2.NRST'], ['C6.1', 'U2.PA"
+ },
+ {
+  "id": "H40",
+  "task": "pcbr2-hard_layout-eb971545",
+  "attempt": "upsize_all",
+  "kind": "fake",
+  "golden": false,
+  "reward": 0.0,
+  "failed": [
+   "drc",
+   "layout",
+   "layout_rules",
+   "topology"
+  ],
+  "error": "",
+  "detail": "{\"drc\": [\"solder_mask_bridge: Front solder mask aperture bridges items with different nets @ (123.6, 127.6)\", \"solder_mask_bridge: Front solder mask aperture bridges items with different nets @ (135.0, 129.9)\", \"solder_mask_bridge: Front solder mask aperture bridges items with different nets @ (135."
+ },
+ {
+  "id": "H41",
+  "task": "pcbr2-hard-4688f775",
+  "attempt": "a_noop",
+  "kind": "fake",
+  "golden": false,
+  "reward": 0.0,
+  "failed": [
+   "rules",
+   "spec"
+  ],
+  "error": "",
+  "detail": "{\"rules\": [\"capacitor_voltage: C1 sees 12 V > 8 V (80 % of 10 V, C_0603_1608Metric) [condition 0]\", \"resistor_power: R7 dissipates 124 mW > 62.5 mW (50 % of 0.125 W, R_0805_2012Metric) [condition 1]\"], \"spec\": [\"mcu_vdd: measured 4.4179638615 expected [3.201, 3.399]\", \"nrst_high: measured 4.41796384"
+ },
+ {
+  "id": "H42",
+  "task": "pcbr2-hard_layout-3eb42255",
+  "attempt": "via_zero_drill",
+  "kind": "fake",
+  "golden": false,
+  "reward": 0.0,
+  "failed": [
+   "layout_rules",
+   "rules",
+   "spec",
+   "topology"
+  ],
+  "error": "",
+  "detail": "{\"layout_rules\": [\"crystal_trace: U2.PA1->Y1.1: copper path 25.76 mm > 10.0 mm\", \"crystal_via: U2.PA1->Y1.1: 2 via(s) on the oscillator net\", \"crystal_trace: U2.PA2->Y1.2: copper path 27.42 mm > 10.0 mm\", \"crystal_via: U2.PA2->Y1.2: 2 via(s) on the oscillator net\"], \"rules\": [\"capacitor_voltage: C1 "
+ },
+ {
+  "id": "H43",
+  "task": "pcbr2-hard-4688f775",
+  "attempt": "upsize_all",
+  "kind": "minimal-legit",
+  "golden": false,
+  "reward": 0.0,
+  "failed": [
+   "drc",
+   "layout",
+   "spec"
+  ],
+  "error": "",
+  "detail": "{\"drc\": [\"solder_mask_bridge: Front solder mask aperture bridges items with different nets @ (137.6, 121.7)\", \"courtyards_overlap: Courtyards overlap @ (148.5, 120.0)\", \"courtyards_overlap: Courtyards overlap @ (128.5, 119.0)\", \"courtyards_overlap: Courtyards overlap @ (142.0, 120.5)\", \"courtyards_o"
+ },
+ {
+  "id": "H44",
+  "task": "pcbr2-hard-46ffdade",
+  "attempt": "a_values_bound_max",
+  "kind": "minimal-legit",
+  "golden": false,
+  "reward": 0.0,
+  "failed": [
+   "drc",
+   "spec",
+   "topology"
+  ],
+  "error": "",
+  "detail": "{\"drc\": [\"clearance: Clearance violation (netclass 'Default' clearance 0.2000 mm; actual 0.0530 mm) @ (141.4, 125.3)\", \"1 unconnected items\"], \"spec\": [\"ch1_gain: measured 7.547954538590584 expected [7.73416, 8.21257]\", \"ch1_bandwidth: measured 456.81387527878053 expected [4963.96, 6067.06]\", \"ch2_g"
+ },
+ {
+  "id": "H45",
+  "task": "pcbr2-hard_layout-eb971545",
+  "attempt": "tools_full_route_all",
+  "kind": "minimal-legit",
+  "golden": false,
+  "reward": 0.0,
+  "failed": [
+   "topology"
+  ],
+  "error": "",
+  "detail": "{\"topology\": [\"nets only in candidate: [['J3.3', 'R9.2', 'U2.SCL'], ['J3.4', 'R8.2', 'U2.SDA']]; nets only in reference: [['J3.3', 'R8.2', 'U2.SDA'], ['J3.4', 'R9.2', 'U2.SCL']]\"]}"
+ },
+ {
+  "id": "H46",
+  "task": "pcbr2-hard-4688f775",
+  "attempt": "split_segments",
+  "kind": "probe",
+  "golden": true,
+  "reward": 1.0,
+  "failed": [],
+  "error": "",
+  "detail": "{}"
+ },
+ {
+  "id": "H47",
+  "task": "pcbr2-hard_layout-3eb42255",
+  "attempt": "duplicate_segments",
+  "kind": "probe",
+  "golden": true,
+  "reward": 1.0,
+  "failed": [],
+  "error": "",
+  "detail": "{}"
+ },
+ {
+  "id": "H48",
+  "task": "pcbr2-hard_layout-3eb42255",
+  "attempt": "via_zero_drill",
+  "kind": "probe",
+  "golden": true,
+  "reward": 1.0,
+  "failed": [],
+  "error": "",
+  "detail": "{}"
+ },
+ {
+  "id": "H49",
+  "task": "pcbr2-hard_layout-3eb42255",
+  "attempt": "all_tracks_bcu",
+  "kind": "probe",
+  "golden": true,
+  "reward": 0.0,
+  "failed": [
+   "drc",
+   "layout",
+   "layout_rules"
+  ],
+  "error": "",
+  "detail": "{\"drc\": [\"clearance: Clearance violation (netclass 'Default' clearance 0.2000 mm; actual 0.0000 mm) @ (135.3, 124.1)\", \"clearance: Clearance violation (netclass 'Default' clearance 0.2000 mm; actual 0.0000 mm) @ (135.3, 124.1)\", \"clearance: Clearance violation (netclass 'Default' clearance 0.2000 mm"
+ },
+ {
+  "id": "H50",
+  "task": "pcbr2-hard-4688f775",
+  "attempt": "fpid_relabel",
+  "kind": "probe",
+  "golden": true,
+  "reward": 0.0,
+  "failed": [
+   "components"
+  ],
+  "error": "",
+  "detail": "{\"components\": [\"C2: footprint pads/courtyard differ from library footprint Capacitor_SMD:C_1206_3216Metric\", \"C3: footprint pads/courtyard differ from library footprint Capacitor_SMD:C_1206_3216Metric\", \"C4: footprint pads/courtyard differ from library footprint Capacitor_SMD:C_1206_3216Metric\", \"C"
+ },
+ {
+  "id": "H51",
+  "task": "pcbr2-hard_layout-3eb42255",
+  "attempt": "a_arc_detour_crystal",
+  "kind": "probe",
+  "golden": true,
+  "reward": 0.0,
+  "failed": [
+   "drc"
+  ],
+  "error": "",
+  "detail": "{\"drc\": [\"clearance: Clearance violation (netclass 'Default' clearance 0.2000 mm; actual 0.1965 mm) @ (204.1255, 192.4255)\", \"clearance: Clearance violation (netclass 'Default' clearance 0.2000 mm; actual 0.1951 mm) @ (204.1255, 192.4255)\", \"clearance: Clearance violation (netclass 'Default' clearan"
+ },
+ {
+  "id": "H52",
+  "task": "pcbr2-hard_layout-f7d8d9c0",
+  "attempt": "zero_length_stubs",
+  "kind": "probe",
+  "golden": true,
+  "reward": 1.0,
+  "failed": [],
+  "error": "",
+  "detail": "{}"
+ }
+]
