@@ -12,15 +12,24 @@ Export: one row per task, built ONLY from `public/` (never `hidden/`):
 manifest) via an allow-list; faults, seeds, params and golden data are never exported.
 Load with `datasets.load_dataset("json", data_files="train.jsonl")`.
 
-Scoring: `score_jsonl(predictions.jsonl, tasks_root)` -- each prediction row is
-`{"id": task_id, "design.json": str, "board.kicad_pcb": str}` (plain text), or
+Scoring: `score_jsonl(predictions.jsonl, tasks_root)` -- each prediction row is one JSON object
+`{"id": task_id, "design.json": str, "board.kicad_pcb": str}` (both files as plain text), e.g.
+
+    {"id": "pcbr2-normal-0076521e", "design.json": "{\"components\": ...}", "board.kicad_pcb": "(kicad_pcb (version ..."}
+
+or
 `{"id", "files": {...}}` in the export's `{"encoding", "content"}` form. Each row is written to a
 fresh temp workdir and graded by `verify_isolated` (one `python3 -I` subprocess per row,
 `workers` in parallel). Returns `[{"id", "reward", "gates", "checks", "error"}]` in input order.
 
 CLI:
-    python3 -m pcbenv.adapters.jsonl export --tasks tasks [--split v2/normal] --out train.jsonl
-    python3 -m pcbenv.adapters.jsonl score --tasks tasks --predictions preds.jsonl [--out scores.jsonl] [--workers 8]
+    python3 -m pcbenv.adapters.jsonl export --tasks data [--split v2/normal] --out train.jsonl
+    python3 -m pcbenv.adapters.jsonl predict-unchanged --tasks data --split v2/normal --limit 5 --out preds.jsonl
+    python3 -m pcbenv.adapters.jsonl score --tasks data --predictions preds.jsonl [--out scores.jsonl] [--workers 8]
+
+`predict-unchanged` writes a predictions file holding each task's public files unmodified (a
+zero-effort baseline that scores ~0, and a template for your own predictions).
+A `--split` that matches nothing prints the available splits and exits 2.
 """
 from __future__ import annotations
 
@@ -84,12 +93,25 @@ def task_row(ref: api.TaskRef | str) -> dict:
 
 
 def export_jsonl(tasks_root: str | os.PathLike, out_path: str | os.PathLike, split: str | None = None,
-                 limit: int | None = None) -> int:
-    refs = api.list_tasks(tasks_root, split=split)[:limit]
+                 limit: int | None = None, strict: bool = False) -> int:
+    refs = api.list_tasks(tasks_root, split=split, strict=strict)[:limit]
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
         for ref in refs:
             f.write(json.dumps(task_row(ref), sort_keys=True) + "\n")
+    return len(refs)
+
+
+def unchanged_predictions(tasks_root: str | os.PathLike, out_path: str | os.PathLike, split: str | None = None,
+                          limit: int | None = None, strict: bool = False) -> int:
+    """Predictions file with each task's PUBLIC deliverables unmodified (format template)."""
+    refs = api.list_tasks(tasks_root, split=split, strict=strict)[:limit]
+    Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+    with open(out_path, "w", encoding="utf-8") as f:
+        for ref in refs:
+            pub = Path(ref.path) / api.PUBLIC_DIR
+            row = {"id": ref.task_id, **{n: (pub / n).read_text(encoding="utf-8") for n in DELIVERABLES}}
+            f.write(json.dumps(row, sort_keys=True) + "\n")
     return len(refs)
 
 
@@ -163,14 +185,24 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("--split")
     e.add_argument("--limit", type=int)
     e.add_argument("--out", required=True)
+    u = sp.add_parser("predict-unchanged", help="predictions JSONL = public files unmodified (template)")
+    u.add_argument("--tasks", default="tasks")
+    u.add_argument("--split")
+    u.add_argument("--limit", type=int)
+    u.add_argument("--out", required=True)
     s = sp.add_parser("score", help="grade a predictions JSONL")
     s.add_argument("--tasks", default="tasks")
     s.add_argument("--predictions", required=True)
     s.add_argument("--out")
     s.add_argument("--workers", type=int)
     a = ap.parse_args(argv)
-    if a.cmd == "export":
-        n = export_jsonl(a.tasks, a.out, split=a.split, limit=a.limit)
+    if a.cmd in ("export", "predict-unchanged"):
+        fn = export_jsonl if a.cmd == "export" else unchanged_predictions
+        try:
+            n = fn(a.tasks, a.out, split=a.split, limit=a.limit, strict=True)
+        except api.SplitNotFound as e:
+            print(f"error: {e}", file=sys.stderr)
+            return 2
         print(f"wrote {n} rows to {a.out}")
         return 0 if n else 1
     scores = score_jsonl(a.predictions, a.tasks, workers=a.workers, out_path=a.out)
@@ -180,4 +212,4 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(api.run_cli(main))

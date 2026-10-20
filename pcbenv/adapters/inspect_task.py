@@ -2,8 +2,12 @@
 
     pip install inspect-ai            # not a pcbenv dependency
     docker build --target agent -t pcb-repair-agent .
-    inspect eval pcbenv/adapters/inspect_task.py@pcb_repair -T tasks_root=tasks -T split=train \
+    inspect eval pcbenv/adapters/inspect_task.py@pcb_repair -T tasks_root=data -T split=v2/normal \
         -T limit=20 --model anthropic/<model-id>
+
+Prerequisites (not needed for anything else in pcbenv): network access for `pip install
+inspect-ai` and a running Docker daemon for the sandbox image. `tasks_root` defaults to `tasks`
+(the git checkout); pass `-T tasks_root=data` for bundles extracted with `pcbenv.api extract`.
 
 Design (see docs/SECURITY.md):
 - each Sample carries only the task's PUBLIC files (`Sample.files`, copied by Inspect into the
@@ -66,7 +70,8 @@ def sample_dict(ref: api.TaskRef | str) -> dict:
 
 def build_samples(tasks_root: str | os.PathLike = "tasks", split: str | None = "v2/normal",
                   limit: int | None = None) -> list[dict]:
-    return [sample_dict(r) for r in api.list_tasks(tasks_root, split=split)[:limit]]
+    """Raises `api.SplitNotFound` (with the available splits) when nothing matches."""
+    return [sample_dict(r) for r in api.list_tasks(tasks_root, split=split, strict=True)[:limit]]
 
 
 def score_deliverables(task_dir: str, files: dict[str, bytes | str | None]) -> dict:

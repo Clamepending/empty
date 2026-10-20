@@ -22,8 +22,13 @@ Transcript (one JSON object per line, appended; one file may hold many episodes)
 - `{"type": "start", run_id, task_id, model, max_steps, time}`
 - `{"type": "step", run_id, task_id, model, step, tool_call, action, output, exit_code, seconds, text}`
 - `{"type": "result", run_id, task_id, model, served_models, steps, n_tool_calls, n_model_calls,
-   reward, gates, checks, failed, wall_time_s, truncated, submitted, error, usage}`
-The `result` row is the calibration-log format (G6/G7): `read_results(paths)` loads them.
+   reward, gates, checks, failed, wall_time_s, truncated, timed_out, submitted, aborted, error, usage}`
+Every `start` row gets a `result` row: if the episode is interrupted (KeyboardInterrupt, SystemExit
+from a SIGTERM handler, an exception in the env) the result row has `aborted: true`, reward 0,
+empty gates/checks and the exception in `error`, and the exception is re-raised. Rows are appended
+with one `write()` each (O_APPEND), so parallel workers can share one transcript file.
+The `result` row is the calibration-log format (G6/G7): `read_results(paths)` loads them
+(`include_aborted=False` drops aborted rows).
 """
 from __future__ import annotations
 
@@ -78,10 +83,12 @@ def _normalize(reply, n: int) -> dict:
     raise ValueError(f"unrecognised call_model reply keys: {sorted(reply)}")
 
 
-def _write(fh, row: dict) -> None:
-    if fh is not None:
-        fh.write(json.dumps(row, sort_keys=True, default=str) + "\n")
-        fh.flush()
+def _write(fd: int | None, row: dict) -> None:
+    if fd is not None:
+        data = (json.dumps(row, sort_keys=True, default=str) + "\n").encode("utf-8")
+        while data:  # O_APPEND: one write() per row in practice, so rows never interleave
+            n = os.write(fd, data)
+            data = data[n:]
 
 
 def _clip(s: str, n: int = TRANSCRIPT_OUTPUT_LIMIT) -> str:
@@ -91,12 +98,16 @@ def _clip(s: str, n: int = TRANSCRIPT_OUTPUT_LIMIT) -> str:
 def run_agent(task_dir: str | os.PathLike, call_model: CallModel, max_steps: int = 40, *,
               model: str = "unknown", transcript: str | os.PathLike | None = None,
               tool_style: str = "neutral", system_prompt: str = SYSTEM_PROMPT,
-              max_model_calls: int | None = None, env_kwargs: dict | None = None) -> dict:
+              max_model_calls: int | None = None, env_kwargs: dict | None = None,
+              max_seconds: float | None = None) -> dict:
     """Run one episode and return the `result` row (also appended to `transcript`).
 
     `max_steps` bounds env steps (tool calls incl. submit); `max_model_calls` (default
-    `max_steps`) bounds calls to `call_model`. Exceptions from `call_model` end the episode:
-    the current files are still graded and the error is recorded in `result["error"]`."""
+    `max_steps`) bounds calls to `call_model`; `max_seconds` bounds wall-clock time: once it is
+    exceeded no further model call is made and the files are graded as they are (`timed_out`,
+    `truncated`). Exceptions from `call_model` end the episode: the current files are still graded
+    and the error is recorded in `result["error"]`. Any other interruption writes an `aborted`
+    result row and re-raises."""
     task_dir = os.path.abspath(task_dir)
     task_id = Path(task_dir).name
     run_id = uuid.uuid4().hex[:12]
@@ -107,12 +118,14 @@ def run_agent(task_dir: str | os.PathLike, call_model: CallModel, max_steps: int
     served: list[str] = []
     n_calls = n_model = 0
     error = None
-    submitted = truncated = False
+    submitted = truncated = timed_out = False
     res: VerifyResult | None = None
+    steps = 0
+    abort: BaseException | None = None
     fh = None
     if transcript is not None:
         Path(transcript).parent.mkdir(parents=True, exist_ok=True)
-        fh = open(transcript, "a", encoding="utf-8")
+        fh = os.open(transcript, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
     try:
         _write(fh, {"type": "start", "run_id": run_id, "task_id": task_id, "model": model,
                     "max_steps": max_steps, "time": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())})
@@ -121,6 +134,11 @@ def run_agent(task_dir: str | os.PathLike, call_model: CallModel, max_steps: int
             messages: list[dict] = [{"role": "system", "content": system_prompt},
                                     {"role": "user", "content": obs0["task_md"]}]
             while res is None:
+                steps = env.steps
+                if max_seconds is not None and time.monotonic() - t0 > max_seconds:
+                    truncated = timed_out = True
+                    res = env.reward()
+                    break
                 if n_model >= max_model_calls:
                     truncated = True
                     res = env.reward()
@@ -159,25 +177,32 @@ def run_agent(task_dir: str | os.PathLike, call_model: CallModel, max_steps: int
                         submitted, truncated = bool(term), bool(trunc)
                         break
             steps = env.steps
+    except BaseException as e:  # noqa: BLE001 - recorded as an aborted episode, then re-raised
+        abort = e
+        raise
     finally:
-        result = None
-        if res is not None:
-            result = {
-                "type": "result", "run_id": run_id, "task_id": task_id, "task_dir": task_dir, "model": model,
-                "served_models": served, "steps": steps, "n_tool_calls": n_calls, "n_model_calls": n_model,
-                "reward": res.reward, "gates": res.gates, "checks": res.checks,
-                "failed": sorted([k for k, v in {**res.gates, **res.checks}.items() if not v]),
-                "verify_error": res.detail.get("error"),
-                "wall_time_s": round(time.monotonic() - t0, 3), "truncated": truncated, "submitted": submitted,
-                "error": error, "usage": usage,
-            }
+        aborted = res is None
+        if aborted:
+            error = error or (f"aborted: {type(abort).__name__}: {abort}"[:2000] if abort is not None else "aborted")
+        result = {
+            "type": "result", "run_id": run_id, "task_id": task_id, "task_dir": task_dir, "model": model,
+            "served_models": served, "steps": steps, "n_tool_calls": n_calls, "n_model_calls": n_model,
+            "reward": 0.0 if aborted else res.reward, "gates": {} if aborted else res.gates,
+            "checks": {} if aborted else res.checks,
+            "failed": [] if aborted else sorted([k for k, v in {**res.gates, **res.checks}.items() if not v]),
+            "verify_error": None if aborted else res.detail.get("error"),
+            "wall_time_s": round(time.monotonic() - t0, 3), "truncated": truncated, "timed_out": timed_out,
+            "submitted": submitted, "aborted": aborted, "error": error, "usage": usage,
+        }
+        try:
             _write(fh, result)
-        if fh is not None:
-            fh.close()
+        finally:
+            if fh is not None:
+                os.close(fh)
     return result
 
 
-def read_results(paths) -> list[dict]:
+def read_results(paths, include_aborted: bool = True) -> list[dict]:
     """All `result` rows from one or more transcript files."""
     if isinstance(paths, (str, os.PathLike)):
         paths = [paths]
@@ -186,6 +211,6 @@ def read_results(paths) -> list[dict]:
         for line in Path(p).read_text(encoding="utf-8").splitlines():
             if line.strip():
                 row = json.loads(line)
-                if row.get("type") == "result":
+                if row.get("type") == "result" and (include_aborted or not row.get("aborted")):
                     rows.append(row)
     return rows
