@@ -358,12 +358,22 @@ def verify_isolated(workdir: str, task_dir: str, timeout: float = 120.0) -> Veri
     t0 = time.monotonic()
     code = f"import sys; sys.path.insert(0, {ROOT!r}); from pcbenv.verify import main; sys.exit(main())"
     with tempfile.TemporaryDirectory(prefix="pcbverify_run_") as cwd:
+        # own process group: on timeout the whole group (incl. ngspice children) is killed, so no
+        # orphaned simulator keeps a CPU busy after the grader gave up (RT76)
+        p = subprocess.Popen([sys.executable, "-I", "-c", code, os.path.abspath(workdir), os.path.abspath(task_dir)],
+                             cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                             stdin=subprocess.DEVNULL, start_new_session=True)
         try:
-            proc = subprocess.run([sys.executable, "-I", "-c", code, os.path.abspath(workdir),
-                                   os.path.abspath(task_dir)], cwd=cwd, capture_output=True, text=True,
-                                  timeout=timeout, stdin=subprocess.DEVNULL)
+            out, err = p.communicate(timeout=timeout)
         except subprocess.TimeoutExpired:
+            import signal
+            try:
+                os.killpg(p.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            p.communicate()
             return VerifyResult(0.0, detail={"error": f"verify timed out after {timeout} s"})
+        proc = subprocess.CompletedProcess(p.args, p.returncode, out, err)
     for line in reversed(proc.stdout.splitlines()):
         if line.startswith(_MARK):
             try:
