@@ -92,3 +92,36 @@ def test_netnames_rename_only_unreferenced():
     assert m == {"FB": "Net-(R1-Pad2)"}
     out = netnames.apply_to_design(d, m)
     assert set(out["nets"]) == {"Net-(R1-Pad2)", "VIN", "GND"}
+
+
+def test_absurd_values_rejected_without_simulating(tmp_path):
+    """RT76: every value set to 1e-30 used to make verify_isolated exceed its 120 s budget on
+    hard / hard_layout tasks (ngspice crawling). The verifier now refuses to simulate absurd values
+    (> 1e3x outside the value bound, or outside the part's physical range): reward 0, fast."""
+    import shutil
+    import time
+    from pathlib import Path
+
+    from pcbenv.checks import absurd_values
+    from pcbenv.verify import verify_isolated
+    root = Path(__file__).resolve().parent.parent / "tasks"
+    rows = [json.loads(x) for x in (root / "manifest.jsonl").read_text().splitlines() if x.strip()]
+    row = next((r for r in rows if r["tier"] == "hard_layout" and r["split"] == "v2/hard_layout"), None)
+    if row is None:
+        pytest.skip("no shipped hard_layout task")
+    td = root / row["split"] / row["id"]
+    wd = tmp_path / "wd"
+    shutil.copytree(td / "public", wd)
+    d = json.loads((wd / "design.json").read_text())
+    for c in d["components"].values():
+        if c.get("value"):
+            c["value"] = "1e-30"
+    (wd / "design.json").write_text(json.dumps(d))
+    meta = json.loads((td / "hidden" / "meta.json").read_text())
+    assert absurd_values(d, meta["value_bounds"])
+    t0 = time.monotonic()
+    r = verify_isolated(str(wd), str(td))
+    assert r.reward == 0.0 and time.monotonic() - t0 < 60
+    assert any("absurd" in m for m in r.detail.get("spec", []))
+    g = json.loads((td / "hidden" / "golden_design.json").read_text())
+    assert absurd_values(g, meta["value_bounds"]) == []

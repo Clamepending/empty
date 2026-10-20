@@ -1,0 +1,9 @@
+# QA's counterexample (qa/prescreen_v2/kelvin_centre.py, run on the archived v2.0 task dirs with the v2.1 verifier):
+#   sed 's#tasks/v2/hard_layout#tasks/v2.0_archive/hard_layout#' qa/prescreen_v2/kelvin_centre.py > /tmp/kc.py && python3 /tmp/kc.py <task_id>
+# v2.0 verifier result (qa/prescreen_v2/kelvin_centre.txt): reward 0.0 {'layout_rules': False}
+pcbr2-hard_layout-5dd2d0dd: moved 2 track end(s) onto the shunt pad centre
+kelvin_ok: (True, '')
+VERIFY reward 1.0 {} None
+pcbr2-hard_layout-f7d8d9c0: moved 2 track end(s) onto the shunt pad centre
+kelvin_ok: (True, '')
+VERIFY reward 1.0 {} None

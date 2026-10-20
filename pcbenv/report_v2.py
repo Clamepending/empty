@@ -1,6 +1,9 @@
 """reports/v2_generation.md from the generators' own statistics and manifests (nothing hand-edited).
 
     python3 -m pcbenv.report_v2 --out reports/v2_generation.md
+
+v2.1: a "v2.1 changes" section compares the regenerated splits with the archived v2.0 task dirs
+(`tasks/v2.0_archive`, `--archive`) when that archive is present.
 """
 from __future__ import annotations
 
@@ -14,6 +17,30 @@ from pcbenv.generate import _pct, load_manifest
 
 ROOT = Path("tasks")
 DIST = Path("dist")
+ARCHIVE = ROOT / "v2.0_archive"
+SPLITS = ("normal", "normal_holdout", "hard", "hard_holdout", "hard_layout", "hard_layout_holdout")
+V21_CHANGES = [
+    "F1 (verifier): Kelvin rule -- copper inside the shunt pad's outline is the pad; the sense copper must attach "
+    "to the shunt pad and share no copper with the load-current path OUTSIDE the pad (`layout_rules.kelvin_ok`); "
+    "TASK.md / SPEC wording updated.",
+    "F3 (verifier): analog/switching separation counts the switching node on BOTH copper layers (in projection); "
+    "opposite-layer crossings at >= 45 deg excluded; stated in TASK.md.",
+    "F5 (verifier): `rules` flyback check judges the diode across the load's two terminals (orientation from the DC "
+    "operating points), not the connector pin labels; `meta.symmetric_refs` lets the topology gate treat a 2-pin "
+    "non-polar load connector as symmetric when the intent leaves its pinout open (no current family does).",
+    "F2 (generator): layout faults must exceed their limit by >= 1.5x (`latent.LAYOUT_MARGIN`, was 1.25).",
+    "F4 (generator): latent evidence must be a requirement sentence (TASK.md outside the problem report and the "
+    "assertion bullets, or the part's own datasheet; never spec.json); the matched line is stored in hidden meta "
+    "(`faults[i].data.evidence_matches`).",
+    "F5 (generator): no `connector_pin_swap` on 2-pin non-polar load connectors (relay coil, solenoid, heater); "
+    "motors keep it.",
+    "F6 (verifier message): an unmeasurable switching loop says so (`loop area cannot be measured: ...`).",
+    "F8 (prompt): hard-tier TASK.md assertion list is headed `## Spec assertions` (no duplicate `## Spec`).",
+    "RT70: every published board is re-canonicalised with the public `<task_id>:names` salt.",
+    "RT76: absurd values (> 1e3x outside the value bound or outside the part's physical range) are not simulated.",
+    "Task ids of the hard tiers changed (generator versions `pcb-repair-hard-v2.1`, `pcb-repair-hard-layout-v2.1`); "
+    "normal-tier ids are unchanged. Bundles: `dist/pcb-repair-v2.1-*.tar.gz`.",
+]
 
 
 def _sha(p: Path) -> str:
@@ -92,8 +119,9 @@ def hard_section(L: list[str], tdir: Path, hdir: Path) -> None:
           f"- tool mode: " + ", ".join(f"{k} {v} ({_pct(v, n)})" for k, v in
                                        sorted(Counter(r["tools_mode"] for r in rows).items())),
           f"- intent: " + ", ".join(f"{k} {v}" for k, v in sorted(Counter(r["intent"] for r in rows).items())),
-          "- fairness gate: every latent fault's evidence (`latent.evidence_groups`) was found in the task's "
-          "public text (TASK.md + spec.json + parts/*.md) for every shipped task", ""]
+          "- fairness gate: every latent fault's evidence (`latent.evidence_groups`) was found as a requirement "
+          "sentence in the task's public text (TASK.md outside the problem report and assertion bullets, "
+          "parts/*.md) for every shipped task; the matched line is in hidden meta (`evidence_matches`)", ""]
     inj = st["inject_log"]
     alone = st["alone"]
     types = sorted({k.split("|")[0] for k in list(inj) + list(alone)})
@@ -180,9 +208,65 @@ def refresh_section(L: list[str], d: Path, tier: str) -> None:
           f"{extra}; {st['seconds']:.0f} s"]
 
 
-def render(commands: list[str]) -> str:
+def _split_counts(root: Path) -> dict[str, int]:
+    out = {}
+    for sp in SPLITS:
+        m = root / sp / "manifest.jsonl"
+        out[sp] = len(load_manifest(m)) if m.exists() else 0
+    for sp in ("normal", "hard"):
+        m = root / "refresh-v2" / sp / "manifest.jsonl"
+        if root == ROOT / "v2":
+            m = ROOT / "refresh-v2" / sp / "manifest.jsonl"
+        out[f"refresh {sp}"] = len(load_manifest(m)) if m.exists() else 0
+    return out
+
+
+def _fault_counts(root: Path, refresh: Path) -> Counter:
+    c: Counter = Counter()
+    for d in [root / sp for sp in SPLITS] + [refresh / "normal", refresh / "hard"]:
+        m = d / "manifest.jsonl"
+        if m.exists():
+            c.update(f["type"] for r in load_manifest(m) for f in r["faults"])
+    return c
+
+
+def _layout_ratios(root: Path) -> dict[str, float]:
+    out: dict[str, float] = {}
+    for sp in ("hard_layout", "hard_layout_holdout"):
+        for td in sorted((root / sp).glob("pcbr2-*")):
+            meta = json.loads((td / "hidden" / "meta.json").read_text())
+            for f in meta["faults"]:
+                r = (f.get("data") or {}).get("metric_ratio")
+                if isinstance(r, (int, float)) and r != float("inf"):
+                    out[f["type"]] = min(out.get(f["type"], r), r)
+    return out
+
+
+def v21_section(L: list[str], archive: Path) -> None:
+    L += ["## v2.1 changes (QA pre-screen F1-F9, red team RT70 / RT76)", ""]
+    L += [f"- {x}" for x in V21_CHANGES]
+    if not archive.exists():
+        return
+    a, b = _split_counts(archive), _split_counts(ROOT / "v2")
+    L += ["", f"Task counts, v2.0 (`{archive}`) -> v2.1:", "", "| split | v2.0 | v2.1 | change |", "|---|---|---|---|"]
+    for k in a:
+        L.append(f"| {k} | {a[k]} | {b[k]} | {b[k] - a[k]:+d} |")
+    L.append(f"| **total** | {sum(a.values())} | {sum(b.values())} | {sum(b.values()) - sum(a.values()):+d} |")
+    fa, fb = _fault_counts(archive, archive / "refresh-v2"), _fault_counts(ROOT / "v2", ROOT / "refresh-v2")
+    changed = sorted(t for t in set(fa) | set(fb) if fa[t] != fb[t])
+    L += ["", "Shipped fault instances per type, where they changed (all splits incl. refresh):", "",
+          "| type | v2.0 | v2.1 |", "|---|---|---|"]
+    L += [f"| `{t}` | {fa[t]} | {fb[t]} |" for t in changed]
+    ra, rb = _layout_ratios(archive), _layout_ratios(ROOT / "v2")
+    L += ["", "Smallest faulted-metric / limit ratio of the measured layout faults (F2: v2.1 requires >= 1.5):", "",
+          "| type | v2.0 min | v2.1 min |", "|---|---|---|"]
+    L += [f"| `{t}` | {ra.get(t, float('nan')):.3f} | {rb.get(t, float('nan')):.3f} |" for t in sorted(set(ra) | set(rb))]
+    L.append("")
+
+
+def render(commands: list[str], archive: Path = ARCHIVE) -> str:
     v2 = ROOT / "v2"
-    L = ["# v2 task generation (normal + hard tier + hard_layout)", "",
+    L = ["# v2.1 task generation (normal + hard tier + hard_layout)", "",
          "Generated by `python3 -m pcbenv.report_v2` from the generators' own statistics "
          "(`generation_stats.json`) and public manifests. Nothing here is hand-edited.", "",
          "## Commands", "", "```"] + commands + ["```", "",
@@ -192,6 +276,7 @@ def render(commands: list[str]) -> str:
          "(`tasks/manifest.jsonl`, one per split dir, inside the tarballs) carry family / fault metadata but no "
          "seeds. Byte-identical regeneration needs the same secret; `--secret default` is the documented public "
          "secret for reproducibility runs (tests use it).", ""]
+    v21_section(L, archive)
     normal_section(L, v2 / "normal", v2 / "normal_holdout")
     hard_section(L, v2 / "hard", v2 / "hard_holdout")
     hard_layout_section(L, v2 / "hard_layout", v2 / "hard_layout_holdout")
@@ -214,9 +299,10 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python3 -m pcbenv.report_v2")
     ap.add_argument("--out", default="reports/v2_generation.md")
     ap.add_argument("--commands", default=None, help="text file with the exact generation commands")
+    ap.add_argument("--archive", default=str(ARCHIVE), help="v2.0 task dirs to compare with")
     a = ap.parse_args(argv)
     cmds = Path(a.commands).read_text().strip().splitlines() if a.commands else []
-    Path(a.out).write_text(render(cmds), encoding="utf-8")
+    Path(a.out).write_text(render(cmds, Path(a.archive)), encoding="utf-8")
     print(f"wrote {a.out}")
     return 0
 

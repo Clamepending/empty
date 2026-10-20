@@ -239,11 +239,18 @@ def _verify(workdir: str, task_dir: str, td: str) -> VerifyResult:
 
     _fail(res, "erc", [f"{i.code}: {i.detail}" for i in erc.errors(erc.run_erc(design))], False)
 
+    from pcbenv.checks import absurd_values
+    absurd = absurd_values(design, meta.get("value_bounds") or {})   # RT76: never simulate these
+    absurd_msg = ["not simulated: absurd component value(s): " + "; ".join(absurd[:5])] if absurd else []
     try:
+        if absurd:
+            raise _Skip
         ares = sim.run_assertions(design, meta.get("assertions", []))
         msgs = [f"{a.name}: measured {a.measured} expected {a.expected} {a.detail}".strip() for a in ares if not a.passed]
         if len(ares) != len(meta.get("assertions", [])):
             msgs.append("assertion count mismatch")
+    except _Skip:
+        msgs = absurd_msg
     except Exception as e:  # noqa: BLE001
         msgs = [f"simulation error: {e}"]
     _fail(res, "spec", msgs, False)
@@ -266,7 +273,7 @@ def _verify(workdir: str, task_dir: str, td: str) -> VerifyResult:
     rctx = meta.get("rules") or meta.get("rules_power")
     if rctx:
         from pcbenv import rules as RL
-        _fail(res, "rules", [f"{v.code}: {v.detail}" for v in RL.run_rules(design, rctx)], False)
+        _fail(res, "rules", absurd_msg or [f"{v.code}: {v.detail}" for v in RL.run_rules(design, rctx)], False)
 
     # Layout design rules (`pcbenv/layout_rules.py`, hard_layout tier): board-geometry rules stated in
     # TASK.md / spec.json `layout_rules`, graded from the candidate board only for tasks whose hidden
@@ -281,6 +288,10 @@ def _verify(workdir: str, task_dir: str, td: str) -> VerifyResult:
           and all(res.checks.values()))
     res.reward = 1.0 if ok else 0.0
     return res
+
+
+class _Skip(Exception):
+    pass
 
 
 def _copper_graphics(fp) -> int:

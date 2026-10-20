@@ -47,21 +47,21 @@ separate directory (`data/`), not into the checkout's `tasks/`.
 
 ```bash
 export PATH="$PWD/bin:$PATH"                                            # puts pcbtool on PATH
-python3 -m pcbenv.api extract dist/pcb-repair-v2-normal.tar.gz data       # 655 tasks -> data/v2/normal/
-python3 -m pcbenv.api extract dist/pcb-repair-v2-hard.tar.gz data         # 362 tasks -> data/v2/hard/
+python3 -m pcbenv.api extract dist/pcb-repair-v2.1-normal.tar.gz data       # 655 tasks -> data/v2/normal/
+python3 -m pcbenv.api extract dist/pcb-repair-v2.1-hard.tar.gz data         # 362 tasks -> data/v2/hard/
 python3 -m pcbenv.api splits data                                         # v2/hard 362, v2/normal 655
 ```
 
 Other bundles:
 
-- `pcb-repair-v2-hard-layout.tar.gz` gives `v2/hard_layout`.
+- `pcb-repair-v2.1-hard-layout.tar.gz` gives `v2/hard_layout`.
 - `-normal-holdout`, `-hard-holdout` and `-hard-layout-holdout` give the `*_holdout` splits. Keep these out of training.
 
 In a git checkout, `tasks/` already holds every split, so `tasks` can replace `data` in every
 command below.
 
 A `--split` that matches nothing prints the splits that do exist and exits 2. Bundle names
-(`pcb-repair-v2-normal`) and bare names (`normal`) are accepted as aliases.
+(`pcb-repair-v2.1-normal`) and bare names (`normal`) are accepted as aliases.
 
 ### 2. List tasks (normal and hard tier)
 

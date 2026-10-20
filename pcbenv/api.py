@@ -127,7 +127,7 @@ def canonical_split(name: str | None) -> str | None:
 
 def split_matches(wanted: str | None, split: str | None) -> bool:
     """`wanted` (what the user typed) selects `split`. Accepts the manifest name (`v2/normal`), the
-    bundle name (`pcb-repair-v2-normal`) and, when either side is a bare dir name, the last
+    bundle name (`pcb-repair-v2.1-normal`) and, when either side is a bare dir name, the last
     component (`normal` <-> `v2/normal`)."""
     if wanted is None:
         return True
@@ -199,7 +199,7 @@ def list_tasks(root: str | os.PathLike = "tasks", split: str | None = None,
     from the task's parent dir name (also accepts `root` being a split dir or a single task dir).
     Manifest rows whose directory is missing are skipped.
 
-    `split` accepts `v2/normal`, `pcb-repair-v2-normal` or `normal` (see `split_matches`).
+    `split` accepts `v2/normal`, `pcb-repair-v2.1-normal` or `normal` (see `split_matches`).
     `strict=True` raises `SplitNotFound` (listing the available splits) instead of returning []."""
     rootp = Path(root)
     refs = [r for r in _all_tasks(rootp) if split_matches(split, r.split)]
@@ -307,7 +307,7 @@ def extract_tasks(tarball: str | os.PathLike, dest: str | os.PathLike) -> list[T
     """Safely extract a `dist/*.tar.gz` task bundle into `dest` and return the tasks it contained
     (not everything already in `dest`; use `list_tasks(dest)` for that).
 
-    A release bundle (`pcb-repair-v2-normal/{manifest.jsonl,<task_id>/...}`) is extracted to
+    A release bundle (`pcb-repair-v2.1-normal/{manifest.jsonl,<task_id>/...}`) is extracted to
     `dest/v2/normal/` -- the same `<root>/v2/<split>/<task_id>` layout as a git checkout, so
     `--split v2/normal` works on both. Other archives are extracted as-is.
     Every member is checked BEFORE anything is written: absolute paths, `..`, symlinks, hardlinks,

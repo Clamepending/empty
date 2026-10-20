@@ -76,7 +76,7 @@ Specific hardening in `verify.py` and its helpers:
 - Task bundles are extracted with `pcbenv.api.extract_tasks`. It rejects absolute paths, `..`,
   symlinks, hardlinks, special files and members over 64 MB before writing anything, and then
   extracts with tarfile's `data` filter. A release bundle's top-level directory is renamed to
-  its split path (`pcb-repair-v2-normal/` -> `v2/normal/`). The split comes from the bundle
+  its split path (`pcb-repair-v2.1-normal/` -> `v2/normal/`). The split comes from the bundle
   manifest and must match `[A-Za-z0-9_.-]+(/...)*` with no `.` or `..` component; otherwise it
   is derived from the bundle name. All member checks are repeated on the renamed paths.
 

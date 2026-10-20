@@ -102,3 +102,34 @@ def value_violations(design: dict, bounds: dict) -> list[str]:
         if not (math.isfinite(x) and lo * (1 - 1e-9) <= x <= hi * (1 + 1e-9)):
             out.append(f"{ref}: value {raw!r} outside acceptable range {rng}")
     return out
+
+
+# RT76: physically absurd values (e.g. every value 1e-30) make ngspice crawl; the verifier rejects them
+# up front (the `values` check fails on them anyway) instead of simulating. A value is absurd if it lies
+# more than ABSURD_FACTOR outside its value bound, or outside the part's physical range.
+ABSURD_FACTOR = 1e3
+PHYSICAL_RANGE = {"R": (1e-6, 1e15), "C": (1e-18, 1.0), "L": (1e-12, 1e3), "XTAL": (1.0, 1e10)}
+
+
+def absurd_values(design: dict, bounds: dict) -> list[str]:
+    """Messages for component values the grader will not simulate (see ABSURD_FACTOR, PHYSICAL_RANGE).
+    Unparseable values are left to the parse gate / `values` check."""
+    out = []
+    for ref, c in sorted(design.get("components", {}).items()):
+        raw = c.get("value", "")
+        if not raw:
+            continue
+        try:
+            x = parse_value(raw, c.get("part"))
+        except Exception:  # noqa: BLE001
+            continue
+        part = c.get("part", "")
+        phys = PHYSICAL_RANGE.get("XTAL" if part.startswith("XTAL") else part)
+        b = (bounds or {}).get(ref)
+        if not math.isfinite(x):
+            out.append(f"{ref}: value {raw!r} is not finite")
+        elif b is not None and not (float(b[0]) / ABSURD_FACTOR <= x <= float(b[1]) * ABSURD_FACTOR):
+            out.append(f"{ref}: value {raw!r} is more than {ABSURD_FACTOR:g}x outside its range [{b[0]:.6g}, {b[1]:.6g}]")
+        elif phys is not None and not (phys[0] <= x <= phys[1]):
+            out.append(f"{ref}: value {raw!r} outside the physical range [{phys[0]:g}, {phys[1]:g}] of a {part}")
+    return out

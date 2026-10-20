@@ -203,7 +203,8 @@ tasks/<split>/<task_id>/                 v2 splits: v2/normal, v2/normal_holdout
 `meta.json`: `task_id, tier, family, seed, index, params, faults: [{type, detail, data}], assertions,
 power_nets, decoupling, value_bounds, alt_partitions, public_net_renames, difficulty (measured|predicted)`
 (+ `rules` / `rules_power`, `tools_mode` for the hard tier; + `layout_rules` for hard_layout, also published
-as `spec.json:layout_rules`). `public/spec.json`: `title, assertions,
+as `spec.json:layout_rules`; v2.1: each latent fault's `data.evidence_matches` = the public requirement
+lines its fairness gate matched; optional `symmetric_refs`, see §7 gate 3). `public/spec.json`: `title, assertions,
 power_nets (net, anchor_pin, min_width_mm), decoupling, value_bounds` (hard tier: `decoupling` is empty
 and the rules are under `design_rules.decoupling`: stated and graded, not run by pcbtool).
 

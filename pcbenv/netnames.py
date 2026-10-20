@@ -112,6 +112,7 @@ def neutralise_public(task_dir: str, design_parts: dict | None = None, salt: str
     board_nets = {n: sorted(ps) for n, ps in info.net_pins.items()}
     renames = rename_map(design, board_nets, texts)
     D.save(apply_to_design(design, renames), os.path.join(pub, "design.json"))
-    if renames:
-        apply_to_board(bpath, renames, salt or "netnames")
+    # RT70: ALWAYS re-save + re-canonicalise with the public salt, even with nothing to rename, so no
+    # public board byte (UUIDs) derives from the fault pipeline's seed-bearing salt
+    apply_to_board(bpath, renames, salt or "netnames")
     return renames

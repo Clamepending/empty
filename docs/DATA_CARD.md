@@ -65,11 +65,11 @@ not computed by `pcbtool`. 3–6 faults per task with ≥ 1 layout-latent fault 
 path, loop part moved away, crystal moved / via pair, analog trace routed along the switching node, decoupling
 cap routed the long way; each invisible to `pcbtool` and violating exactly one layout rule) and ≥ 1 other latent
 fault; no_autoroute 87.6 % (always when `pcbtool route` would repair a layout fault). Bundles
-`dist/pcb-repair-v2-{hard-layout,hard-layout-holdout}.tar.gz`; details in `reports/v2_generation.md`.
+`dist/pcb-repair-v2.1-{hard-layout,hard-layout-holdout}.tar.gz`; details in `reports/v2_generation.md`.
 
 Every shipped task passed the gates: golden 1.0, faulted 0.0, each fault alone 0.0, oracle repair 1.0,
 no fault cancelled by another; hard tier also: every latent fault invisible to `pcbtool` alone and its
-evidence present in the public text. Bundles: `dist/pcb-repair-v2-{normal,normal-holdout,hard,hard-holdout}.tar.gz`
+evidence present in the public text. Bundles: `dist/pcb-repair-v2.1-{normal,normal-holdout,hard,hard-holdout}.tar.gz`
 (sha256s in the report). v1 (818 tasks) remains in git history.
 
 ## Intended use
