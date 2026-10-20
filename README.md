@@ -148,7 +148,7 @@ supply `call_model(messages, tools) -> reply`.
 - **The reply** is `{"tool_calls": [{"name", "input"}, ...], "text": ...}`, or a single
   `{"name", "input"}`. `None` (no tool calls) submits.
 
-Save this as `my_policy.py` in the repo root and run `python3 my_policy.py`:
+Save this as `my_policy.py` in the repo root and run `python3 my_policy.py` (saved anywhere else, run it as `PYTHONPATH=/path/to/repo python3 my_policy.py`, or use the editable install above):
 
 ```python
 from pcbenv import api
