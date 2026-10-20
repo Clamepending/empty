@@ -40,8 +40,8 @@ python3 -m pytest -q tests/
 ```
 
 In a git checkout the shipped task dirs are already under `tasks/v2/` (regenerated, or extracted from
-`dist/`); `tasks/manifest.jsonl` lists all four splits (`v2/normal`, `v2/normal_holdout`, `v2/hard`,
-`v2/hard_holdout`). Task ids are opaque (`pcbr2-<tier>-<hash>`); see [reports/v2_generation.md](reports/v2_generation.md).
+`dist/`); `tasks/manifest.jsonl` lists all v2 splits (`v2/normal`, `v2/normal_holdout`, `v2/hard`,
+`v2/hard_holdout`, and the layout-rules sub-tier `v2/hard_layout`, `v2/hard_layout_holdout`). Task ids are opaque (`pcbr2-<tier>-<hash>`); see [reports/v2_generation.md](reports/v2_generation.md).
 
 Any LLM: `examples/run_with_claude.py MODEL_ID --tasks tasks --limit 5` is a reference loop for the
 Anthropic Messages API (`pip install anthropic`). For other providers, write a
@@ -96,8 +96,9 @@ comes from `hidden/`.
 | check | `values` | every component value inside its published range (`value_bounds`) |
 | check | `layout` | power-net track widths ≥ required; each decoupling cap within its straight-line distance and copper-path length of its IC pin |
 | check | `rules` | only for tasks with a rule context (all v2 tasks: resistor power; hard tier: all datasheet design rules) — not run by `pcbtool` |
+| check | `layout_rules` | only for `hard_layout` tasks: board-geometry rules stated in TASK.md "Layout rules" / `spec.json:layout_rules` (Kelvin sense, switching-loop area, crystal traces, analog/switching separation) — not run by `pcbtool` |
 
-**Reward = 1.0 if and only if all 5 gates and all checks (5, plus `rules` where present) pass, otherwise 0.0.** The per-gate and
+**Reward = 1.0 if and only if all 5 gates and all checks (5, plus `rules` / `layout_rules` where present) pass, otherwise 0.0.** The per-gate and
 per-check booleans are returned for diagnostics only. [docs/REWARD.md](docs/REWARD.md) covers what
 each stage catches and its known limitations.
 

@@ -14,7 +14,8 @@ Trust boundary
 Hard gates (reward 0 if any fails): parse, components, topology, consistency, integrity.
 Checks (all must pass for reward 1): drc, erc, spec, values, layout, and -- only for tasks whose
 meta carries a rule context (`rules` hard tier / `rules_power`) -- `rules` (`pcbenv/rules.py`,
-datasheet design rules that pcbtool does not run). Reward is binary.
+datasheet design rules that pcbtool does not run), and -- only for hard_layout tasks (meta
+`layout_rules`) -- `layout_rules` (`pcbenv/layout_rules.py`, board-geometry rules). Reward is binary.
 `values`: every ref in `meta["value_bounds"]` (ref -> [min, max]) has a design value inside its
 range (old tasks without the key: nothing to check, the check passes).
 
@@ -265,6 +266,15 @@ def _verify(workdir: str, task_dir: str, td: str) -> VerifyResult:
         from pcbenv import rules as RL
         _fail(res, "rules", [f"{v.code}: {v.detail}" for v in RL.run_rules(design, rctx)], False)
 
+    # Layout design rules (`pcbenv/layout_rules.py`, hard_layout tier): board-geometry rules stated in
+    # TASK.md / spec.json `layout_rules`, graded from the candidate board only for tasks whose hidden
+    # meta carries the rule context; pcbtool does not run them.
+    lctx = meta.get("layout_rules")
+    if lctx:
+        from pcbenv import layout_rules as LR
+        _fail(res, "layout_rules", [f"{v.code}: {v.detail}" for v in LR.run_layout_rules(board, lctx, ref_parts)],
+              False)
+
     ok = (all(res.gates.get(g) for g in GATES) and all(res.checks.get(c) for c in CHECKS)
           and all(res.checks.values()))
     res.reward = 1.0 if ok else 0.0
@@ -305,6 +315,8 @@ def verify(workdir: str, task_dir: str) -> VerifyResult:
         res.checks.setdefault(c, False)
     if "rules" not in res.checks and _has_rules(task_dir):
         res.checks["rules"] = False
+    if "layout_rules" not in res.checks and _has_layout_rules(task_dir):
+        res.checks["layout_rules"] = False
     if not (all(res.gates.values()) and all(res.checks.values())):
         res.reward = 0.0
     res.detail["seconds"] = round(time.monotonic() - t0, 3)
@@ -316,6 +328,14 @@ def _has_rules(task_dir: str) -> bool:
         from pcbenv import taskio
         m = taskio.load_meta(task_dir)
         return bool(m.get("rules") or m.get("rules_power"))
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _has_layout_rules(task_dir: str) -> bool:
+    try:
+        from pcbenv import taskio
+        return bool(taskio.load_meta(task_dir).get("layout_rules"))
     except Exception:  # noqa: BLE001
         return False
 

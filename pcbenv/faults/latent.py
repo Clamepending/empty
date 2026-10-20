@@ -504,6 +504,9 @@ def evidence_groups(rec: dict) -> list[list[str]]:
     this latent fault to be deducible: every group needs one alternative present. An alternative
     `line:A&B` needs A and B on one line."""
     t, d = rec["type"], rec.get("data", {})
+    if t in LAYOUT_LATENT_TYPES:
+        from pcbenv.layout_rules import evidence_groups as layout_evidence
+        return layout_evidence(rec, d.get("layout_ctx") or {})
     groups = [list(g) for g in _ADDENDUM_KEYS.get(t, [])]
     if t in ("resistor_underrated", "capacitor_underrated", "led_underrated"):
         size = d["footprint"].split(":")[1].split("_")[1]
@@ -677,30 +680,42 @@ def _realise_geo(lt: "LatentType", golden: Golden, design: dict, board_path: str
             seed_kiid(salt)
             try:
                 c.edit(board)
-            except NotApplicable:
+            except NotApplicable as e:
+                _dbg(c.desc, "n/a", e)
                 continue
             save_board(board, b2, salt)
             r = drc.run_drc(b2)
             if r.errors or r.unconnected:
+                _dbg(c.desc, "drc", r.errors[:2], r.unconnected)
                 continue
             now = layout_issues(golden, b2)
             new = {k: [x for x in v if x not in base.get(k, [])] for k, v in now.items()}
             new = {k: v for k, v in new.items() if v}
             if not new or set(new) - set(lt.rule_codes):
+                _dbg(c.desc, "rules", new)
                 continue
             m = _metric(golden, b2, metric, c.data)
             if m is None or m < LAYOUT_MARGIN:
+                _dbg(c.desc, "margin", m)
                 continue
-            if visible_failures(golden, design, b2):
+            vis = visible_failures(golden, design, b2)
+            if vis:
+                _dbg(c.desc, "visible", vis[:3])
                 continue
             shutil.copyfile(b2, board_path)
         data = dict(c.data)
         data.pop("rule", None)
+        data["layout_ctx"] = _lctx(golden)
         data.update(latent=True, layout=True, detected_by=lt.detected_by, rule_codes=sorted(new),
                     evidence=lt.evidence, needs_full_intent=False, moves={}, footprints={}, values={},
                     metric_ratio=round(m, 3), rule_violations=[f"{k}: {x}" for k, v in sorted(new.items()) for x in v][:10])
         return FaultRecord(lt.name, "latent", c.desc, True, sorted(set(c.targets)), data)
     return None
+
+
+def _dbg(*a) -> None:
+    if os.environ.get("PCBENV_LAYOUT_DEBUG"):
+        print("[layout-fault]", *a, flush=True)
 
 
 def _net_name(golden: Golden, pin: str) -> str:
@@ -812,7 +827,8 @@ def _candidate_spots(board, golden: Golden, ref: str, rng: random.Random, dmin: 
     return spots[: n * 6]
 
 
-def _move_and_branch(board, golden: Golden, ref: str, spots, legs: list[tuple[str, str]], rng) -> None:
+def _move_and_branch(board, golden: Golden, ref: str, spots, legs: list[tuple[str, str]], rng,
+                     isolated: bool | str = True) -> None:
     """Detach `ref`'s copper, move it to the first spot where it fits, route each (pin, partner)
     leg as an isolated branch, then re-join any copper islands the detach split off."""
     from pcbenv.faults import geom as G
@@ -834,7 +850,7 @@ def _move_and_branch(board, golden: Golden, ref: str, spots, legs: list[tuple[st
     for pin, partner in legs:
         p = _board_pad(board, golden, pin)
         G.route_branch(board, p.GetNetCode(), _key(golden, pin), _key(golden, partner),
-                       net_width(golden, _net_name(golden, pin)), isolated=True)
+                       net_width(golden, _net_name(golden, pin)), isolated=isolated)
     for code in nets:
         G.reconnect(board, code, net_width(golden, board.GetNetInfo().GetNetItem(code).GetNetname()))
 
@@ -857,7 +873,7 @@ def _switch_loop_spread(lt, golden, design, board_path, rng, exclude, salt, ctx)
                 nets = sorted({_net_name(golden, p) for p, _ in pins_of[ref]})
 
                 def edit(board, ref=ref, spots=spots, legs=pins_of[ref], srng=srng):
-                    _move_and_branch(board, golden, ref, spots, legs, srng)
+                    _move_and_branch(board, golden, ref, spots, legs, srng, "prefer")
                 cands.append(GeoCand(f"{ref} moved away from the switching loop (ring {k}) and re-routed: the commutation "
                                      f"loop {' -> '.join(a for a, _ in legs)} encloses too much area",
                                      {"variant": f"move_{golden.design['components'][ref]['part']}", "ref": ref,
@@ -877,7 +893,7 @@ def _crystal_far(lt, golden, design, board_path, rng, exclude, salt, ctx):
             spots = _candidate_spots(b0, golden, y, srng, 10.0 + 4 * k, 18.0 + 6 * k)
 
             def edit(board, y=y, spots=spots, pairs=r["pairs"], srng=srng):
-                _move_and_branch(board, golden, y, spots, [(yp, mp) for mp, yp in pairs], srng)
+                _move_and_branch(board, golden, y, spots, [(yp, mp) for mp, yp in pairs], srng, "prefer")
             cands.append(GeoCand(f"crystal {y} moved away from {r['mcu']} (ring {k}) and re-routed: XIN/XOUT traces too long",
                                  {"variant": "move_xtal", "ref": y, "nets": nets, "ring": k},
                                  [y, *nets_target(*nets)], edit))
@@ -903,7 +919,7 @@ def _crystal_via(lt, golden, design, board_path, rng, exclude, salt, ctx):
                     nx, ny = -(y2 - y1) / L, (x2 - x1) / L
                     wp = G.waypoint((x1 + x2) / 2 + nx * off, (y1 + y2) / 2 + ny * off, 1)
                     G.route_branch(board, code, _key(golden, yp), _key(golden, mp), net_width(golden, net), [wp],
-                                   isolated=True)
+                                   isolated="prefer")
                     G.reconnect(board, code, net_width(golden, net))
                 cands.append(GeoCand(f"{yp} -> {mp} oscillator trace re-routed through the bottom layer (via pair) "
                                      f"(offset {off:g} mm)", {"variant": "via", "nets": [net], "pins": [mp, yp]},
@@ -958,33 +974,106 @@ def _analog_near_switch(lt, golden, design, board_path, rng, exclude, salt, ctx)
     cands = []
     b0 = load_board(board_path)
     for r in lctx.get("separation", []):
+        from pcbenv.layout import copper_path
         vpin, apin = r["victim_pins"][0], r["aggressor_pins"][0]
         vnet, anet = _net_name(golden, vpin), _net_name(golden, apin)
         acode = _board_pad(b0, golden, apin).GetNetCode()
-        run = r["max_parallel_mm"] * LAYOUT_MARGIN + 1.5
-        chains = _offset_chains(b0, acode, run)
+        run = r["max_parallel_mm"] * LAYOUT_MARGIN + 0.75
+        apins = sorted(golden.design["nets"][anet])
+        paths = []
+        for i, p1 in enumerate(apins):
+            for p2 in apins[i + 1:]:
+                res = copper_path(b0, _board_pad(b0, golden, p1), _board_pad(b0, golden, p2))
+                if res is not None and res[0] >= run + 0.5:
+                    paths.append((round(res[0], 3), p1, p2, res[1]))
+        paths.sort(key=lambda t: (-t[0], t[1], t[2]))
         vpins = sorted(golden.design["nets"][vnet])
-        for ci, (lay, chain) in enumerate(chains):
+        for ci, (_, p1, p2, chain) in enumerate(paths[:3]):
             for side in (1, -1):
-                def edit(board, lay=lay, chain=chain, side=side, vpins=vpins, vnet=vnet, anet=anet):
+                def edit(board, chain=chain, side=side, vpins=vpins, vnet=vnet, anet=anet, acode=acode):
                     vcode = _board_pad(board, golden, vpin).GetNetCode()
                     aw = net_width(golden, anet)
                     vw = net_width(golden, vnet)
                     gap = (aw + vw) / 2 + 0.2 + 0.17
-                    wps = _offset_points(chain, side * gap, run)
+                    tot = sum(math.dist(p, q) for p, q in zip(chain, chain[1:]))
+                    wps = _offset_points(chain, side * gap, tot)
+                    lays = [_layer_at(board, acode, _closest_on_chain(chain, pt)) for pt in wps]
                     G.delete_items(board, [t for t in board.GetTracks() if t.GetNetCode() == vcode])
+                    wps, lays = _free_run(board, vcode, vw, wps, lays, run)
                     ends = [p for p in vpins if p != vpin]
                     start = min(ends, key=lambda p: math.dist(_pad_xy_pin(board, golden, p), wps[0]))
-                    a, c = (start, vpin)
-                    if math.dist(_pad_xy_pin(board, golden, a), wps[0]) > math.dist(_pad_xy_pin(board, golden, a), wps[-1]):
-                        wps = wps[::-1]
-                    G.route_branch(board, vcode, _key(golden, a), _key(golden, c), vw,
-                                   [G.waypoint(x, y, lay) for x, y in wps], isolated=False)
+                    if math.dist(_pad_xy_pin(board, golden, start), wps[0]) > math.dist(_pad_xy_pin(board, golden, start),
+                                                                                          wps[-1]):
+                        wps, lays = wps[::-1], lays[::-1]
+                    G.route_branch(board, vcode, _key(golden, start), _key(golden, vpin), vw,
+                                   [G.waypoint(x, y, ly) for (x, y), ly in zip(wps, lays)], isolated=False)
                     G.reconnect(board, vcode, vw)
-                cands.append(GeoCand(f"{vnet} trace re-routed alongside the switching node {anet} (chain {ci}, side {side})",
-                                     {"variant": "parallel_run", "nets": [vnet], "victim": vpin, "aggressor": apin},
-                                     [*nets_target(vnet, anet)], edit))
+                cands.append(GeoCand(f"{vnet} trace re-routed alongside the switching node {anet} ({p1}-{p2} run, side "
+                                     f"{side})", {"variant": "parallel_run", "nets": [vnet], "victim": vpin,
+                                                  "aggressor": apin}, [*nets_target(vnet, anet)], edit))
+        # variant 2: the switching node's branch to the off-board connector routed past the victim
+        loop_pins = {p for rr in lctx.get("switch_loop", []) for leg in rr["legs"] for p in leg}
+        conn = [p for p in apins if p not in loop_pins and golden.design["components"][p.split(".")[0]]["part"].startswith("CONN")]
+        vpaths = []
+        for i, p1 in enumerate(vpins):
+            for p2 in vpins[i + 1:]:
+                res = copper_path(b0, _board_pad(b0, golden, p1), _board_pad(b0, golden, p2))
+                if res is not None and res[0] >= run + 0.5:
+                    vpaths.append((round(res[0], 3), p1, p2, res[1]))
+        vpaths.sort(key=lambda t: (-t[0], t[1], t[2]))
+        vcode0 = _board_pad(b0, golden, vpin).GetNetCode()
+        for cpin in conn:
+            for ci, (_, p1, p2, chain) in enumerate(vpaths[:2]):
+                for side in (1, -1):
+                    def edit2(board, chain=chain, side=side, cpin=cpin, vnet=vnet, anet=anet, vcode0=vcode0):
+                        pc = _board_pad(board, golden, cpin)
+                        code = pc.GetNetCode()
+                        aw, vw = net_width(golden, anet), net_width(golden, vnet)
+                        gap = (aw + vw) / 2 + 0.2 + 0.17
+                        G.detach_pad(board, pc)
+                        tot = sum(math.dist(p, q) for p, q in zip(chain, chain[1:]))
+                        wps = _offset_points(chain, side * gap, tot)
+                        lays = [_layer_at(board, vcode0, _closest_on_chain(chain, pt)) for pt in wps]
+                        wps, lays = _free_run(board, code, aw, wps, lays, run)
+                        others = [p for p in sorted(golden.design["nets"][anet]) if p != cpin]
+                        if math.dist(_pad_xy_pin(board, golden, cpin), wps[0]) > math.dist(_pad_xy_pin(board, golden, cpin),
+                                                                                             wps[-1]):
+                            wps, lays = wps[::-1], lays[::-1]
+                        end = min(others, key=lambda p: math.dist(_pad_xy_pin(board, golden, p), wps[-1]))
+                        G.route_branch(board, code, _key(golden, cpin), _key(golden, end), aw,
+                                       [G.waypoint(x, y, ly) for (x, y), ly in zip(wps, lays)], isolated=False)
+                        G.reconnect(board, code, aw)
+                    cands.append(GeoCand(f"switching-node branch {anet} to {cpin} re-routed past the {vnet} trace "
+                                         f"({p1}-{p2} run, side {side})",
+                                         {"variant": "switch_branch_past_analog", "nets": [anet], "victim": vpin,
+                                          "aggressor": apin, "conn": cpin}, [cpin.split(".")[0], *nets_target(vnet, anet)],
+                                         edit2))
     return _realise_geo(lt, golden, design, board_path, rng, exclude, salt, cands, "sep")
+
+
+def _free_run(board, code: int, w: float, wps: list, lays: list, run: float) -> tuple[list, list]:
+    """The waypoints whose cells are free for a track of net `code` (in order); NotApplicable unless
+    the free ones (consecutive pairs <= 1.5 mm apart) cover at least `run` mm."""
+    from pcbenv.faults import geom as G
+    router, _ = G.board_router(board)
+    lay, _vb = router.blocked_maps(code, w)
+    keep = []
+    for k, ((x, y), ly) in enumerate(zip(wps, lays)):
+        i = int(round((x - router.x0) / router.p))
+        j = int(round((y - router.y0) / router.p))
+        if 0 <= i < router.W and 0 <= j < router.H and not lay[ly][j, i]:
+            keep.append(k)
+    span = sum(min(math.dist(wps[a], wps[b]), 0.0 if math.dist(wps[a], wps[b]) > 1.5 else 9.9)
+               for a, b in zip(keep, keep[1:]))
+    if span < run:
+        raise NotApplicable(f"free parallel stretch {span:.2f} mm < {run:.2f} mm")
+    return [wps[k] for k in keep], [lays[k] for k in keep]
+
+
+def _closest_on_chain(chain: list[tuple[float, float]], pt: tuple[float, float]) -> tuple[float, float]:
+    from pcbenv.faults.common import closest_on_seg
+    best = min((closest_on_seg(pt[0], pt[1], *p, *q) for p, q in zip(chain, chain[1:])), key=lambda c: math.dist(c, pt))
+    return best
 
 
 def _pad_xy_pin(board, golden: Golden, pin: str) -> tuple[float, float]:
@@ -998,7 +1087,7 @@ def _offset_points(chain: list[tuple[float, float]], off: float, run: float) -> 
     L = [math.dist(p, q) for p, q in zip(chain, chain[1:])]
     tot = sum(L)
     s0 = max(0.0, (tot - run) / 2)
-    n = max(2, int(math.ceil(run)) + 1)
+    n = max(2, int(math.ceil(run / 0.5)) + 1)
     out = []
     for k in range(n):
         s = s0 + run * k / (n - 1)

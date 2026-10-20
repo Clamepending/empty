@@ -324,6 +324,13 @@ def render_hard(golden: Golden, level: str, symptom_lines: list[str], full_inten
     return text
 
 
+def add_layout_rules(text: str, section: str) -> str:
+    """hard_layout tier: insert the "Layout rules" section (`layout_rules.rules_md`) before the
+    deliverable and name the check in the grading line."""
+    text = text.replace("\n## Deliverable\n", "\n" + section.rstrip() + "\n\n## Deliverable\n", 1)
+    return text.replace("layout and the design rules above ", "layout, the design rules and the layout rules above ", 1)
+
+
 POWER_RULE_NOTE = """\
 Resistor power rule: every resistor's continuous dissipation I²·R must stay at or below 50 % of its
 footprint's rated power (0603 0.1 W, 0805 0.125 W, 1206 0.5 W; see `parts/R.md`). The grader checks

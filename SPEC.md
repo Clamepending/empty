@@ -173,6 +173,16 @@ Checks (all must pass for reward 1.0):
    pin in a straight line. Goldens: `max_mm` 5, `max_path_mm` 6 (v1 families) / 8 (composites).
 11. `rules` — only for tasks whose meta carries a rule context (`rules`: hard tier; `rules_power`:
    all v2 tasks, resistor power): datasheet design rules (`pcbenv/rules.py`), not run by pcbtool.
+12. `layout_rules` — only for tasks whose meta carries `layout_rules` (hard_layout sub-tier): board-geometry
+   rules (`pcbenv/layout_rules.py`), stated with pins, limits and formulae in TASK.md "Layout rules" and
+   `spec.json:layout_rules`, not run by pcbtool. Nets are identified by public pins, never by name.
+   Kelvin sense (delete the shunt pad: the sense pin's copper island must not hold the load-current pin),
+   switching-loop area (polygon of the shortest copper paths between consecutive loop pads, |shoelace|
+   area; self-intersecting loops count every region |winding number| times) ≤ 60 mm², crystal copper path
+   MCU pin -> crystal pad ≤ 10 mm and no vias on the oscillator nets, analog/switching separation (same-layer
+   victim centreline within 1.0 mm of a switching-node centreline ≤ 3.0 mm in total). Golden boards of this
+   tier are built with `build_board(layout_rules=ctx)` (layout-aware placement/routing, every rule met at
+   0.8 × its limit); `build_board` without it is unchanged.
 
 **Reward is binary**: 1.0 iff all gates and checks pass, else 0.0. `checks` carries the per-check
 breakdown for diagnostics only.
@@ -180,13 +190,15 @@ breakdown for diagnostics only.
 ## 8. Tasks on disk
 
 ```
-tasks/<split>/<task_id>/                 v2 splits: v2/normal, v2/normal_holdout, v2/hard, v2/hard_holdout
+tasks/<split>/<task_id>/                 v2 splits: v2/normal, v2/normal_holdout, v2/hard, v2/hard_holdout,
+                                         v2/hard_layout, v2/hard_layout_holdout
   public/   design.json  board.kicad_pcb  TASK.md  spec.json  parts/<PART>.md  [tools.json: hard tier]
   hidden/   golden_design.json  golden_board.kicad_pcb  meta.json
 ```
 `meta.json`: `task_id, tier, family, seed, index, params, faults: [{type, detail, data}], assertions,
 power_nets, decoupling, value_bounds, alt_partitions, public_net_renames, difficulty (measured|predicted)`
-(+ `rules` / `rules_power`, `tools_mode` for the hard tier). `public/spec.json`: `title, assertions,
+(+ `rules` / `rules_power`, `tools_mode` for the hard tier; + `layout_rules` for hard_layout, also published
+as `spec.json:layout_rules`). `public/spec.json`: `title, assertions,
 power_nets (net, anchor_pin, min_width_mm), decoupling, value_bounds` (hard tier: `decoupling` is empty
 and the rules are under `design_rules.decoupling`: stated and graded, not run by pcbtool).
 

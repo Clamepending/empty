@@ -366,7 +366,7 @@ def pack(src_dir: str | Path, tar_path: str | Path, arc_root: str) -> None:
             gz.write(buf.getvalue())
 
 
-V2_SPLITS = ("normal", "normal_holdout", "hard", "hard_holdout")
+V2_SPLITS = ("normal", "normal_holdout", "hard", "hard_holdout", "hard_layout", "hard_layout_holdout")
 
 
 def pack_all(root: str | Path, dist: str | Path, name: str = GENERATOR_VERSION) -> list[str]:
@@ -555,7 +555,7 @@ def _pct(a: int, b: int) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python3 -m pcbenv.generate", description=__doc__.split("\n")[0])
-    ap.add_argument("--tier", choices=("normal", "hard"), default="normal")
+    ap.add_argument("--tier", choices=("normal", "hard", "hard_layout"), default="normal")
     ap.add_argument("--out", default=None, help="train split dir (default tasks/v2/<tier>)")
     ap.add_argument("--holdout-out", default=None, help="holdout split dir (default <out>_holdout)")
     ap.add_argument("--tasks-root", default="tasks", help="manifest split names are relative to this dir")
@@ -584,7 +584,12 @@ def main(argv: list[str] | None = None) -> int:
     from pcbenv.taskids import load_secret
     secret = load_secret(a.secret, create=a.create_secret)
     out = a.out or f"tasks/v2/{a.tier}"
-    if a.tier == "hard":
+    if a.tier == "hard_layout":
+        from pcbenv.generate_hard_layout import generate_hard_layout
+        st = generate_hard_layout(out, a.holdout_out or f"{out}_holdout", a.start, a.count, a.holdout_frac, a.workers,
+                                  secret=secret, private=a.private, tasks_root=a.tasks_root,
+                                  dedupe_against=a.dedupe_against)
+    elif a.tier == "hard":
         from pcbenv.generate_hard import generate_hard
         st = generate_hard(out, a.holdout_out or f"{out}_holdout", a.start, a.count, a.holdout_frac, a.workers,
                            secret=secret, private=a.private, tasks_root=a.tasks_root, dedupe_against=a.dedupe_against)

@@ -56,6 +56,17 @@ Source: `reports/v2_generation.md` (generated from the generators' statistics an
 | Task ids | opaque `pcbr2-normal-<hmac8>` | opaque `pcbr2-hard-<hmac8>` |
 | Files per task | public: TASK.md, design.json, board.kicad_pcb, spec.json, parts/*.md · hidden: golden_design.json, golden_board.kicad_pcb, meta.json | same + public tools.json |
 
+Hard tier, layout-rules sub-tier (`v2/hard_layout`, `v2/hard_layout_holdout`; 193 tasks = 154 train / 39
+holdout; ids `pcbr2-hard_layout-<hmac8>`): `sys_motor_ctrl` 109 / `sys_clocked_mcu` 84 boards whose golden layout
+meets board-geometry rules stated with formulae in TASK.md "Layout rules" and `spec.json:layout_rules` (Kelvin
+sense on the current shunt, switching-loop area ≤ 60 mm², crystal copper path ≤ 10 mm with no vias, analog /
+switching-node separation, plus the decoupling copper path), graded by the `layout_rules` / `layout` checks and
+not computed by `pcbtool`. 3–6 faults per task with ≥ 1 layout-latent fault (sense trace tapped off the power
+path, loop part moved away, crystal moved / via pair, analog trace routed along the switching node, decoupling
+cap routed the long way; each invisible to `pcbtool` and violating exactly one layout rule) and ≥ 1 other latent
+fault; no_autoroute 87.6 % (always when `pcbtool route` would repair a layout fault). Bundles
+`dist/pcb-repair-v2-{hard-layout,hard-layout-holdout}.tar.gz`; details in `reports/v2_generation.md`.
+
 Every shipped task passed the gates: golden 1.0, faulted 0.0, each fault alone 0.0, oracle repair 1.0,
 no fault cancelled by another; hard tier also: every latent fault invisible to `pcbtool` alone and its
 evidence present in the public text. Bundles: `dist/pcb-repair-v2-{normal,normal-holdout,hard,hard-holdout}.tar.gz`

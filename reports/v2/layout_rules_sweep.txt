@@ -1,0 +1,111 @@
+layout-rule golden sweep: sys_motor_ctrl, sys_clocked_mcu x seeds 0..49 (board seed 0)
+limits: loop area <= 60 mm2, crystal path <= 10 mm (no vias), analog parallel run within 1 mm <= 3 mm, Kelvin sense; golden builder target = 0.8 x limit
+
+loop_area_mm2: n=50 min=18.86 median=36.75 max=47.98 limit=60 -> worst margin 20.0 % below the limit
+xtal_path_mm: n=50 min=5.86 median=6.99 max=7.99 limit=10 -> worst margin 20.1 % below the limit
+parallel_mm: n=50 min=0.00 median=0.00 max=0.14 limit=3 -> worst margin 95.3 % below the limit
+kelvin_ok: 50/50
+crystal-net vias: total 0 over 50 boards
+build attempts: mean 4.61, max 26
+boards violating a rule: 0/100
+
+sys_motor_ctrl 0: {"kelvin_ok": true, "loop_area_mm2": 47.875937499999054, "parallel_mm": 0.0}
+sys_motor_ctrl 1: {"kelvin_ok": true, "loop_area_mm2": 41.13843749999978, "parallel_mm": 0.0}
+sys_motor_ctrl 2: {"kelvin_ok": true, "loop_area_mm2": 42.18406250000044, "parallel_mm": 0.0}
+sys_motor_ctrl 3: {"kelvin_ok": true, "loop_area_mm2": 31.1296, "parallel_mm": 0.0}
+sys_motor_ctrl 4: {"kelvin_ok": true, "loop_area_mm2": 18.858, "parallel_mm": 0.0}
+sys_motor_ctrl 5: {"kelvin_ok": true, "loop_area_mm2": 44.67968750000182, "parallel_mm": 0.0}
+sys_motor_ctrl 6: {"kelvin_ok": true, "loop_area_mm2": 43.85906249999971, "parallel_mm": 0.0}
+sys_motor_ctrl 7: {"kelvin_ok": true, "loop_area_mm2": 45.73781250000411, "parallel_mm": 0.0}
+sys_motor_ctrl 8: {"kelvin_ok": true, "loop_area_mm2": 40.04718749999665, "parallel_mm": 0.0}
+sys_motor_ctrl 9: {"kelvin_ok": true, "loop_area_mm2": 36.748437499998545, "parallel_mm": 0.0}
+sys_motor_ctrl 10: {"kelvin_ok": true, "loop_area_mm2": 28.513437499996144, "parallel_mm": 0.0}
+sys_motor_ctrl 11: {"kelvin_ok": true, "loop_area_mm2": 37.9715625000008, "parallel_mm": 0.0}
+sys_motor_ctrl 12: {"kelvin_ok": true, "loop_area_mm2": 43.61406249999891, "parallel_mm": 0.0}
+sys_motor_ctrl 13: {"kelvin_ok": true, "loop_area_mm2": 36.976800000000004, "parallel_mm": 0.0}
+sys_motor_ctrl 14: {"kelvin_ok": true, "loop_area_mm2": 26.439600000000002, "parallel_mm": 0.0}
+sys_motor_ctrl 15: {"kelvin_ok": true, "loop_area_mm2": 35.72, "parallel_mm": 0.0}
+sys_motor_ctrl 16: {"kelvin_ok": true, "loop_area_mm2": 46.49718750000102, "parallel_mm": 0.0}
+sys_motor_ctrl 17: {"kelvin_ok": true, "loop_area_mm2": 45.615937499998836, "parallel_mm": 0.0}
+sys_motor_ctrl 18: {"kelvin_ok": true, "loop_area_mm2": 32.64656250000189, "parallel_mm": 0.0}
+sys_motor_ctrl 19: {"kelvin_ok": true, "loop_area_mm2": 41.5540624999976, "parallel_mm": 0.0}
+sys_motor_ctrl 20: {"kelvin_ok": true, "loop_area_mm2": 40.37468750000153, "parallel_mm": 0.0}
+sys_motor_ctrl 21: {"kelvin_ok": true, "loop_area_mm2": 47.980312499999854, "parallel_mm": 0.0}
+sys_motor_ctrl 22: {"kelvin_ok": true, "loop_area_mm2": 29.827812500003347, "parallel_mm": 0.0}
+sys_motor_ctrl 23: {"kelvin_ok": true, "loop_area_mm2": 35.0976, "parallel_mm": 0.0}
+sys_motor_ctrl 24: {"kelvin_ok": true, "loop_area_mm2": 32.18, "parallel_mm": 0.0}
+sys_motor_ctrl 25: {"kelvin_ok": true, "loop_area_mm2": 41.055600000000005, "parallel_mm": 0.0}
+sys_motor_ctrl 26: {"kelvin_ok": true, "loop_area_mm2": 28.534687499999563, "parallel_mm": 0.0}
+sys_motor_ctrl 27: {"kelvin_ok": true, "loop_area_mm2": 45.58593749999727, "parallel_mm": 0.0}
+sys_motor_ctrl 28: {"kelvin_ok": true, "loop_area_mm2": 41.7892, "parallel_mm": 0.0}
+sys_motor_ctrl 29: {"kelvin_ok": true, "loop_area_mm2": 29.942187499999818, "parallel_mm": 0.0}
+sys_motor_ctrl 30: {"kelvin_ok": true, "loop_area_mm2": 36.527187499998035, "parallel_mm": 0.0}
+sys_motor_ctrl 31: {"kelvin_ok": true, "loop_area_mm2": 34.964, "parallel_mm": 0.0}
+sys_motor_ctrl 32: {"kelvin_ok": true, "loop_area_mm2": 32.7592, "parallel_mm": 0.14142135623733162}
+sys_motor_ctrl 33: {"kelvin_ok": true, "loop_area_mm2": 25.759062499999345, "parallel_mm": 0.0}
+sys_motor_ctrl 34: {"kelvin_ok": true, "loop_area_mm2": 37.70093750000069, "parallel_mm": 0.0}
+sys_motor_ctrl 35: {"kelvin_ok": true, "loop_area_mm2": 34.12718750000022, "parallel_mm": 0.0}
+sys_motor_ctrl 36: {"kelvin_ok": true, "loop_area_mm2": 32.2216, "parallel_mm": 0.0}
+sys_motor_ctrl 37: {"kelvin_ok": true, "loop_area_mm2": 46.97593750000124, "parallel_mm": 0.0}
+sys_motor_ctrl 38: {"kelvin_ok": true, "loop_area_mm2": 40.66343750000124, "parallel_mm": 0.0}
+sys_motor_ctrl 39: {"kelvin_ok": true, "loop_area_mm2": 31.884687500001746, "parallel_mm": 0.0}
+sys_motor_ctrl 40: {"kelvin_ok": true, "loop_area_mm2": 30.828400000000002, "parallel_mm": 0.0}
+sys_motor_ctrl 41: {"kelvin_ok": true, "loop_area_mm2": 24.4184374999968, "parallel_mm": 0.0}
+sys_motor_ctrl 42: {"kelvin_ok": true, "loop_area_mm2": 25.322400000000002, "parallel_mm": 0.0}
+sys_motor_ctrl 43: {"kelvin_ok": true, "loop_area_mm2": 35.658, "parallel_mm": 0.0}
+sys_motor_ctrl 44: {"kelvin_ok": true, "loop_area_mm2": 31.03156249999938, "parallel_mm": 0.0}
+sys_motor_ctrl 45: {"kelvin_ok": true, "loop_area_mm2": 40.007187500003056, "parallel_mm": 0.0}
+sys_motor_ctrl 46: {"kelvin_ok": true, "loop_area_mm2": 41.362187500009895, "parallel_mm": 0.0}
+sys_motor_ctrl 47: {"kelvin_ok": true, "loop_area_mm2": 23.782400000000003, "parallel_mm": 0.0}
+sys_motor_ctrl 48: {"kelvin_ok": true, "loop_area_mm2": 35.3404, "parallel_mm": 0.0}
+sys_motor_ctrl 49: {"kelvin_ok": true, "loop_area_mm2": 42.191562500001055, "parallel_mm": 0.0}
+sys_clocked_mcu 0: {"xtal_path_mm": 6.653028310656478, "xtal_vias": 0}
+sys_clocked_mcu 1: {"xtal_path_mm": 6.622798184159205, "xtal_vias": 0}
+sys_clocked_mcu 2: {"xtal_path_mm": 6.214019422096501, "xtal_vias": 0}
+sys_clocked_mcu 3: {"xtal_path_mm": 7.3912221287869, "xtal_vias": 0}
+sys_clocked_mcu 4: {"xtal_path_mm": 6.527556644586948, "xtal_vias": 0}
+sys_clocked_mcu 5: {"xtal_path_mm": 7.1597148381501565, "xtal_vias": 0}
+sys_clocked_mcu 6: {"xtal_path_mm": 6.8355872101765, "xtal_vias": 0}
+sys_clocked_mcu 7: {"xtal_path_mm": 7.672912482067582, "xtal_vias": 0}
+sys_clocked_mcu 8: {"xtal_path_mm": 6.415691402972678, "xtal_vias": 0}
+sys_clocked_mcu 9: {"xtal_path_mm": 6.8884836091084445, "xtal_vias": 0}
+sys_clocked_mcu 10: {"xtal_path_mm": 7.75609260253029, "xtal_vias": 0}
+sys_clocked_mcu 11: {"xtal_path_mm": 6.312965952443355, "xtal_vias": 0}
+sys_clocked_mcu 12: {"xtal_path_mm": 7.396427992302888, "xtal_vias": 0}
+sys_clocked_mcu 13: {"xtal_path_mm": 7.801476047552028, "xtal_vias": 0}
+sys_clocked_mcu 14: {"xtal_path_mm": 6.0668216193367215, "xtal_vias": 0}
+sys_clocked_mcu 15: {"xtal_path_mm": 7.574483291979961, "xtal_vias": 0}
+sys_clocked_mcu 16: {"xtal_path_mm": 7.918713735605717, "xtal_vias": 0}
+sys_clocked_mcu 17: {"xtal_path_mm": 6.896427992302884, "xtal_vias": 0}
+sys_clocked_mcu 18: {"xtal_path_mm": 7.3964279923028915, "xtal_vias": 0}
+sys_clocked_mcu 19: {"xtal_path_mm": 6.918182478130749, "xtal_vias": 0}
+sys_clocked_mcu 20: {"xtal_path_mm": 7.520447692815456, "xtal_vias": 0}
+sys_clocked_mcu 21: {"xtal_path_mm": 7.896109142140548, "xtal_vias": 0}
+sys_clocked_mcu 22: {"xtal_path_mm": 6.888483609108466, "xtal_vias": 0}
+sys_clocked_mcu 23: {"xtal_path_mm": 7.017503967663162, "xtal_vias": 0}
+sys_clocked_mcu 24: {"xtal_path_mm": 7.585698975496468, "xtal_vias": 0}
+sys_clocked_mcu 25: {"xtal_path_mm": 7.15260805696363, "xtal_vias": 0}
+sys_clocked_mcu 26: {"xtal_path_mm": 7.8912221287869, "xtal_vias": 0}
+sys_clocked_mcu 27: {"xtal_path_mm": 6.934286296003003, "xtal_vias": 0}
+sys_clocked_mcu 28: {"xtal_path_mm": 6.535450769438226, "xtal_vias": 0}
+sys_clocked_mcu 29: {"xtal_path_mm": 7.409963044208391, "xtal_vias": 0}
+sys_clocked_mcu 30: {"xtal_path_mm": 6.293433748438115, "xtal_vias": 0}
+sys_clocked_mcu 31: {"xtal_path_mm": 7.388483609108457, "xtal_vias": 0}
+sys_clocked_mcu 32: {"xtal_path_mm": 7.9547247166687605, "xtal_vias": 0}
+sys_clocked_mcu 33: {"xtal_path_mm": 6.8509623051274575, "xtal_vias": 0}
+sys_clocked_mcu 34: {"xtal_path_mm": 6.166143108869127, "xtal_vias": 0}
+sys_clocked_mcu 35: {"xtal_path_mm": 6.711323141464559, "xtal_vias": 0}
+sys_clocked_mcu 36: {"xtal_path_mm": 6.711323141464559, "xtal_vias": 0}
+sys_clocked_mcu 37: {"xtal_path_mm": 6.914130425878588, "xtal_vias": 0}
+sys_clocked_mcu 38: {"xtal_path_mm": 7.3694404441159955, "xtal_vias": 0}
+sys_clocked_mcu 39: {"xtal_path_mm": 6.711323141464564, "xtal_vias": 0}
+sys_clocked_mcu 40: {"xtal_path_mm": 7.137427253221945, "xtal_vias": 0}
+sys_clocked_mcu 41: {"xtal_path_mm": 6.990635359324997, "xtal_vias": 0}
+sys_clocked_mcu 42: {"xtal_path_mm": 5.8597148381501745, "xtal_vias": 0}
+sys_clocked_mcu 43: {"xtal_path_mm": 7.103534773489431, "xtal_vias": 0}
+sys_clocked_mcu 44: {"xtal_path_mm": 6.527556644586948, "xtal_vias": 0}
+sys_clocked_mcu 45: {"xtal_path_mm": 7.698271111669345, "xtal_vias": 0}
+sys_clocked_mcu 46: {"xtal_path_mm": 6.511186700726305, "xtal_vias": 0}
+sys_clocked_mcu 47: {"xtal_path_mm": 7.988696854353057, "xtal_vias": 0}
+sys_clocked_mcu 48: {"xtal_path_mm": 7.603215923327096, "xtal_vias": 0}
+sys_clocked_mcu 49: {"xtal_path_mm": 6.77392840052325, "xtal_vias": 0}

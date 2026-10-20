@@ -59,16 +59,26 @@ def pad_key(board, ref: str, padnum: str) -> str:
     return f"{ref}.{padnum}"
 
 
+def _copy_wp(w: PadGeom) -> PadGeom:
+    from dataclasses import replace
+    return replace(w)
+
+
 def waypoint(x: float, y: float, layer: int) -> PadGeom:
     """A router-only pad (one grid cell) the path must pass through on `layer` (0 F.Cu, 1 B.Cu)."""
     return PadGeom(0, round(x, 1), round(y, 1), 0.0, 0.06, 0.06, 0.0, (layer == 0, layer == 1), 0.0, "WP")
 
 
 def route_branch(board, netcode: int, pad_a: str, pad_b: str, width: float,
-                 waypoints: list[PadGeom] | None = None, isolated: bool = True) -> None:
+                 waypoints: list[PadGeom] | None = None, isolated: bool | str = True) -> None:
     """Add copper pad_a -> waypoints -> pad_b ("REF.PAD" keys). `isolated`: the net's existing copper
-    is an obstacle (the branch meets the net only inside pad_b); else a plain 2-pin route that may
-    merge into same-net copper. Raises NotApplicable on routing failure."""
+    is an obstacle (the branch meets the net only inside pad_b); False: a plain 2-pin route that may
+    merge into same-net copper; "prefer": isolated, else plain. Raises NotApplicable on failure."""
+    if isolated == "prefer":
+        try:
+            return route_branch(board, netcode, pad_a, pad_b, width, [_copy_wp(w) for w in waypoints or []], True)
+        except NotApplicable:
+            return route_branch(board, netcode, pad_a, pad_b, width, waypoints, False)
     from pcbenv.board import route_branch as rb
     router, idx = board_router(board)
     if pad_a not in idx or pad_b not in idx:

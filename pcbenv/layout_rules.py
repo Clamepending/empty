@@ -22,6 +22,7 @@ Rules (precise definitions are in `rules_md`, the public text):
 """
 from __future__ import annotations
 
+import json
 import math
 from dataclasses import dataclass
 
@@ -58,10 +59,12 @@ def _comps(design: dict, part: str) -> list[str]:
     return sorted(r for r, c in design["components"].items() if c["part"] == part)
 
 
-def motor_roles(design: dict) -> dict | None:
+def motor_roles(design: dict, decaps: set[str] = frozenset()) -> dict | None:
     """Refs of the low-side motor stage: switch Q (NMOS), flyback D (cathode on the motor supply,
-    anode on the drain), bulk cap CB (supply to GND), shunt RS (source to GND), sense resistor RF
-    (source node to the ADC), the MCU ADC pin. None if the design has no such stage."""
+    anode on the drain), bulk cap CB (supply to GND, the largest such cap that is not an IC
+    decoupling cap in `decaps`), shunt RS (source to GND), sense resistor RF (source node to the
+    ADC), the MCU ADC pin. None if the design has no such stage."""
+    from pcbenv.parts import parse_value
     gnd = _net_of(design, "J1.2")
     for q in _comps(design, "NMOS"):
         nd, ns = _net_of(design, f"{q}.D"), _net_of(design, f"{q}.S")
@@ -72,10 +75,14 @@ def motor_roles(design: dict) -> dict | None:
             continue
         sup = _net_of(design, f"{d}.K")
         cb = rs = rf = None
+        bulk = []
         for c in _comps(design, "C"):
             n1, n2 = _net_of(design, f"{c}.1"), _net_of(design, f"{c}.2")
-            if {n1, n2} == {sup, gnd}:
-                cb = cb or (c, "1" if n1 == sup else "2", "2" if n1 == sup else "1")
+            if {n1, n2} == {sup, gnd} and c not in decaps:
+                bulk.append((-parse_value(design["components"][c]["value"]), c,
+                             "1" if n1 == sup else "2", "2" if n1 == sup else "1"))
+        if bulk:
+            cb = min(bulk)[1:]
         for r in _comps(design, "R"):
             n1, n2 = _net_of(design, f"{r}.1"), _net_of(design, f"{r}.2")
             if {n1, n2} == {ns, gnd}:
@@ -113,7 +120,7 @@ def layout_rules_context(golden) -> dict:
     omitted; `{}` when no rule applies."""
     d = golden.design
     ctx: dict = {"version": VERSION}
-    m = motor_roles(d)
+    m = motor_roles(d, {dc["cap"] for dc in golden.decoupling})
     if m:
         q, dd = m["q"], m["d"]
         cb, cbs, cbg = m["cb"]
@@ -316,6 +323,7 @@ def _pad_key(p) -> tuple:
 
 # ------------------------------------------------------------------ metrics
 def kelvin_ok(b, rule: dict, ref_parts: dict[str, str]) -> tuple[bool, str]:
+    b = boardnet._as_board(b)
     shunt = _pad(b, rule["shunt_pin"], ref_parts)
     sense = _pad(b, rule["sense_pin"], ref_parts)
     if shunt is None or sense is None:
@@ -339,6 +347,7 @@ def kelvin_ok(b, rule: dict, ref_parts: dict[str, str]) -> tuple[bool, str]:
 
 
 def loop_polygon(b, rule: dict, ref_parts: dict[str, str]) -> list[tuple[float, float]] | str:
+    b = boardnet._as_board(b)
     from pcbenv.layout import copper_path
     poly: list[tuple[float, float]] = []
     for a, c in rule["legs"]:
@@ -359,13 +368,69 @@ def shoelace(poly: list[tuple[float, float]]) -> float:
     return abs(s) / 2
 
 
+RASTER_MM = 0.02
+
+
+def _clean(poly: list[tuple[float, float]]) -> list[tuple[float, float]]:
+    out = []
+    for p in poly:
+        if not out or math.dist(p, out[-1]) > 1e-9:
+            out.append(p)
+    while len(out) > 1 and math.dist(out[0], out[-1]) <= 1e-9:
+        out.pop()
+    return out
+
+
+def is_simple(poly: list[tuple[float, float]]) -> bool:
+    """No two non-adjacent edges of the closed polygon intersect or touch."""
+    pts = _clean(poly)
+    n = len(pts)
+    edges = [(pts[i], pts[(i + 1) % n]) for i in range(n)]
+    for i in range(n):
+        for j in range(i + 1, n):
+            if j == i + 1 or (i == 0 and j == n - 1):
+                continue
+            (a1, a2), (b1, b2) = edges[i], edges[j]
+            if _seg_seg_dist((*a1, *a2), (*b1, *b2)) <= 1e-9:
+                return False
+    return True
+
+
+def winding_area(poly: list[tuple[float, float]], step: float = RASTER_MM) -> float:
+    """∫ |winding number| dA of the closed polygon, on a `step` mm grid of cell centres."""
+    import numpy as np
+    pts = np.array(_clean(poly), dtype=float)
+    x0, y0 = pts.min(axis=0)
+    x1, y1 = pts.max(axis=0)
+    xs = np.arange(math.floor(x0 / step) * step + step / 2, x1 + step, step)
+    ys = np.arange(math.floor(y0 / step) * step + step / 2, y1 + step, step)
+    X, Y = np.meshgrid(xs, ys)
+    w = np.zeros(X.shape, dtype=np.int32)
+    for (ax, ay), (bx, by) in zip(pts, np.roll(pts, -1, axis=0)):
+        up = (ay <= Y) & (by > Y)
+        down = (ay > Y) & (by <= Y)
+        cross = (bx - ax) * (Y - ay) - (X - ax) * (by - ay)
+        w += (up & (cross > 0)).astype(np.int32) - (down & (cross < 0)).astype(np.int32)
+    return float(np.abs(w).sum() * step * step)
+
+
+def polygon_area(poly: list[tuple[float, float]]) -> float:
+    """Loop area: the shoelace area of a simple polygon; for a self-intersecting one, every region
+    counted |winding number| times (lobes never cancel)."""
+    pts = _clean(poly)
+    if len(pts) < 3:
+        return 0.0
+    return shoelace(pts) if is_simple(pts) else winding_area(pts)
+
+
 def loop_area(b, rule: dict, ref_parts: dict[str, str]) -> float | str:
     poly = loop_polygon(b, rule, ref_parts)
-    return poly if isinstance(poly, str) else shoelace(poly)
+    return poly if isinstance(poly, str) else polygon_area(poly)
 
 
 def crystal_metrics(b, rule: dict, ref_parts: dict[str, str]) -> list[tuple[str, float | None, int]]:
     """[(pair label, copper path mm or None, vias on that net)]."""
+    b = boardnet._as_board(b)
     from pcbenv.layout import copper_path_mm
     out = []
     for mp, yp in rule["pairs"]:
@@ -413,6 +478,7 @@ def _near_interval(v: tuple, a: tuple, gap: float) -> tuple[float, float] | None
 def parallel_length(b, victim_code: int, aggressor_code: int, gap: float) -> float:
     """Length (mm) of the victim net's track centrelines within `gap` mm of an aggressor-net track
     centreline on the same copper layer (union over aggressor segments)."""
+    b = boardnet._as_board(b)
     vs, _ = net_tracks(b, victim_code)
     ags, _ = net_tracks(b, aggressor_code)
     total = 0.0
@@ -442,6 +508,7 @@ def parallel_length(b, victim_code: int, aggressor_code: int, gap: float) -> flo
 
 
 def separation_length(b, rule: dict, ref_parts: dict[str, str]) -> float | str:
+    b = boardnet._as_board(b)
     vp = [_pad(b, p, ref_parts) for p in rule["victim_pins"]]
     ap = [_pad(b, p, ref_parts) for p in rule["aggressor_pins"]]
     if any(p is None or p.GetNetCode() <= 0 for p in vp + ap):
@@ -535,3 +602,148 @@ def with_margin(ctx: dict, margin: float = GOLDEN_MARGIN) -> dict:
 
 def golden_violations(board, ctx: dict, ref_parts: dict[str, str]) -> list[str]:
     return [f"{v.code}: {v.detail}" for v in run_layout_rules(board, with_margin(ctx), ref_parts)]
+
+
+# ------------------------------------------------------------------ public text (TASK.md)
+def rules_md(ctx: dict, decoupling: bool = True) -> str:
+    """The "Layout rules" TASK.md section: every rule with its pins, limit and the exact geometric
+    definition, so an engineer can check it by hand from board.kicad_pcb coordinates."""
+    out = ["## Layout rules (board geometry)", "",
+           "The board must also follow these layout rules. **`pcbtool` does not check any of them** (not `check`, "
+           "not `drc`, not `show`) -- they are graded from the geometry in `board.kicad_pcb`; `spec.json` lists the "
+           "same rules under `layout_rules` with their pins and limits. All lengths in mm, KiCad board coordinates "
+           "(y grows downwards). Definitions used below:", "",
+           "- *Pad centre*: the pad's absolute position (footprint `(at x y rot)` plus the pad's `(at ...)` offset "
+           "rotated by the footprint orientation; KiCad Python: `pad.GetPosition()`).",
+           "- *Copper path* from pad A to pad B: the shortest route along the net's copper -- track centrelines "
+           "(each `segment` from start to end), vias (joining F.Cu and B.Cu at their centre) and pads (a pad joins "
+           "every track point that lies inside it) -- measured from A's centre to B's centre. Tracks connect where "
+           "their copper touches (same layer). As a polyline it runs through A's centre, the track end / junction "
+           "points it follows, and B's centre.",
+           "- *Touch*: two copper items of a net touch when their copper overlaps or abuts (a track is its "
+           "centreline swept by half its width, a via a disc of its diameter, a pad its outline).", ""]
+    for r in ctx.get("kelvin", []):
+        out += [f"**Kelvin sense connection** (current shunt {r['shunt']}): the ADC sense connection {r['sense_pin']} must "
+                f"leave from the shunt pad {r['shunt_pin']} itself, on its own trace -- not from a point on the "
+                f"load-current path. Check: delete pad {r['shunt_pin']}; the copper island (items of the net that touch, "
+                f"transitively) holding pad {r['sense_pin']} must not contain pad {', '.join(r['load_pins'])} (the load "
+                f"current's pin). So the sense trace and the load-current copper may meet only through the shunt pad, "
+                f"never by touching each other (not even inside the pad). The power-net width rule still applies to the "
+                f"sense trace (it is on the same net).", ""]
+    for r in ctx.get("switch_loop", []):
+        legs = r["legs"]
+        seq = ", ".join(f"{a} -> {c}" for a, c in legs)
+        out += [f"**Switching loop area** ({r['name']}): the loop through the bulk capacitor, the flyback diode, the "
+                f"switch and the shunt is the polygon made of the copper paths {seq} (each as a polyline, see above), "
+                f"joined by straight lines across each part from one leg's end pad to the next leg's start pad "
+                f"({', '.join(f'{legs[i][1]} -> {legs[(i + 1) % len(legs)][0]}' for i in range(len(legs)))}). Its "
+                f"area A = ½·|Σ (x_i·y_(i+1) − x_(i+1)·y_i)| over the polygon's vertices (shoelace formula) must be "
+                f"≤ {r['max_area_mm2']:g} mm². (If the polygon crosses itself, A is the area it encloses with every "
+                f"region counted |winding number| times, so lobes never cancel; the grader evaluates that case on a "
+                f"{RASTER_MM:g} mm grid.) Keep these parts tight together and route the legs directly.", ""]
+    for r in ctx.get("crystal", []):
+        pairs = "; ".join(f"{a} -> {c}" for a, c in r["pairs"])
+        out += [f"**Crystal traces** (crystal {r['xtal']} on {r['mcu']}): the copper path of each oscillator connection "
+                f"({pairs}) must be ≤ {r['max_path_mm']:g} mm, and the two oscillator nets (the nets of "
+                f"{' and '.join(a for a, _ in r['pairs'])}) must have no via at all.", ""]
+    for r in ctx.get("separation", []):
+        out += [f"**Analog / switching separation**: the analog net (the net of {', '.join(r['victim_pins'])}, the ADC "
+                f"input) must not run alongside the switching node (the net of {', '.join(r['aggressor_pins'])}). For "
+                f"tracks on the same copper layer, the total length of analog-net track centreline that lies within "
+                f"{r['min_gap_mm']:g} mm (centreline to centreline) of any switching-node track centreline must be "
+                f"≤ {r['max_parallel_mm']:g} mm (crossings on opposite layers do not count).", ""]
+    if decoupling:
+        out += ["**Decoupling** (as stated under Design rules: copper path cap pad -> IC pin, plus straight-line "
+                "distance) is part of the same layout review.", ""]
+    out += ["Grading: the `layout_rules` check fails if any rule above is violated; the decoupling rule is graded "
+            "by the `layout` check. `pcbtool route` knows nothing about these rules (it joins a net's pads as a "
+            "shortest tree, which can itself violate them); review and, if needed, hand-edit the tracks.", ""]
+    return "\n".join(out)
+
+
+def evidence_groups(rec: dict, lctx: dict) -> list[list[str]]:
+    """Public text a layout-latent fault needs (fairness gate; same format as latent.evidence_groups)."""
+    t, d = rec["type"], rec.get("data", {})
+    if t == "kelvin_sense_tap":
+        r = lctx["kelvin"][0]
+        return [["**Kelvin sense connection**"], [f"line:{r['sense_pin']}&{r['shunt_pin']}"]]
+    if t == "switch_loop_spread":
+        r = lctx["switch_loop"][0]
+        return [["**Switching loop area**"], [f"line:{r['legs'][0][0]}&{r['legs'][0][1]}"], ["shoelace"]]
+    if t in ("crystal_far", "crystal_via"):
+        r = lctx["crystal"][0]
+        return [["**Crystal traces**"], [f"line:{r['pairs'][0][0]}&{r['pairs'][0][1]}"]]
+    if t == "analog_near_switch":
+        r = lctx["separation"][0]
+        return [["**Analog / switching separation**"], [f"line:{r['victim_pins'][0]}&{r['aggressor_pins'][0]}"]]
+    if t == "decap_long_path":
+        return [[f"- {d['cap']} within"], ["copper path"]]
+    return []
+
+
+# ------------------------------------------------------------------ golden margin sweep (CLI)
+def _sweep_job(args: tuple) -> dict:
+    fam, seed = args
+    import os
+    import tempfile
+
+    from pcbenv import rules
+    from pcbenv.board import build_board
+    from pcbenv.families import FAMILIES
+    g, _ = rules.harden(FAMILIES[fam].generate(seed))
+    ctx = layout_rules_context(g)
+    rp = {r: c["part"] for r, c in g.design["components"].items()}
+    with tempfile.TemporaryDirectory() as td:
+        bp = os.path.join(td, "b.kicad_pcb")
+        st = build_board(g, bp, 0, layout_rules=ctx)
+        m = metrics(bp, ctx, rp)
+        v = [f"{x.code}: {x.detail}" for x in run_layout_rules(bp, ctx, rp)]
+    return {"family": fam, "seed": seed, "attempts": st["attempts"], "metrics": m, "violations": v}
+
+
+def sweep(seeds: int, families: tuple[str, ...] = ("sys_motor_ctrl", "sys_clocked_mcu"), workers: int = 4) -> str:
+    """Golden boards (layout-rule builder) of `families` x seeds 0..seeds-1: every rule's measured
+    value vs its limit. Returns a plain-text report."""
+    from multiprocessing import get_context
+    jobs = [(f, s) for f in families for s in range(seeds)]
+    with get_context("spawn").Pool(workers) as pool:
+        res = pool.map(_sweep_job, jobs)
+    lim = {"loop_area_mm2": LOOP_MAX_AREA_MM2, "xtal_path_mm": XTAL_MAX_PATH_MM, "parallel_mm": SEP_MAX_PARALLEL_MM}
+    lines = [f"layout-rule golden sweep: {', '.join(families)} x seeds 0..{seeds - 1} (board seed 0)",
+             f"limits: loop area <= {LOOP_MAX_AREA_MM2:g} mm2, crystal path <= {XTAL_MAX_PATH_MM:g} mm (no vias), "
+             f"analog parallel run within {SEP_MIN_GAP_MM:g} mm <= {SEP_MAX_PARALLEL_MM:g} mm, Kelvin sense; golden "
+             f"builder target = {GOLDEN_MARGIN:g} x limit", ""]
+    bad = [r for r in res if r["violations"]]
+    for key, L in lim.items():
+        vals = [r["metrics"][key] for r in res if key in r["metrics"]]
+        if vals:
+            vals.sort()
+            lines.append(f"{key}: n={len(vals)} min={vals[0]:.2f} median={vals[len(vals) // 2]:.2f} max={vals[-1]:.2f} "
+                         f"limit={L:g} -> worst margin {100 * (1 - vals[-1] / L):.1f} % below the limit")
+    kel = [r["metrics"]["kelvin_ok"] for r in res if "kelvin_ok" in r["metrics"]]
+    vias = [r["metrics"]["xtal_vias"] for r in res if "xtal_vias" in r["metrics"]]
+    lines += [f"kelvin_ok: {sum(kel)}/{len(kel)}", f"crystal-net vias: total {sum(vias)} over {len(vias)} boards",
+              f"build attempts: mean {sum(r['attempts'] for r in res) / len(res):.2f}, max {max(r['attempts'] for r in res)}",
+              f"boards violating a rule: {len(bad)}/{len(res)}", ""]
+    lines += [f"{r['family']} {r['seed']}: " + json.dumps(r["metrics"], sort_keys=True, default=lambda x: round(x, 3))
+              + (f" VIOLATIONS {r['violations']}" if r["violations"] else "") for r in res]
+    return "\n".join(lines) + "\n"
+
+
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+    ap = argparse.ArgumentParser(prog="python3 -m pcbenv.layout_rules")
+    ap.add_argument("--sweep", type=int, default=50, help="seeds per family")
+    ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--out", default=None)
+    a = ap.parse_args(argv)
+    text = sweep(a.sweep, workers=a.workers)
+    if a.out:
+        with open(a.out, "w", encoding="utf-8") as f:
+            f.write(text)
+    print(text.split("\n\n")[0] + "\n" + text.split("\n\n")[1])
+    return 0 if "boards violating a rule: 0/" in text else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
