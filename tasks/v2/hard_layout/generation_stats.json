@@ -1,38 +1,38 @@
 {
-  "accepted": 193,
+  "accepted": 192,
   "alone": {
-    "analog_near_switch|detected": 42,
-    "bias_wrong_rail|detected": 21,
+    "analog_near_switch|detected": 45,
+    "bias_wrong_rail|detected": 20,
     "board_pad_swap|detected": 20,
     "bom_mismatch|detected": 13,
     "broken_trace|detected": 27,
     "capacitor_underrated|detected": 26,
-    "clearance_violation|detected": 17,
-    "clearance_violation|mismatch": 3,
-    "connector_pin_swap|detected": 46,
-    "crystal_far|detected": 39,
+    "clearance_violation|detected": 16,
+    "clearance_violation|mismatch": 4,
+    "connector_pin_swap|detected": 47,
+    "crystal_far|detected": 38,
     "crystal_via|detected": 39,
-    "decap_long_path|detected": 69,
-    "decap_misconnected|detected": 18,
+    "decap_long_path|detected": 70,
+    "decap_misconnected|detected": 17,
     "decap_misconnected|mismatch": 1,
     "decap_moved_far|detected": 9,
     "decap_moved_far|mismatch": 4,
-    "floating_pin|detected": 33,
+    "floating_pin|detected": 31,
     "floating_pin|mismatch": 1,
     "footprint_swap|detected": 19,
-    "kelvin_sense_tap|detected": 52,
+    "kelvin_sense_tap|detected": 51,
     "magnitude_slip|detected": 17,
-    "mcu_pin_swap|detected": 55,
+    "mcu_pin_swap|detected": 52,
     "narrow_power_trace|detected": 20,
-    "pin_to_wrong_net|detected": 12,
+    "pin_to_wrong_net|detected": 13,
     "protection_bypassed|detected": 39,
-    "pullup_wrong_rail|detected": 16,
-    "resistor_underrated|detected": 1,
-    "reversed_polarity|detected": 24,
+    "pullup_wrong_rail|detected": 17,
+    "resistor_underrated|detected": 2,
+    "reversed_polarity|detected": 23,
     "short_between_nets|detected": 14,
-    "swapped_ic_pins|detected": 23,
-    "switch_loop_spread|detected": 37,
-    "transistor_pinout|detected": 15,
+    "swapped_ic_pins|detected": 22,
+    "switch_loop_spread|detected": 33,
+    "transistor_pinout|detected": 17,
     "wrong_feedback_resistor|detected": 32,
     "wrong_filter_cap|detected": 19,
     "wrong_led_resistor|detected": 32,
@@ -48,24 +48,18 @@
     "tier": "hard_layout"
   },
   "autoroute_fixable": {
-    "analog_near_switch": 39,
+    "analog_near_switch": 42,
     "crystal_via": 37,
-    "decap_long_path": 67,
-    "kelvin_sense_tap": 31,
-    "switch_loop_spread": 4
+    "decap_long_path": 68,
+    "kelvin_sense_tap": 28,
+    "switch_loop_spread": 3
   },
   "drop_reasons": {
-    "exception": 1,
-    "fault not individually detected / latent visible / replay mismatch": 9,
-    "golden does not verify 1.0; fault not individually detected / latent visible / replay mismatch": 2
+    "exception": 2,
+    "fault not individually detected / latent visible / replay mismatch": 11
   },
-  "dropped": 12,
+  "dropped": 13,
   "dropped_tasks": [
-    {
-      "family": "sys_motor_ctrl",
-      "index": 4,
-      "reason": "golden does not verify 1.0; fault not individually detected / latent visible / replay mismatch: analog_near_switch,mcu_pin_swap; oracle repair does not verify 1.0"
-    },
     {
       "family": "sys_clocked_mcu",
       "index": 34,
@@ -73,8 +67,18 @@
     },
     {
       "family": "sys_motor_ctrl",
+      "index": 52,
+      "reason": "fault not individually detected / latent visible / replay mismatch: clearance_violation"
+    },
+    {
+      "family": "sys_motor_ctrl",
       "index": 66,
       "reason": "fault not individually detected / latent visible / replay mismatch: resistor_underrated"
+    },
+    {
+      "family": null,
+      "index": 97,
+      "reason": "exception: BuildError: build failed for sys_clocked_mcu/163841777579520 seed 0: attempt 15: layout rules (with golden margin): ['crystal_trace: U2.PA1->Y1.1: copper path 11.84 mm > 8.0 mm']; attempt 16: layout rules (with golden margin): ['crystal_trace: U2.PA1->Y1.1: copper path 9.35 mm > 8.0 mm', 'crystal_trace: U2.PA2->Y1.2: copper path 8.11 mm > 8.0 mm']; attempt 17: layout rules (with golden margin): ['crystal_trace: U2.PA1->Y1.1: copper path 8.17 mm > 8.0 mm', 'crystal_trace: U2.PA2->Y1.2: copper path 14.86 mm > 8.0 mm']; attempt 18: layout rules (with golden margin): ['crystal_trace: U2.PA1->Y1.1: copper path 9.53 mm > 8.0 mm', 'crystal_trace: U2.PA2->Y1.2: copper path 17.39 mm > 8.0 mm']; attempt 19: layout rules (with golden margin): ['crystal_trace: U2.PA1->Y1.1: copper path 45.14 mm > 8.0 mm', 'crystal_via: U2.PA2->Y1.2: 2 via(s) on the oscillator net']"
     },
     {
       "family": "sys_clocked_mcu",
@@ -94,7 +98,7 @@
     {
       "family": null,
       "index": 128,
-      "reason": "exception: BuildError: build failed for sys_clocked_mcu/82974263321291 seed 0: attempt 31: layout rules (with golden margin): ['crystal_trace: U2.PA2->Y1.2: copper path 10.87 mm > 8.0 mm']; attempt 32: layout rules (with golden margin): ['crystal_trace: U2.PA2->Y1.2: copper path 14.30 mm > 8.0 mm']; attempt 33: cannot place C2; attempt 34: layout rules (with golden margin): ['crystal_trace: U2.PA1->Y1.1: copper path 24.02 mm > 8.0 mm', 'crystal_trace: U2.PA2->Y1.2: copper path 8.10 mm > 8.0 mm', 'crystal_via: U2.PA2->Y1.2: 2 via(s) on the oscillator net']; attempt 35: layout rules (with golden margin): ['crystal_trace: U2.PA1->Y1.1: copper path 18.23 mm > 8.0 mm', 'crystal_via: U2.PA2->Y1.2: 2 via(s) on the oscillator net']"
+      "reason": "exception: BuildError: build failed for sys_clocked_mcu/82974263321291 seed 0: attempt 30: layout rules (with golden margin): ['crystal_trace: U2.PA1->Y1.1: copper path 9.87 mm > 8.0 mm']; attempt 31: layout rules (with golden margin): ['crystal_trace: U2.PA2->Y1.2: copper path 10.87 mm > 8.0 mm']; attempt 32: layout rules (with golden margin): ['crystal_trace: U2.PA2->Y1.2: copper path 14.30 mm > 8.0 mm']; attempt 33: cannot place C2; attempt 34: routing failed: no path to U1.2"
     },
     {
       "family": "sys_clocked_mcu",
@@ -114,7 +118,7 @@
     {
       "family": "sys_motor_ctrl",
       "index": 170,
-      "reason": "golden does not verify 1.0; fault not individually detected / latent visible / replay mismatch: capacitor_underrated,clearance_violation; oracle repair does not verify 1.0"
+      "reason": "fault not individually detected / latent visible / replay mismatch: clearance_violation"
     },
     {
       "family": "sys_clocked_mcu",
@@ -122,147 +126,147 @@
       "reason": "fault not individually detected / latent visible / replay mismatch: clearance_violation"
     }
   ],
-  "generator": "pcb-repair-hard-layout-v1",
+  "generator": "pcb-repair-hard-layout-v2.1",
   "inject_log": {
-    "analog_near_switch|applied": 42,
+    "analog_near_switch|applied": 45,
     "analog_near_switch|n/a": 48,
-    "bias_wrong_rail|applied": 21,
-    "bias_wrong_rail|conflict": 11,
-    "bias_wrong_rail|n/a": 19,
+    "bias_wrong_rail|applied": 20,
+    "bias_wrong_rail|conflict": 12,
+    "bias_wrong_rail|n/a": 17,
     "board_pad_swap|applied": 32,
     "bom_mismatch|applied": 22,
-    "broken_trace|applied": 42,
+    "broken_trace|applied": 41,
     "capacitor_underrated|applied": 26,
-    "capacitor_underrated|conflict": 18,
-    "capacitor_underrated|n/a": 5,
-    "clearance_violation|applied": 31,
+    "capacitor_underrated|conflict": 16,
+    "capacitor_underrated|n/a": 6,
+    "clearance_violation|applied": 32,
     "clearance_violation|n/a": 1,
-    "connector_pin_swap|applied": 46,
-    "connector_pin_swap|conflict": 5,
-    "crystal_far|applied": 39,
-    "crystal_far|n/a": 34,
+    "connector_pin_swap|applied": 47,
+    "connector_pin_swap|conflict": 4,
+    "crystal_far|applied": 38,
+    "crystal_far|n/a": 37,
     "crystal_via|applied": 39,
-    "crystal_via|n/a": 31,
-    "decap_long_path|applied": 69,
+    "crystal_via|n/a": 32,
+    "decap_long_path|applied": 70,
     "decap_long_path|n/a": 1,
-    "decap_misconnected|applied": 33,
+    "decap_misconnected|applied": 32,
     "decap_misconnected|n/a": 5,
     "decap_moved_far|applied": 19,
     "decap_moved_far|n/a": 21,
     "decap_swapped|conflict": 21,
-    "decap_swapped|n/a": 32,
-    "decap_wrong_rail|conflict": 44,
-    "decap_wrong_rail|n/a": 19,
-    "floating_pin|applied": 56,
+    "decap_swapped|n/a": 31,
+    "decap_wrong_rail|conflict": 43,
+    "decap_wrong_rail|n/a": 18,
+    "floating_pin|applied": 53,
     "floating_pin|n/a": 2,
     "flyback_misplaced|conflict": 10,
-    "flyback_misplaced|n/a": 56,
+    "flyback_misplaced|n/a": 55,
     "footprint_swap|applied": 28,
     "footprint_swap|n/a": 1,
-    "kelvin_sense_tap|applied": 52,
-    "kelvin_sense_tap|n/a": 50,
-    "led_underrated|n/a": 39,
+    "kelvin_sense_tap|applied": 51,
+    "kelvin_sense_tap|n/a": 53,
+    "led_underrated|n/a": 38,
     "magnitude_slip|applied": 29,
-    "mcu_pin_swap|applied": 55,
-    "narrow_power_trace|applied": 28,
+    "mcu_pin_swap|applied": 52,
+    "narrow_power_trace|applied": 27,
     "narrow_power_trace|n/a": 1,
-    "pin_to_wrong_net|applied": 23,
+    "pin_to_wrong_net|applied": 24,
     "pin_to_wrong_net|n/a": 5,
     "protection_bypassed|applied": 39,
     "protection_bypassed|conflict": 1,
-    "protection_bypassed|n/a": 52,
-    "pullup_wrong_rail|applied": 16,
-    "pullup_wrong_rail|n/a": 60,
-    "resistor_underrated|applied": 1,
-    "resistor_underrated|conflict": 10,
+    "protection_bypassed|n/a": 51,
+    "pullup_wrong_rail|applied": 17,
+    "pullup_wrong_rail|n/a": 58,
+    "resistor_underrated|applied": 2,
+    "resistor_underrated|conflict": 8,
     "resistor_underrated|n/a": 42,
-    "reversed_polarity|applied": 44,
-    "reversed_polarity|n/a": 7,
+    "reversed_polarity|applied": 41,
+    "reversed_polarity|n/a": 8,
     "short_between_nets|applied": 30,
-    "swapped_ic_pins|applied": 47,
-    "swapped_ic_pins|n/a": 1,
-    "switch_loop_spread|applied": 37,
-    "switch_loop_spread|n/a": 67,
-    "transistor_pinout|applied": 20,
-    "transistor_pinout|n/a": 48,
+    "swapped_ic_pins|applied": 43,
+    "swapped_ic_pins|n/a": 2,
+    "switch_loop_spread|applied": 33,
+    "switch_loop_spread|n/a": 72,
+    "transistor_pinout|applied": 25,
+    "transistor_pinout|n/a": 46,
     "weak_base_drive|n/a": 56,
     "wrong_feedback_resistor|applied": 54,
     "wrong_filter_cap|applied": 28,
-    "wrong_led_resistor|applied": 54,
+    "wrong_led_resistor|applied": 55,
     "wrong_pull_resistor|applied": 28
   },
-  "latent_fault_share": 0.5518,
+  "latent_fault_share": 0.5522,
   "latent_types": {
-    "bias_wrong_rail": 21,
+    "bias_wrong_rail": 20,
     "capacitor_underrated": 22,
-    "connector_pin_swap": 45,
-    "mcu_pin_swap": 53,
+    "connector_pin_swap": 46,
+    "mcu_pin_swap": 51,
     "protection_bypassed": 36,
-    "pullup_wrong_rail": 16
+    "pullup_wrong_rail": 17
   },
   "layout_types": {
-    "analog_near_switch": 39,
-    "crystal_far": 35,
+    "analog_near_switch": 42,
+    "crystal_far": 34,
     "crystal_via": 38,
-    "decap_long_path": 67,
-    "kelvin_sense_tap": 49,
-    "switch_loop_spread": 37
+    "decap_long_path": 68,
+    "kelvin_sense_tap": 48,
+    "switch_loop_spread": 33
   },
   "per_family": {
-    "sys_clocked_mcu": 84,
+    "sys_clocked_mcu": 83,
     "sys_motor_ctrl": 109
   },
   "per_hint": {
-    "symptom": 97,
-    "vague": 96
+    "symptom": 95,
+    "vague": 97
   },
   "per_intent": {
-    "full": 22,
+    "full": 21,
     "reduced": 171
   },
   "per_mode": {
     "full": 24,
-    "no_autoroute": 169
+    "no_autoroute": 168
   },
   "per_n_faults": {
-    "3": 46,
-    "4": 74,
-    "5": 42,
+    "3": 47,
+    "4": 73,
+    "5": 41,
     "6": 31
   },
   "per_n_latent": {
     "2": 121,
-    "3": 72
+    "3": 71
   },
   "per_n_layout": {
     "1": 121,
-    "2": 72
+    "2": 71
   },
   "per_split": {
     "v2/hard_layout": 154,
-    "v2/hard_layout_holdout": 39
+    "v2/hard_layout_holdout": 38
   },
-  "seconds": 2347.9,
+  "seconds": 2442.8,
   "secret_fingerprint": "b9dd97d0757e",
   "visible_types": {
     "board_pad_swap": 20,
     "bom_mismatch": 13,
     "broken_trace": 26,
-    "clearance_violation": 16,
-    "decap_misconnected": 17,
+    "clearance_violation": 15,
+    "decap_misconnected": 16,
     "decap_moved_far": 9,
-    "floating_pin": 32,
+    "floating_pin": 29,
     "footprint_swap": 17,
     "magnitude_slip": 17,
     "narrow_power_trace": 20,
-    "pin_to_wrong_net": 12,
-    "reversed_polarity": 24,
+    "pin_to_wrong_net": 13,
+    "reversed_polarity": 23,
     "short_between_nets": 13,
-    "swapped_ic_pins": 22,
-    "transistor_pinout": 14,
+    "swapped_ic_pins": 21,
+    "transistor_pinout": 16,
     "wrong_feedback_resistor": 32,
     "wrong_filter_cap": 19,
     "wrong_led_resistor": 31,
-    "wrong_pull_resistor": 18
+    "wrong_pull_resistor": 19
   }
 }
