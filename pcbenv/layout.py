@@ -174,12 +174,20 @@ def copper_path_mm(board, pad_a, pad_b) -> float | None:
     the net touches it (segment ends, via centres, pad centres projected onto it); vias join both
     layers; a pad joins every point of its layers that lies inside it (KiCad pad hit test, inflated
     by half the track width). Edge weights are Euclidean lengths. None if not connected."""
+    r = copper_path(board, pad_a, pad_b)
+    return None if r is None else r[0]
+
+
+def copper_path(board, pad_a, pad_b) -> tuple[float, list[tuple[float, float]]] | None:
+    """`copper_path_mm` plus the path itself: the (x, y) mm points of the graph nodes visited,
+    pad_a's centre first, pad_b's centre last (layout rules: switching-loop polygon)."""
     import pcbnew
     b = boardnet._as_board(board)
     net = pad_a.GetNetCode()
     if net <= 0 or pad_b.GetNetCode() != net:
         return None
     MM = 1e6
+    xy: dict[object, tuple[float, float]] = {}
     segs = []   # (layer, x1, y1, x2, y2, w)
     vias = []   # (x, y, r)
     for t in b.GetTracks():
@@ -214,8 +222,14 @@ def copper_path_mm(board, pad_a, pad_b) -> float | None:
 
     def pkey(p) -> tuple:
         c = p.GetPosition()
-        return ("pad", p.GetParent().GetReference(), p.GetNumber(), c.x, c.y)
+        key = ("pad", p.GetParent().GetReference(), p.GetNumber(), c.x, c.y)
+        xy.setdefault(key, (c.x / MM, c.y / MM))
+        return key
+    for v, (vx, vy, vr) in enumerate(vias):
+        xy[("via", v)] = (vx, vy)
     for k, (lay, x1, y1, x2, y2, w) in enumerate(segs):
+        xy[("s", k, 0)] = (x1, y1)
+        xy[("s", k, 1)] = (x2, y2)
         marks = [(0.0, ("s", k, 0)), (math.hypot(x2 - x1, y2 - y1), ("s", k, 1))]
         for j, (l2, a1, b1, a2, b2, w2) in enumerate(segs):
             if j == k or l2 != lay:
@@ -224,12 +238,14 @@ def copper_path_mm(board, pad_a, pad_b) -> float | None:
                 t, d, along = _proj(px, py, x1, y1, x2, y2)
                 if d <= (w + w2) / 2 + 1e-6:
                     node = ("p", k, round(along, 6))
+                    xy.setdefault(node, _at(x1, y1, x2, y2, along))
                     marks.append((along, node))
                     edge(node, ("s", j, end), d)
         for v, (vx, vy, vr) in enumerate(vias):
             t, d, along = _proj(vx, vy, x1, y1, x2, y2)
             if d <= w / 2 + vr + 1e-6:
                 node = ("p", k, round(along, 6))
+                xy.setdefault(node, _at(x1, y1, x2, y2, along))
                 marks.append((along, node))
                 edge(node, ("via", v), d)
         for p in pads:
@@ -242,6 +258,7 @@ def copper_path_mm(board, pad_a, pad_b) -> float | None:
             qx, qy = x1 + t * (x2 - x1), y1 + t * (y2 - y1)
             if 0.0 < t < 1.0 and in_pad(p, qx, qy, lay, w / 2):
                 node = ("p", k, round(along, 6))
+                xy.setdefault(node, _at(x1, y1, x2, y2, along))
                 marks.append((along, node))
                 edge(node, pkey(p), d)
         marks.sort(key=lambda m: m[0])
@@ -263,20 +280,35 @@ def copper_path_mm(board, pad_a, pad_b) -> float | None:
                 edge(pkey(p), pkey(q), math.hypot((c.x - e.x) / MM, (c.y - e.y) / MM))
     src, dst = pkey(pad_a), pkey(pad_b)
     if src == dst:
-        return 0.0
+        return 0.0, [xy[src]]
     dist = {src: 0.0}
+    prev: dict[object, object] = {}
     heap = [(0.0, 0, src)]
     n = 1
     while heap:
         d, _, u = heapq.heappop(heap)
         if u == dst:
-            return d
+            pts, cur = [], u
+            while True:
+                pts.append(xy[cur])
+                if cur == src:
+                    break
+                cur = prev[cur]
+            return d, pts[::-1]
         if d > dist.get(u, math.inf):
             continue
         for w, v in adj.get(u, []):
             nd = d + w
             if nd < dist.get(v, math.inf) - 1e-12:
                 dist[v] = nd
+                prev[v] = u
                 heapq.heappush(heap, (nd, n, v))
                 n += 1
     return None
+
+
+def _at(x1: float, y1: float, x2: float, y2: float, along: float) -> tuple[float, float]:
+    L = math.hypot(x2 - x1, y2 - y1)
+    if L == 0:
+        return (x1, y1)
+    return (x1 + (x2 - x1) * along / L, y1 + (y2 - y1) * along / L)

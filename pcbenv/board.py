@@ -106,8 +106,11 @@ def _fp_shapes(fp: "pcbnew.FOOTPRINT") -> list[_FpShape]:
     return out
 
 
-def place(golden: Golden, seed: int, gap: float = 1.0) -> dict[str, tuple[float, float, int]]:
-    """Return {ref: (x_mm, y_mm, rot_deg)} (absolute KiCad coordinates)."""
+def place(golden: Golden, seed: int, gap: float = 1.0,
+          attract: list[tuple[str, str, float]] | None = None) -> dict[str, tuple[float, float, int]]:
+    """Return {ref: (x_mm, y_mm, rot_deg)} (absolute KiCad coordinates). `attract`: extra
+    (pin, pin, weight) pulls between specific pins (layout rules: loop / crystal / Kelvin parts);
+    None keeps the v2 placement byte-identical."""
     rng = random.Random(seed)
     d = golden.design
     comps = d["components"]
@@ -142,6 +145,11 @@ def place(golden: Golden, seed: int, gap: float = 1.0) -> dict[str, tuple[float,
     placed_pads: dict[str, list[tuple[float, float]]] = {}
     ic_pin_pos: dict[str, tuple[float, float]] = {}
 
+    pulls: dict[str, list[tuple[str, str, float]]] = {}
+    for a, c, wgt in attract or []:
+        pulls.setdefault(a.split(".", 1)[0], []).append((a.split(".", 1)[1], c, wgt))
+        pulls.setdefault(c.split(".", 1)[0], []).append((c.split(".", 1)[1], a, wgt))
+
     def pin_pad(pinref: str) -> str:
         ref, pin = pinref.split(".", 1)
         return PARTS[comps[ref]["part"]].pins[pin].pad
@@ -170,6 +178,15 @@ def place(golden: Golden, seed: int, gap: float = 1.0) -> dict[str, tuple[float,
                     P = np.array(placed_pads[net])
                     dd = np.hypot(CX[:, None] + dx - P[None, :, 0], CY[:, None] + dy - P[None, :, 1]).min(axis=1)
                     cost += dd
+                for mypin, other, wgt in pulls.get(ref, []):
+                    if other not in ic_pin_pos:
+                        continue
+                    ox, oy = ic_pin_pos[other]
+                    mypad = PARTS[comps[ref]["part"]].pins[mypin].pad
+                    for num, dx, dy in sh.pads:
+                        if num == mypad:
+                            cost += wgt * np.hypot(CX + dx - ox, CY + dy - oy)
+                            break
                 if dc is not None:
                     icx, icy = ic_pin_pos[dc["ic_pin"]]
                     lim = dc["max_mm"] * 0.85
@@ -307,7 +324,11 @@ def _pad_geom_common(pad, key, angle, hx, hy, rr) -> PadGeom:
 
 
 def route_board(board: "pcbnew.BOARD", golden: Golden, netcodes: dict[str, int],
-                pitch: float, max_orders: int = 6, deadline: float = 1e18) -> Router:
+                pitch: float, max_orders: int = 6, deadline: float = 1e18,
+                layout_rules: dict | None = None) -> Router:
+    """`layout_rules` (pcbenv/layout_rules.py context; None = v2 behaviour): loop legs and crystal
+    pins are joined first on their nets, crystal nets avoid vias, and a Kelvin sense pin is routed
+    to its shunt pad as a separate branch that keeps clearance from the load-current copper."""
     R = drc.RULES
     router = Router(ORIGIN[0], ORIGIN[1], golden.board_w_mm, golden.board_h_mm, pitch,
                     Rules(clearance=R["clearance"], edge_clearance=R["copper_edge_clearance"],
@@ -345,6 +366,47 @@ def route_board(board: "pcbnew.BOARD", golden: Golden, netcodes: dict[str, int],
         if cps:
             first.setdefault(code, [])
             first[code] += [i for i in (ip, cps[0]) if i not in first[code]]
+    kelvin: dict[int, tuple[int, int]] = {}
+    no_via: set[int] = set()
+    if layout_rules:
+        def pidx(pin: str) -> int | None:
+            ref, name = pin.split(".", 1)
+            part = PARTS[golden.design["components"][ref]["part"]]
+            return key_idx.get(f"{ref}.{part.pins[name].pad}")
+
+        pairs = [leg for r in layout_rules.get("switch_loop", []) for leg in r["legs"]]
+        pairs += [pr for r in layout_rules.get("crystal", []) for pr in r["pairs"]]
+        for a, c in pairs:
+            ia, ic = pidx(a), pidx(c)
+            if ia is None or ic is None or router.pads[ia].net <= 0 or router.pads[ia].net != router.pads[ic].net:
+                continue
+            lst = first.setdefault(router.pads[ia].net, [])
+            lst += [i for i in (ia, ic) if i not in lst]
+        for r in layout_rules.get("crystal", []):
+            for a, _ in r["pairs"]:
+                ia = pidx(a)
+                if ia is not None and router.pads[ia].net > 0:
+                    no_via.add(router.pads[ia].net)
+        for r in layout_rules.get("kelvin", []):
+            ish, ise = pidx(r["shunt_pin"]), pidx(r["sense_pin"])
+            if ish is not None and ise is not None and router.pads[ish].net == router.pads[ise].net > 0:
+                kelvin[router.pads[ish].net] = (ise, ish)
+
+    def route_one(code: int) -> None:
+        if code in kelvin:
+            ise, ish = kelvin[code]
+            router.route_net(code, [i for i in net_pads[code] if i != ise], widths[code], first.get(code))
+            route_branch(router, code, ise, ish, widths[code])
+        elif code in no_via:
+            vc = router.via_cost
+            router.via_cost = 1e9
+            try:
+                router.route_net(code, net_pads[code], widths[code], first.get(code))
+            finally:
+                router.via_cost = vc
+        else:
+            router.route_net(code, net_pads[code], widths[code], first.get(code))
+
     last_err = None
     for _ in range(max_orders):
         if time.monotonic() > deadline:
@@ -353,7 +415,7 @@ def route_board(board: "pcbnew.BOARD", golden: Golden, netcodes: dict[str, int],
         failed = None
         for code in order:
             try:
-                router.route_net(code, net_pads[code], widths[code], first.get(code))
+                route_one(code)
             except RouteError as e:
                 failed, last_err = code, e
                 break
@@ -361,6 +423,39 @@ def route_board(board: "pcbnew.BOARD", golden: Golden, netcodes: dict[str, int],
             return router
         order = [failed] + [c for c in order if c != failed]
     raise BuildError(f"routing failed: {last_err}")
+
+
+PSEUDO_NET = 1_000_000
+
+
+def route_branch(router: Router, code: int, pad_a: int, pad_b: int, w: float,
+                 waypoints: list[PadGeom] | None = None, connect: bool = True) -> None:
+    """Route pad_a -> (waypoints ...) -> pad_b as a separate branch of net `code`: during the search
+    the net's existing copper is an obstacle (clearance kept), only the two end pads (and the
+    waypoints, router-only pads) are free. The branch therefore meets the rest of the net only inside
+    pad_b (`connect`) -- a Kelvin connection. Waypoints are joined in order (a chain, no stubs)."""
+    pseudo = PSEUDO_NET + code
+    keep = [(i, router.pads[i].net) for i in (pad_a, pad_b)]
+    added = list(waypoints or [])
+    for wp in added:
+        wp.net = pseudo
+    base = len(router.pads)
+    router.pads.extend(added)
+    n_segs, n_vias = len(router.segs), len(router.vias)
+    try:
+        for i, _ in keep:
+            router.pads[i].net = pseudo
+        chain = [pad_a] + list(range(base, base + len(added))) + [pad_b]
+        for i, j in zip(chain, chain[1:]):
+            router.route_net(pseudo, [i, j], w, [i, j])
+    finally:
+        for i, n in keep:
+            router.pads[i].net = n
+        del router.pads[base:]
+    for sg in router.segs[n_segs:]:
+        sg.net = code
+    for v in router.vias[n_vias:]:
+        v.net = code
 
 
 def add_copper(board: "pcbnew.BOARD", router: Router) -> None:
@@ -478,8 +573,10 @@ def _long_decap_paths(board: "pcbnew.BOARD", golden: Golden, margin: float = 0.9
 
 
 def build_board(golden: Golden, out_path: str, seed: int, pitch: float = 0.1,
-                time_budget_s: float = 60.0) -> dict:
-    """Build, route, DRC-check and save. Returns build stats. Raises BuildError."""
+                time_budget_s: float = 60.0, layout_rules: dict | None = None) -> dict:
+    """Build, route, DRC-check and save. Returns build stats. Raises BuildError.
+    `layout_rules` (hard_layout tier): layout-aware placement / routing, and an attempt is accepted
+    only if it meets every layout rule with margin (`layout_rules.GOLDEN_MARGIN`); None = v2."""
     t0 = time.monotonic()
     deadline = t0 + time_budget_s
     errors = []
@@ -492,10 +589,14 @@ def build_board(golden: Golden, out_path: str, seed: int, pitch: float = 0.1,
         # KiCad orders footprints by UUID when saving: seed the UUID generator.
         pcbnew.KIID.SeedGenerator(pseed)
         try:
-            placement = place(golden, pseed, gap=gap)
+            attract = None
+            if layout_rules:
+                from pcbenv.layout_rules import attract_pairs
+                attract = attract_pairs(layout_rules)
+            placement = place(golden, pseed, gap=gap, attract=attract)
             board = new_board(golden)
             netcodes = add_footprints(board, golden, placement)
-            router = route_board(board, golden, netcodes, pitch, deadline=deadline)
+            router = route_board(board, golden, netcodes, pitch, deadline=deadline, layout_rules=layout_rules)
         except BuildError as e:
             errors.append(f"attempt {attempt}: {e}")
             continue
@@ -504,6 +605,12 @@ def build_board(golden: Golden, out_path: str, seed: int, pitch: float = 0.1,
         if long_decaps:
             errors.append(f"attempt {attempt}: decoupling copper path too long: {long_decaps}")
             continue
+        if layout_rules:
+            from pcbenv.layout_rules import golden_violations
+            bad = golden_violations(board, layout_rules, {r: c["part"] for r, c in golden.design["components"].items()})
+            if bad:
+                errors.append(f"attempt {attempt}: layout rules (with golden margin): {bad[:3]}")
+                continue
         with tempfile.TemporaryDirectory(prefix="pcbbuild_") as td:
             tmp = os.path.join(td, "board.kicad_pcb")
             if not pcbnew.SaveBoard(tmp, board, True):
