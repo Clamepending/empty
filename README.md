@@ -294,4 +294,4 @@ From [reports/v2_generation.md](reports/v2_generation.md) (train / holdout):
 
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (module map) · [docs/REWARD.md](docs/REWARD.md) ·
 [docs/SECURITY.md](docs/SECURITY.md) · [docs/DATA_CARD.md](docs/DATA_CARD.md) ·
-[docs/VERSIONING.md](docs/VERSIONING.md) · Licence: **LICENSE-TBD (founder decision)**.
+[docs/VERSIONING.md](docs/VERSIONING.md) · [docs/ONBOARDING.md](docs/ONBOARDING.md) (README dry run + timings) · Licence: **LICENSE-TBD (founder decision)**.

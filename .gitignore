@@ -21,3 +21,6 @@ runs/
 /tasks/v2/*/pcbr2-*/
 /tasks/v2/*/_staging/
 /tasks/refresh-v2/
+/data/
+*.egg-info/
+/my_policy.py
