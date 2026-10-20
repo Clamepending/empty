@@ -70,15 +70,17 @@ def _nm(mm: float) -> int:
 
 
 def apply_rules(board: "pcbnew.BOARD", rules_board: "pcbnew.BOARD | None" = None) -> None:
-    """Set the canonical design rules on `board` (optionally tightened by `rules_board`)."""
+    """Set the canonical (published) design rules on `board`.
+
+    `rules_board` is accepted for API compatibility but deliberately not used: KiCad 7 keeps
+    design rules in the .kicad_pro, so a loaded golden board only carries KiCad's built-in
+    defaults (e.g. 0.5 mm copper-to-edge), and tightening by it made grading stricter than the
+    rules published in TASK.md and enforced by `pcbtool drc`.
+    """
     ds = board.GetDesignSettings()
-    rd = rules_board.GetDesignSettings() if rules_board is not None else None
 
     def tight(val_mm: float, attr: str) -> int:
-        v = _nm(val_mm)
-        if rd is not None:
-            v = max(v, int(getattr(rd, attr)))
-        return v
+        return _nm(val_mm)
 
     ds.m_MinClearance = tight(RULES["clearance"], "m_MinClearance")
     ds.m_TrackMinWidth = tight(RULES["track_min"], "m_TrackMinWidth")

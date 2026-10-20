@@ -37,7 +37,7 @@ faults/ inject 1–3 faults ─▶ taskio.write_task ─▶ tasks/<split>/<id>/{
 | `verify.py` | The grader: 5 gates + 5 checks (+ `rules` where the task has a rule context), binary reward, `verify_isolated` subprocess |
 | `tool.py` (`bin/pcbtool`) | Agent CLI: show / netlist / drc / erc / sim / parts / check + mutating edits that keep both files consistent |
 | `harness.py` | `PcbRepairEnv` (reset / step / reward), `run_task_with_policy` |
-| `api.py` | Stable public API + `python3 -m pcbenv.api {list,extract,verify}` |
+| `api.py` | Stable public API + `python3 -m pcbenv.api {list,splits,extract,verify}`; split-name aliases (`v2/normal` = `pcb-repair-v2-normal`), `run_cli` (quiet `\| head`) |
 | `adapters/gym_like.py` | Action JSON schema, OpenAI/Anthropic tool definitions, tool-call → action |
 | `adapters/rollout.py` | Reference agent loop, JSONL transcripts (calibration log format) |
 | `adapters/jsonl.py` | HF-style JSONL export of public files; batch scoring of predictions |
@@ -49,7 +49,7 @@ faults/ inject 1–3 faults ─▶ taskio.write_task ─▶ tasks/<split>/<id>/{
 |---|---|
 | `bin/pcbtool` | Shell wrapper: `python3 -P -m pcbenv.tool` with the repo on `PYTHONPATH` |
 | `Dockerfile`, `docker/` | `agent` and `grader` image targets, entrypoints, `run_episode.sh`, Inspect compose file |
-| `examples/` | `demo_policy.py` (scripted value-fault solver), `run_with_claude.py` (Anthropic API loop) |
+| `examples/` | `demo_policy.py` (scripted single-value-fault solver, ≤ 20 sims / 20 s per task), `run_with_claude.py` (Anthropic API loop), `readme_dryrun.py` (runs README top to bottom in a fresh copy and times it) |
 | `tests/` | pytest suites per goal (`python3 -m pytest -q tests/`) |
 | `tasks/`, `dist/` | Generated task sets / release bundles |
 | `redteam/` | Red-team attacks and regression tests (G5) |

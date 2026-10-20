@@ -3,9 +3,9 @@
 
     pip install anthropic                     # optional; not a pcbenv dependency
     export ANTHROPIC_API_KEY=...              # or `ant auth login`; never hard-code keys
-    python3 examples/run_with_claude.py MODEL_ID --tasks tasks --split train --limit 5 \
+    python3 examples/run_with_claude.py MODEL_ID --tasks data --split v2/normal --limit 5 \
         --transcript runs/claude.jsonl
-    python3 examples/run_with_claude.py MODEL_ID tasks/v2/normal/<task_id>
+    python3 examples/run_with_claude.py MODEL_ID data/v2/normal/<task_id>
 
 Built on `pcbenv.adapters.rollout.run_agent` (episode loop + JSONL calibration log) and
 `gym_like.anthropic_style_tools()` (bash / pcbtool / submit tool definitions). The assistant's
@@ -100,17 +100,22 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--max-tokens", type=int, default=16000)
     ap.add_argument("--effort", default="high", help="output_config.effort; 'none' to omit (older models)")
     ap.add_argument("--transcript", default="runs/claude.jsonl")
+    ap.add_argument("--max-seconds", type=float, default=None, help="per-episode wall-clock cap")
     a = ap.parse_args(argv)
     dirs = list(a.task_dirs)
     if a.tasks:
-        dirs += [r.path for r in api.list_tasks(a.tasks, split=a.split)[: a.limit]]
+        try:
+            dirs += [r.path for r in api.list_tasks(a.tasks, split=a.split, strict=True)[: a.limit]]
+        except api.SplitNotFound as e:
+            print(f"error: {e}", file=sys.stderr)
+            return 2
     if not dirs:
         ap.error("give task dirs or --tasks ROOT")
     call_model = make_call_model(a.model, None if a.effort == "none" else a.effort, a.max_tokens)
     wins = 0.0
     for td in dirs:
         r = run_agent(td, call_model, max_steps=a.max_steps, model=a.model, tool_style="anthropic",
-                      transcript=a.transcript)
+                      transcript=a.transcript, max_seconds=a.max_seconds)
         wins += r["reward"]
         print(f"{r['task_id']}: reward {r['reward']:.0f} steps {r['steps']} {r['wall_time_s']:.0f}s "
               f"failed={r['failed']} error={r['error']}", flush=True)
@@ -119,4 +124,4 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(api.run_cli(main))

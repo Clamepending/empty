@@ -162,7 +162,8 @@ def _all_tasks(rootp: Path) -> list[TaskRef]:
                     continue
                 seen.add(str(p))
                 refs.append(TaskRef(task_id=str(row.get("task_id") or row.get("id") or p.name), path=str(p),
-                                    split=row.get("split"), family=row.get("family"),
+                                    split=row.get("split") or (p.parent.name if p.parent != rootp.resolve() else None),
+                                    family=row.get("family"),
                                     difficulty=row.get("difficulty"),
                                     extra={k: v for k, v in row.items() if k not in known}))
     else:
@@ -293,10 +294,13 @@ def _bundle_layout(members: list[tarfile.TarInfo], tf: tarfile.TarFile) -> tuple
             sp = None
         if sp:
             splits.add(str(sp))
-    split = splits.pop() if len(splits) == 1 else canonical_split(top)
-    if split == top or not _SAFE_SPLIT.match(split) or ".." in split.split("/"):
-        return None
-    return top, split
+    def safe(x: str) -> bool:
+        return x != top and bool(_SAFE_SPLIT.match(x)) and not {"..", "."} & set(x.split("/"))
+
+    split = splits.pop() if len(splits) == 1 else None
+    if split is None or not safe(split):
+        split = canonical_split(top)
+    return (top, split) if safe(split) else None
 
 
 def extract_tasks(tarball: str | os.PathLike, dest: str | os.PathLike) -> list[TaskRef]:
