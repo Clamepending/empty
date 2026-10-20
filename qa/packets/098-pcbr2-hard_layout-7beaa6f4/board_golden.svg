@@ -1,0 +1,469 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1481" height="1137" viewBox="0 0 1481 1137" font-family="Helvetica,Arial,sans-serif">
+<rect width="100%" height="100%" fill="#f7f5ee"/>
+<text x="8" y="18" font-size="15" font-weight="bold">pcbr2-hard_layout-7beaa6f4 — golden board (reference fix)</text>
+<text x="8" y="34" font-size="11">red = F.Cu track, blue = B.Cu track, grey = courtyard, yellow halo = differs from the other board, magenta box = footprint moved/changed</text>
+<text x="8" y="1131" font-size="11">layout rules: purple fill = switching-loop polygon, cyan dashed = rule copper paths (crystal / decoupling), green glow = Kelvin sense island (shunt pad deleted), black dash = analog track within the separation gap</text>
+<polyline points="40.5,80.5 1440.5,80.5 1440.5,1080.5 40.5,1080.5 40.5,80.5" fill="none" stroke="#c9b000" stroke-width="2"/>
+<polygon points="751.0,330.5 742.5,314.5 732.5,304.5 732.5,304.5 732.5,304.5 732.5,304.5 718.5,290.5 718.5,290.5 706.5,278.5 706.5,272.5 706.5,272.5 694.5,260.5 670.5,260.5 590.5,260.5 614.5,272.5 628.5,272.5 628.5,272.5 644.5,288.5 644.5,288.5 848.5,288.5 848.5,288.5 882.5,254.5 891.8,250.5 929.3,231.5 940.5,236.5 940.5,246.5 954.5,260.5 954.5,260.5 954.5,304.5 954.5,304.5 938.5,320.5 929.8,330.5 871.2,330.5 862.5,330.5 818.5,330.5 810.0,330.5" fill="#8a2be2" fill-opacity="0.22" stroke="#6a0dad" stroke-width="2"><title>switching-loop polygon</title></polygon>
+<polyline points="974.5,336.5 938.5,336.5" fill="none" stroke="#00c000" stroke-opacity="0.55" stroke-width="16" stroke-linecap="round"/>
+<polyline points="628.5,540.5 628.5,580.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="628.5,580.5 680.5,632.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="680.5,632.5 680.5,636.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="748.5,400.5 720.5,372.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="730.5,410.5 730.5,468.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="738.5,410.5 730.5,410.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="748.5,400.5 738.5,410.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="770.5,378.5 748.5,400.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="854.5,556.5 810.5,600.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="15.0" stroke-linecap="round"/>
+<polyline points="938.5,556.5 854.5,556.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="15.0" stroke-linecap="round"/>
+<polyline points="970.5,524.5 938.5,556.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="15.0" stroke-linecap="round"/>
+<polyline points="600.5,244.5 600.5,174.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="614.5,272.5 628.5,272.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="628.5,580.5 616.5,592.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="628.5,272.5 644.5,288.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="628.5,488.5 628.5,540.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="644.5,288.5 848.5,288.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="650.5,244.5 650.5,176.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="652.5,608.5 652.5,648.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="15.0" stroke-linecap="round"/>
+<polyline points="664.5,596.5 652.5,608.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="15.0" stroke-linecap="round"/>
+<polyline points="652.5,648.5 670.5,666.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="15.0" stroke-linecap="round"/>
+<polyline points="670.5,722.5 658.5,734.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="15.0" stroke-linecap="round"/>
+<polyline points="670.5,666.5 670.5,722.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="15.0" stroke-linecap="round"/>
+<polyline points="680.5,636.5 680.5,622.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="680.5,636.5 680.5,658.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="680.5,658.5 690.5,668.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="706.5,272.5 694.5,260.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="720.5,372.5 702.5,354.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="718.5,442.5 730.5,454.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="16.0" stroke-linecap="round"/>
+<polyline points="730.5,410.5 740.5,420.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="730.5,454.5 736.5,454.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="16.0" stroke-linecap="round"/>
+<polyline points="730.5,468.5 730.5,482.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="736.5,454.5 764.5,482.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="16.0" stroke-linecap="round"/>
+<polyline points="764.5,482.5 762.5,484.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="16.0" stroke-linecap="round"/>
+<polyline points="764.5,482.5 778.5,496.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="16.0" stroke-linecap="round"/>
+<polyline points="774.5,382.5 770.5,378.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="784.5,382.5 774.5,382.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="778.5,496.5 778.5,538.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="16.0" stroke-linecap="round"/>
+<polyline points="788.5,600.5 784.5,596.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="15.0" stroke-linecap="round"/>
+<polyline points="810.5,600.5 788.5,600.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="15.0" stroke-linecap="round"/>
+<polyline points="802.5,346.5 802.5,382.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="848.5,288.5 882.5,254.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="974.5,336.5 938.5,336.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="20.0" stroke-linecap="round"/>
+<polyline points="1002.5,492.5 970.5,524.5" fill="none" stroke="#ffe100" stroke-opacity="0.85" stroke-width="15.0" stroke-linecap="round"/>
+<circle cx="628.5" cy="540.5" r="12.0" fill="#ffe100"/>
+<circle cx="628.5" cy="580.5" r="12.0" fill="#ffe100"/>
+<circle cx="680.5" cy="636.5" r="12.0" fill="#ffe100"/>
+<circle cx="720.5" cy="372.5" r="12.0" fill="#ffe100"/>
+<circle cx="730.5" cy="410.5" r="12.0" fill="#ffe100"/>
+<circle cx="730.5" cy="468.5" r="12.0" fill="#ffe100"/>
+<circle cx="770.5" cy="378.5" r="12.0" fill="#ffe100"/>
+<circle cx="810.5" cy="600.5" r="12.0" fill="#ffe100"/>
+<circle cx="970.5" cy="524.5" r="12.0" fill="#ffe100"/>
+<polyline points="777.5,466.5 777.5,374.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="823.5,466.5 777.5,466.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="777.5,374.5 823.5,374.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="823.5,374.5 823.5,466.5" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(800.5,450.0) rotate(-90)"><rect x="-11.5" y="-18.0" width="23.0" height="36.0" rx="5.8" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>C1 pad 1: +9V</title></rect></g>
+<g transform="translate(800.5,391.0) rotate(-90)"><rect x="-11.5" y="-18.0" width="23.0" height="36.0" rx="5.8" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>C1 pad 2: GND</title></rect></g>
+<polyline points="663.5,404.5 663.5,496.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="617.5,404.5 663.5,404.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="663.5,496.5 617.5,496.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="617.5,496.5 617.5,404.5" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(640.5,421.0) rotate(-270)"><rect x="-11.5" y="-18.0" width="23.0" height="36.0" rx="5.8" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>C2 pad 1: +5V</title></rect></g>
+<g transform="translate(640.5,480.0) rotate(-270)"><rect x="-11.5" y="-18.0" width="23.0" height="36.0" rx="5.8" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>C2 pad 2: GND</title></rect></g>
+<polyline points="770.1,505.1 710.9,505.1" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="770.1,475.9 770.1,505.1" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="710.9,505.1 710.9,475.9" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="710.9,475.9 770.1,475.9" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(756.0,490.5) rotate(-180)"><rect x="-9.0" y="-9.5" width="18.0" height="19.0" rx="4.5" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>C3 pad 1: +5V</title></rect></g>
+<g transform="translate(725.0,490.5) rotate(-180)"><rect x="-9.0" y="-9.5" width="18.0" height="19.0" rx="4.5" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>C3 pad 2: GND</title></rect></g>
+<polyline points="630.1,546.5 630.1,614.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="590.9,546.5 630.1,546.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="630.1,614.5 590.9,614.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="590.9,614.5 590.9,546.5" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(610.5,561.5) rotate(-270)"><rect x="-10.0" y="-14.5" width="20.0" height="29.0" rx="5.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>C4 pad 1: NRST_U2</title></rect></g>
+<g transform="translate(610.5,599.5) rotate(-270)"><rect x="-10.0" y="-14.5" width="20.0" height="29.0" rx="5.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>C4 pad 2: GND</title></rect></g>
+<polyline points="636.5,660.9 704.5,660.9" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="636.5,700.1 636.5,660.9" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="704.5,660.9 704.5,700.1" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="704.5,700.1 636.5,700.1" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(651.5,680.5) rotate(-0)"><rect x="-10.0" y="-14.5" width="20.0" height="29.0" rx="5.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>C5 pad 1: ADC_PA1</title></rect></g>
+<g transform="translate(689.5,680.5) rotate(-0)"><rect x="-10.0" y="-14.5" width="20.0" height="29.0" rx="5.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>C5 pad 2: GND</title></rect></g>
+<polyline points="734.5,307.5 826.5,307.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="734.5,353.5 734.5,307.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="826.5,307.5 826.5,353.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="826.5,353.5 734.5,353.5" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(751.0,330.5) rotate(-0)"><rect x="-11.5" y="-18.0" width="23.0" height="36.0" rx="5.8" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>C6 pad 1: +9V</title></rect></g>
+<g transform="translate(810.0,330.5) rotate(-0)"><rect x="-11.5" y="-18.0" width="23.0" height="36.0" rx="5.8" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>C6 pad 2: GND</title></rect></g>
+<polyline points="700.5,295.5 560.5,295.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="700.5,225.5 700.5,295.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="560.5,295.5 560.5,225.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="560.5,225.5 700.5,225.5" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(670.5,260.5) rotate(-180)"><rect x="-25.0" y="-18.0" width="50.0" height="36.0" rx="9.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>D1 pad 1: +9V</title></rect></g>
+<g transform="translate(590.5,260.5) rotate(-180)"><rect x="-25.0" y="-18.0" width="50.0" height="36.0" rx="9.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>D1 pad 2: MOTOR_SW</title></rect></g>
+<polyline points="755.1,670.9 755.1,730.1" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="725.9,670.9 755.1,670.9" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="755.1,730.1 725.9,730.1" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="725.9,730.1 725.9,670.9" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(740.5,684.8) rotate(-270)"><rect x="-8.8" y="-9.5" width="17.5" height="19.0" rx="4.4" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>D2 pad 1: GND</title></rect></g>
+<g transform="translate(740.5,716.2) rotate(-270)"><rect x="-8.8" y="-9.5" width="17.5" height="19.0" rx="4.4" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>D2 pad 2: LED_D2_A</title></rect></g>
+<polyline points="776.9,701.5 844.1,701.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="776.9,739.5 776.9,701.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="844.1,701.5 844.1,739.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="844.1,739.5 776.9,739.5" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(791.8,720.5) rotate(-0)"><rect x="-9.8" y="-14.0" width="19.5" height="28.0" rx="4.9" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>D3 pad 1: GND</title></rect></g>
+<g transform="translate(829.3,720.5) rotate(-0)"><rect x="-9.8" y="-14.0" width="19.5" height="28.0" rx="4.9" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>D3 pad 2: LED_D3_A</title></rect></g>
+<polyline points="724.5,286.5 847.5,286.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="847.5,286.5 847.5,214.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="724.5,214.5 724.5,286.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="847.5,214.5 724.5,214.5" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(760.5,250.5) rotate(-90)"><rect x="-17.0" y="-17.0" width="34.0" height="34.0" rx="0.0" fill="#d4a017" stroke="#7a5a00" stroke-width="0.5"><title>J1 pad 1: +9V</title></rect></g>
+<g transform="translate(811.3,250.5) rotate(-90)"><rect x="-17.0" y="-17.0" width="34.0" height="34.0" rx="17.0" fill="#d4a017" stroke="#7a5a00" stroke-width="0.5"><title>J1 pad 2: GND</title></rect></g>
+<polyline points="686.5,124.5 563.5,124.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="563.5,124.5 563.5,196.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="686.5,196.5 686.5,124.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="563.5,196.5 686.5,196.5" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(650.5,160.5) rotate(-270)"><rect x="-17.0" y="-17.0" width="34.0" height="34.0" rx="0.0" fill="#d4a017" stroke="#7a5a00" stroke-width="0.5"><title>J2 pad 1: +9V</title></rect></g>
+<g transform="translate(599.7,160.5) rotate(-270)"><rect x="-17.0" y="-17.0" width="34.0" height="34.0" rx="17.0" fill="#d4a017" stroke="#7a5a00" stroke-width="0.5"><title>J2 pad 2: MOTOR_SW</title></rect></g>
+<polyline points="834.5,444.5 834.5,668.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="834.5,668.5 906.5,668.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="906.5,444.5 834.5,444.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="906.5,668.5 906.5,444.5" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(870.5,480.5) rotate(-0)"><rect x="-17.0" y="-17.0" width="34.0" height="34.0" rx="0.0" fill="#d4a017" stroke="#7a5a00" stroke-width="0.5"><title>J3 pad 1: +5V</title></rect></g>
+<g transform="translate(870.5,531.3) rotate(-0)"><rect x="-17.0" y="-17.0" width="34.0" height="34.0" rx="17.0" fill="#d4a017" stroke="#7a5a00" stroke-width="0.5"><title>J3 pad 2: GND</title></rect></g>
+<g transform="translate(870.5,582.1) rotate(-0)"><rect x="-17.0" y="-17.0" width="34.0" height="34.0" rx="17.0" fill="#d4a017" stroke="#7a5a00" stroke-width="0.5"><title>J3 pad 3: SDA</title></rect></g>
+<g transform="translate(870.5,632.9) rotate(-0)"><rect x="-17.0" y="-17.0" width="34.0" height="34.0" rx="17.0" fill="#d4a017" stroke="#7a5a00" stroke-width="0.5"><title>J3 pad 4: SCL</title></rect></g>
+<polyline points="948.9,284.5 948.9,216.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="948.9,216.5 872.1,216.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="872.1,284.5 948.9,284.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="872.1,216.5 872.1,284.5" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(929.3,269.5) rotate(-180)"><rect x="-14.8" y="-6.0" width="29.5" height="12.0" rx="3.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>Q1 pad 1: GATE</title></rect></g>
+<g transform="translate(929.3,231.5) rotate(-180)"><rect x="-14.8" y="-6.0" width="29.5" height="12.0" rx="3.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>Q1 pad 2: ISENSE</title></rect></g>
+<g transform="translate(891.8,250.5) rotate(-180)"><rect x="-14.8" y="-6.0" width="29.5" height="12.0" rx="3.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>Q1 pad 3: MOTOR_SW</title></rect></g>
+<polyline points="585.9,380.1 585.9,320.9" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="615.1,380.1 585.9,380.1" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="585.9,320.9 615.1,320.9" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="615.1,320.9 615.1,380.1" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(600.5,367.0) rotate(-90)"><rect x="-8.0" y="-9.5" width="16.0" height="19.0" rx="4.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>R1 pad 1: +5V</title></rect></g>
+<g transform="translate(600.5,334.0) rotate(-90)"><rect x="-8.0" y="-9.5" width="16.0" height="19.0" rx="4.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>R1 pad 2: FB_U1</title></rect></g>
+<polyline points="640.9,725.9 700.1,725.9" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="640.9,755.1 640.9,725.9" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="700.1,725.9 700.1,755.1" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="700.1,755.1 640.9,755.1" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(654.0,740.5) rotate(-0)"><rect x="-8.0" y="-9.5" width="16.0" height="19.0" rx="4.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>R10 pad 1: LED_PA2</title></rect></g>
+<g transform="translate(687.0,740.5) rotate(-0)"><rect x="-8.0" y="-9.5" width="16.0" height="19.0" rx="4.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>R10 pad 2: LED_D2_A</title></rect></g>
+<polyline points="930.1,725.1 870.9,725.1" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="930.1,695.9 930.1,725.1" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="870.9,725.1 870.9,695.9" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="870.9,695.9 930.1,695.9" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(917.0,710.5) rotate(-180)"><rect x="-8.0" y="-9.5" width="16.0" height="19.0" rx="4.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>R11 pad 1: +5V</title></rect></g>
+<g transform="translate(884.0,710.5) rotate(-180)"><rect x="-8.0" y="-9.5" width="16.0" height="19.0" rx="4.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>R11 pad 2: LED_D3_A</title></rect></g>
+<polyline points="650.9,335.9 710.1,335.9" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="650.9,365.1 650.9,335.9" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="710.1,335.9 710.1,365.1" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="710.1,365.1 650.9,365.1" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(664.0,350.5) rotate(-0)"><rect x="-8.0" y="-9.5" width="16.0" height="19.0" rx="4.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>R2 pad 1: FB_U1</title></rect></g>
+<g transform="translate(697.0,350.5) rotate(-0)"><rect x="-8.0" y="-9.5" width="16.0" height="19.0" rx="4.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>R2 pad 2: GND</title></rect></g>
+<polyline points="589.5,446.9 589.5,514.1" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="551.5,446.9 589.5,446.9" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="589.5,514.1 551.5,514.1" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="551.5,514.1 551.5,446.9" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(570.5,462.3) rotate(-270)"><rect x="-10.2" y="-14.0" width="20.5" height="28.0" rx="5.1" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>R3 pad 1: +5V</title></rect></g>
+<g transform="translate(570.5,498.8) rotate(-270)"><rect x="-10.2" y="-14.0" width="20.5" height="28.0" rx="5.1" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>R3 pad 2: NRST_U2</title></rect></g>
+<polyline points="995.9,500.1 995.9,440.9" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="1025.1,500.1 995.9,500.1" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="995.9,440.9 1025.1,440.9" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="1025.1,440.9 1025.1,500.1" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(1010.5,487.0) rotate(-90)"><rect x="-8.0" y="-9.5" width="16.0" height="19.0" rx="4.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>R4 pad 1: PWM_PA0</title></rect></g>
+<g transform="translate(1010.5,454.0) rotate(-90)"><rect x="-8.0" y="-9.5" width="16.0" height="19.0" rx="4.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>R4 pad 2: GATE</title></rect></g>
+<polyline points="936.1,422.9 844.9,422.9" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="936.1,378.1 936.1,422.9" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="844.9,422.9 844.9,378.1" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="844.9,378.1 936.1,378.1" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(919.8,400.5) rotate(-180)"><rect x="-11.2" y="-17.5" width="22.5" height="35.0" rx="5.6" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>R5 pad 1: GATE</title></rect></g>
+<g transform="translate(861.2,400.5) rotate(-180)"><rect x="-11.2" y="-17.5" width="22.5" height="35.0" rx="5.6" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>R5 pad 2: GND</title></rect></g>
+<polyline points="946.1,352.9 854.9,352.9" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="946.1,308.1 946.1,352.9" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="854.9,352.9 854.9,308.1" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="854.9,308.1 946.1,308.1" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(929.8,330.5) rotate(-180)"><rect x="-11.2" y="-17.5" width="22.5" height="35.0" rx="5.6" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>R6 pad 1: ISENSE</title></rect></g>
+<g transform="translate(871.2,330.5) rotate(-180)"><rect x="-11.2" y="-17.5" width="22.5" height="35.0" rx="5.6" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>R6 pad 2: GND</title></rect></g>
+<polyline points="1012.9,324.9 1012.9,416.1" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="968.1,324.9 1012.9,324.9" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="1012.9,416.1 968.1,416.1" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="968.1,416.1 968.1,324.9" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(990.5,341.2) rotate(-270)"><rect x="-11.2" y="-17.5" width="22.5" height="35.0" rx="5.6" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>R7 pad 1: ISENSE</title></rect></g>
+<g transform="translate(990.5,399.8) rotate(-270)"><rect x="-11.2" y="-17.5" width="22.5" height="35.0" rx="5.6" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>R7 pad 2: ADC_PA1</title></rect></g>
+<polyline points="965.1,490.9 965.1,550.1" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="935.9,490.9 965.1,490.9" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="965.1,550.1 935.9,550.1" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="935.9,550.1 935.9,490.9" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(950.5,504.0) rotate(-270)"><rect x="-8.0" y="-9.5" width="16.0" height="19.0" rx="4.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>R8 pad 1: +5V</title></rect></g>
+<g transform="translate(950.5,537.0) rotate(-270)"><rect x="-8.0" y="-9.5" width="16.0" height="19.0" rx="4.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>R8 pad 2: SDA</title></rect></g>
+<polyline points="990.1,605.1 930.9,605.1" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="990.1,575.9 990.1,605.1" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="930.9,605.1 930.9,575.9" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="930.9,575.9 990.1,575.9" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(977.0,590.5) rotate(-180)"><rect x="-8.0" y="-9.5" width="16.0" height="19.0" rx="4.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>R9 pad 1: +5V</title></rect></g>
+<g transform="translate(944.0,590.5) rotate(-180)"><rect x="-8.0" y="-9.5" width="16.0" height="19.0" rx="4.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>R9 pad 2: SCL</title></rect></g>
+<polyline points="771.5,454.5 771.5,386.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="771.5,386.5 689.5,386.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="689.5,454.5 771.5,454.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="689.5,386.5 689.5,454.5" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(753.2,439.5) rotate(-180)"><rect x="-13.2" y="-6.0" width="26.5" height="12.0" rx="3.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>U1 pad 1: +9V</title></rect></g>
+<g transform="translate(753.2,420.5) rotate(-180)"><rect x="-13.2" y="-6.0" width="26.5" height="12.0" rx="3.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>U1 pad 2: GND</title></rect></g>
+<g transform="translate(753.2,401.5) rotate(-180)"><rect x="-13.2" y="-6.0" width="26.5" height="12.0" rx="3.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>U1 pad 3: +9V</title></rect></g>
+<g transform="translate(707.8,401.5) rotate(-180)"><rect x="-13.2" y="-6.0" width="26.5" height="12.0" rx="3.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>U1 pad 4: FB_U1</title></rect></g>
+<g transform="translate(707.8,439.5) rotate(-180)"><rect x="-13.2" y="-6.0" width="26.5" height="12.0" rx="3.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>U1 pad 5: +5V</title></rect></g>
+<polyline points="656.5,526.5 656.5,634.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="656.5,634.5 804.5,634.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="804.5,526.5 656.5,526.5" fill="none" stroke="#888" stroke-width="1"/>
+<polyline points="804.5,634.5 804.5,526.5" fill="none" stroke="#888" stroke-width="1"/>
+<g transform="translate(681.0,542.4) rotate(-0)"><rect x="-19.5" y="-6.0" width="39.0" height="12.0" rx="3.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>U2 pad 1: NRST_U2</title></rect></g>
+<g transform="translate(681.0,567.8) rotate(-0)"><rect x="-19.5" y="-6.0" width="39.0" height="12.0" rx="3.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>U2 pad 2: ADC_PA1</title></rect></g>
+<g transform="translate(681.0,593.2) rotate(-0)"><rect x="-19.5" y="-6.0" width="39.0" height="12.0" rx="3.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>U2 pad 3: LED_PA2</title></rect></g>
+<g transform="translate(681.0,618.6) rotate(-0)"><rect x="-19.5" y="-6.0" width="39.0" height="12.0" rx="3.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>U2 pad 4: GND</title></rect></g>
+<g transform="translate(780.0,618.6) rotate(-0)"><rect x="-19.5" y="-6.0" width="39.0" height="12.0" rx="3.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>U2 pad 5: SDA</title></rect></g>
+<g transform="translate(780.0,593.2) rotate(-0)"><rect x="-19.5" y="-6.0" width="39.0" height="12.0" rx="3.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>U2 pad 6: PWM_PA0</title></rect></g>
+<g transform="translate(780.0,567.8) rotate(-0)"><rect x="-19.5" y="-6.0" width="39.0" height="12.0" rx="3.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>U2 pad 7: SCL</title></rect></g>
+<g transform="translate(780.0,542.4) rotate(-0)"><rect x="-19.5" y="-6.0" width="39.0" height="12.0" rx="3.0" fill="#e0a96d" stroke="#7a5a00" stroke-width="0.5"><title>U2 pad 8: +5V</title></rect></g>
+<polyline points="628.5,540.5 628.5,580.5" fill="none" stroke="#3b6fd1" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND B.Cu 0.5 mm</title></polyline>
+<polyline points="628.5,580.5 680.5,632.5" fill="none" stroke="#3b6fd1" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND B.Cu 0.5 mm</title></polyline>
+<polyline points="680.5,632.5 680.5,636.5" fill="none" stroke="#3b6fd1" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND B.Cu 0.5 mm</title></polyline>
+<polyline points="706.5,278.5 706.5,272.5" fill="none" stroke="#3b6fd1" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>+9V B.Cu 0.5 mm</title></polyline>
+<polyline points="718.5,290.5 706.5,278.5" fill="none" stroke="#3b6fd1" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>+9V B.Cu 0.5 mm</title></polyline>
+<polyline points="732.5,304.5 718.5,290.5" fill="none" stroke="#3b6fd1" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>+9V B.Cu 0.5 mm</title></polyline>
+<polyline points="718.5,290.5 746.5,262.5" fill="none" stroke="#3b6fd1" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>+9V B.Cu 0.5 mm</title></polyline>
+<polyline points="748.5,400.5 720.5,372.5" fill="none" stroke="#3b6fd1" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND B.Cu 0.5 mm</title></polyline>
+<polyline points="730.5,410.5 730.5,468.5" fill="none" stroke="#3b6fd1" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND B.Cu 0.5 mm</title></polyline>
+<polyline points="738.5,410.5 730.5,410.5" fill="none" stroke="#3b6fd1" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND B.Cu 0.5 mm</title></polyline>
+<polyline points="748.5,400.5 738.5,410.5" fill="none" stroke="#3b6fd1" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND B.Cu 0.5 mm</title></polyline>
+<polyline points="770.5,378.5 748.5,400.5" fill="none" stroke="#3b6fd1" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND B.Cu 0.5 mm</title></polyline>
+<polyline points="750.5,512.5 862.5,400.5" fill="none" stroke="#3b6fd1" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>ADC_PA1 B.Cu 0.25 mm</title></polyline>
+<polyline points="854.5,556.5 810.5,600.5" fill="none" stroke="#3b6fd1" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>PWM_PA0 B.Cu 0.25 mm</title></polyline>
+<polyline points="826.5,266.5 820.5,260.5" fill="none" stroke="#3b6fd1" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND B.Cu 0.5 mm</title></polyline>
+<polyline points="824.5,510.5 854.5,480.5" fill="none" stroke="#3b6fd1" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>+5V B.Cu 0.3 mm</title></polyline>
+<polyline points="826.5,304.5 826.5,266.5" fill="none" stroke="#3b6fd1" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND B.Cu 0.5 mm</title></polyline>
+<polyline points="856.5,588.5 826.5,618.5" fill="none" stroke="#3b6fd1" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>SDA B.Cu 0.25 mm</title></polyline>
+<polyline points="854.5,480.5 856.5,480.5" fill="none" stroke="#3b6fd1" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>+5V B.Cu 0.3 mm</title></polyline>
+<polyline points="938.5,556.5 854.5,556.5" fill="none" stroke="#3b6fd1" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>PWM_PA0 B.Cu 0.25 mm</title></polyline>
+<polyline points="862.5,400.5 960.5,400.5" fill="none" stroke="#3b6fd1" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>ADC_PA1 B.Cu 0.25 mm</title></polyline>
+<polyline points="970.5,524.5 938.5,556.5" fill="none" stroke="#3b6fd1" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>PWM_PA0 B.Cu 0.25 mm</title></polyline>
+<polyline points="972.5,502.5 972.5,506.5" fill="none" stroke="#3b6fd1" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>+5V B.Cu 0.3 mm</title></polyline>
+<polyline points="972.5,506.5 984.5,518.5" fill="none" stroke="#3b6fd1" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>+5V B.Cu 0.3 mm</title></polyline>
+<polyline points="984.5,518.5 984.5,570.5" fill="none" stroke="#3b6fd1" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>+5V B.Cu 0.3 mm</title></polyline>
+<polyline points="574.5,530.5 574.5,506.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>NRST_U2 F.Cu 0.25 mm</title></polyline>
+<polyline points="598.5,554.5 574.5,530.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>NRST_U2 F.Cu 0.25 mm</title></polyline>
+<polyline points="592.5,460.5 582.5,460.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>+5V F.Cu 0.3 mm</title></polyline>
+<polyline points="624.5,428.5 592.5,460.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>+5V F.Cu 0.3 mm</title></polyline>
+<polyline points="600.5,244.5 600.5,174.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>MOTOR_SW F.Cu 0.5 mm</title></polyline>
+<polyline points="604.5,392.5 604.5,372.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>+5V F.Cu 0.3 mm</title></polyline>
+<polyline points="624.5,412.5 604.5,392.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>+5V F.Cu 0.3 mm</title></polyline>
+<polyline points="610.5,342.5 606.5,338.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>FB_U1 F.Cu 0.25 mm</title></polyline>
+<polyline points="658.5,342.5 610.5,342.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>FB_U1 F.Cu 0.25 mm</title></polyline>
+<polyline points="614.5,272.5 628.5,272.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>MOTOR_SW F.Cu 0.5 mm</title></polyline>
+<polyline points="628.5,580.5 616.5,592.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND F.Cu 0.5 mm</title></polyline>
+<polyline points="622.5,554.5 662.5,554.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>NRST_U2 F.Cu 0.25 mm</title></polyline>
+<polyline points="628.5,272.5 644.5,288.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>MOTOR_SW F.Cu 0.5 mm</title></polyline>
+<polyline points="628.5,488.5 628.5,540.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND F.Cu 0.5 mm</title></polyline>
+<polyline points="642.5,594.5 642.5,670.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>ADC_PA1 F.Cu 0.25 mm</title></polyline>
+<polyline points="664.5,572.5 642.5,594.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>ADC_PA1 F.Cu 0.25 mm</title></polyline>
+<polyline points="642.5,670.5 644.5,672.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>ADC_PA1 F.Cu 0.25 mm</title></polyline>
+<polyline points="644.5,288.5 848.5,288.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>MOTOR_SW F.Cu 0.5 mm</title></polyline>
+<polyline points="650.5,244.5 650.5,176.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>+9V F.Cu 0.5 mm</title></polyline>
+<polyline points="652.5,608.5 652.5,648.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>LED_PA2 F.Cu 0.25 mm</title></polyline>
+<polyline points="664.5,596.5 652.5,608.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>LED_PA2 F.Cu 0.25 mm</title></polyline>
+<polyline points="652.5,648.5 670.5,666.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>LED_PA2 F.Cu 0.25 mm</title></polyline>
+<polyline points="684.5,424.5 656.5,424.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>+5V F.Cu 0.3 mm</title></polyline>
+<polyline points="718.5,484.5 656.5,484.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND F.Cu 0.5 mm</title></polyline>
+<polyline points="670.5,722.5 658.5,734.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>LED_PA2 F.Cu 0.25 mm</title></polyline>
+<polyline points="662.5,554.5 670.5,546.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>NRST_U2 F.Cu 0.25 mm</title></polyline>
+<polyline points="668.5,358.5 708.5,398.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>FB_U1 F.Cu 0.25 mm</title></polyline>
+<polyline points="670.5,666.5 670.5,722.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>LED_PA2 F.Cu 0.25 mm</title></polyline>
+<polyline points="680.5,636.5 680.5,622.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND F.Cu 0.5 mm</title></polyline>
+<polyline points="680.5,636.5 680.5,658.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND F.Cu 0.5 mm</title></polyline>
+<polyline points="680.5,658.5 690.5,668.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND F.Cu 0.5 mm</title></polyline>
+<polyline points="696.5,436.5 684.5,424.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>+5V F.Cu 0.3 mm</title></polyline>
+<polyline points="692.5,732.5 708.5,716.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>LED_D2_A F.Cu 0.25 mm</title></polyline>
+<polyline points="706.5,272.5 694.5,260.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>+9V F.Cu 0.5 mm</title></polyline>
+<polyline points="696.5,684.5 732.5,684.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND F.Cu 0.5 mm</title></polyline>
+<polyline points="698.5,564.5 750.5,512.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>ADC_PA1 F.Cu 0.25 mm</title></polyline>
+<polyline points="720.5,372.5 702.5,354.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND F.Cu 0.5 mm</title></polyline>
+<polyline points="708.5,716.5 732.5,716.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>LED_D2_A F.Cu 0.25 mm</title></polyline>
+<polyline points="718.5,442.5 730.5,454.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>+5V F.Cu 0.3 mm</title></polyline>
+<polyline points="730.5,410.5 740.5,420.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND F.Cu 0.5 mm</title></polyline>
+<polyline points="730.5,454.5 736.5,454.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>+5V F.Cu 0.3 mm</title></polyline>
+<polyline points="730.5,468.5 730.5,482.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND F.Cu 0.5 mm</title></polyline>
+<polyline points="742.5,314.5 732.5,304.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>+9V F.Cu 0.5 mm</title></polyline>
+<polyline points="736.5,454.5 764.5,482.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>+5V F.Cu 0.3 mm</title></polyline>
+<polyline points="740.5,420.5 742.5,420.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND F.Cu 0.5 mm</title></polyline>
+<polyline points="748.5,690.5 778.5,720.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND F.Cu 0.5 mm</title></polyline>
+<polyline points="752.5,384.5 752.5,346.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>+9V F.Cu 0.5 mm</title></polyline>
+<polyline points="760.5,392.5 752.5,384.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>+9V F.Cu 0.5 mm</title></polyline>
+<polyline points="760.5,392.5 754.5,398.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>+9V F.Cu 0.5 mm</title></polyline>
+<polyline points="776.5,408.5 760.5,392.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>+9V F.Cu 0.5 mm</title></polyline>
+<polyline points="764.5,482.5 762.5,484.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>+5V F.Cu 0.3 mm</title></polyline>
+<polyline points="764.5,442.5 776.5,442.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>+9V F.Cu 0.5 mm</title></polyline>
+<polyline points="764.5,482.5 778.5,496.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>+5V F.Cu 0.3 mm</title></polyline>
+<polyline points="774.5,382.5 770.5,378.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND F.Cu 0.5 mm</title></polyline>
+<polyline points="784.5,382.5 774.5,382.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND F.Cu 0.5 mm</title></polyline>
+<polyline points="776.5,442.5 776.5,408.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>+9V F.Cu 0.5 mm</title></polyline>
+<polyline points="776.5,442.5 784.5,442.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>+9V F.Cu 0.5 mm</title></polyline>
+<polyline points="778.5,496.5 778.5,538.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>+5V F.Cu 0.3 mm</title></polyline>
+<polyline points="778.5,720.5 784.5,720.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND F.Cu 0.5 mm</title></polyline>
+<polyline points="788.5,600.5 784.5,596.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>PWM_PA0 F.Cu 0.25 mm</title></polyline>
+<polyline points="810.5,600.5 788.5,600.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>PWM_PA0 F.Cu 0.25 mm</title></polyline>
+<polyline points="796.5,538.5 824.5,510.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>+5V F.Cu 0.3 mm</title></polyline>
+<polyline points="856.5,626.5 796.5,566.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>SCL F.Cu 0.25 mm</title></polyline>
+<polyline points="826.5,618.5 796.5,618.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>SDA F.Cu 0.25 mm</title></polyline>
+<polyline points="802.5,346.5 802.5,382.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND F.Cu 0.5 mm</title></polyline>
+<polyline points="816.5,398.5 852.5,398.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND F.Cu 0.5 mm</title></polyline>
+<polyline points="818.5,314.5 818.5,312.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND F.Cu 0.5 mm</title></polyline>
+<polyline points="818.5,312.5 826.5,304.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND F.Cu 0.5 mm</title></polyline>
+<polyline points="862.5,330.5 818.5,330.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND F.Cu 0.5 mm</title></polyline>
+<polyline points="836.5,710.5 878.5,710.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>LED_D3_A F.Cu 0.25 mm</title></polyline>
+<polyline points="842.5,460.5 842.5,502.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND F.Cu 0.5 mm</title></polyline>
+<polyline points="854.5,448.5 842.5,460.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND F.Cu 0.5 mm</title></polyline>
+<polyline points="842.5,502.5 860.5,520.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND F.Cu 0.5 mm</title></polyline>
+<polyline points="848.5,288.5 882.5,254.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>MOTOR_SW F.Cu 0.5 mm</title></polyline>
+<polyline points="854.5,416.5 854.5,448.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>GND F.Cu 0.5 mm</title></polyline>
+<polyline points="884.5,496.5 942.5,496.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>+5V F.Cu 0.3 mm</title></polyline>
+<polyline points="884.5,574.5 918.5,540.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>SDA F.Cu 0.25 mm</title></polyline>
+<polyline points="884.5,626.5 916.5,594.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>SCL F.Cu 0.25 mm</title></polyline>
+<polyline points="910.5,348.5 910.5,288.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>GATE F.Cu 0.25 mm</title></polyline>
+<polyline points="910.5,288.5 926.5,272.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>GATE F.Cu 0.25 mm</title></polyline>
+<polyline points="912.5,350.5 910.5,348.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>GATE F.Cu 0.25 mm</title></polyline>
+<polyline points="912.5,384.5 912.5,350.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>GATE F.Cu 0.25 mm</title></polyline>
+<polyline points="916.5,594.5 938.5,594.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>SCL F.Cu 0.25 mm</title></polyline>
+<polyline points="918.5,540.5 942.5,540.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>SDA F.Cu 0.25 mm</title></polyline>
+<polyline points="918.5,652.5 918.5,702.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>+5V F.Cu 0.3 mm</title></polyline>
+<polyline points="972.5,598.5 918.5,652.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>+5V F.Cu 0.3 mm</title></polyline>
+<polyline points="928.5,414.5 968.5,414.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>GATE F.Cu 0.25 mm</title></polyline>
+<polyline points="954.5,304.5 938.5,320.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>ISENSE F.Cu 0.5 mm</title></polyline>
+<polyline points="974.5,336.5 938.5,336.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>ISENSE F.Cu 0.5 mm</title></polyline>
+<polyline points="940.5,236.5 940.5,246.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>ISENSE F.Cu 0.5 mm</title></polyline>
+<polyline points="940.5,246.5 954.5,260.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>ISENSE F.Cu 0.5 mm</title></polyline>
+<polyline points="942.5,496.5 944.5,498.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>+5V F.Cu 0.3 mm</title></polyline>
+<polyline points="954.5,260.5 954.5,304.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="10.0" stroke-linecap="round"><title>ISENSE F.Cu 0.5 mm</title></polyline>
+<polyline points="958.5,502.5 972.5,502.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>+5V F.Cu 0.3 mm</title></polyline>
+<polyline points="960.5,400.5 974.5,400.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>ADC_PA1 F.Cu 0.25 mm</title></polyline>
+<polyline points="968.5,414.5 1002.5,448.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>GATE F.Cu 0.25 mm</title></polyline>
+<polyline points="1002.5,492.5 970.5,524.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="5.0" stroke-linecap="round"><title>PWM_PA0 F.Cu 0.25 mm</title></polyline>
+<polyline points="984.5,582.5 982.5,584.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>+5V F.Cu 0.3 mm</title></polyline>
+<polyline points="984.5,570.5 984.5,582.5" fill="none" stroke="#c83434" stroke-opacity="0.8" stroke-width="6.0" stroke-linecap="round"><title>+5V F.Cu 0.3 mm</title></polyline>
+<circle cx="628.5" cy="540.5" r="6.0" fill="#666"><title>via GND</title></circle>
+<circle cx="628.5" cy="580.5" r="6.0" fill="#666"><title>via GND</title></circle>
+<circle cx="680.5" cy="636.5" r="6.0" fill="#666"><title>via GND</title></circle>
+<circle cx="706.5" cy="272.5" r="6.0" fill="#666"><title>via +9V</title></circle>
+<circle cx="720.5" cy="372.5" r="6.0" fill="#666"><title>via GND</title></circle>
+<circle cx="730.5" cy="410.5" r="6.0" fill="#666"><title>via GND</title></circle>
+<circle cx="730.5" cy="468.5" r="6.0" fill="#666"><title>via GND</title></circle>
+<circle cx="732.5" cy="304.5" r="6.0" fill="#666"><title>via +9V</title></circle>
+<circle cx="750.5" cy="512.5" r="6.0" fill="#666"><title>via ADC_PA1</title></circle>
+<circle cx="770.5" cy="378.5" r="6.0" fill="#666"><title>via GND</title></circle>
+<circle cx="810.5" cy="600.5" r="6.0" fill="#666"><title>via PWM_PA0</title></circle>
+<circle cx="824.5" cy="510.5" r="6.0" fill="#666"><title>via +5V</title></circle>
+<circle cx="826.5" cy="304.5" r="6.0" fill="#666"><title>via GND</title></circle>
+<circle cx="826.5" cy="618.5" r="6.0" fill="#666"><title>via SDA</title></circle>
+<circle cx="960.5" cy="400.5" r="6.0" fill="#666"><title>via ADC_PA1</title></circle>
+<circle cx="970.5" cy="524.5" r="6.0" fill="#666"><title>via PWM_PA0</title></circle>
+<circle cx="972.5" cy="502.5" r="6.0" fill="#666"><title>via +5V</title></circle>
+<circle cx="984.5" cy="570.5" r="6.0" fill="#666"><title>via +5V</title></circle>
+<text x="800.5" y="453.0" font-size="8" text-anchor="middle" fill="#000">+9V</text>
+<text x="800.5" y="394.0" font-size="8" text-anchor="middle" fill="#000">GND</text>
+<text x="800.5" y="371.5" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">C1 2.2u</text>
+<text x="640.5" y="424.0" font-size="8" text-anchor="middle" fill="#000">+5V</text>
+<text x="640.5" y="483.0" font-size="8" text-anchor="middle" fill="#000">GND</text>
+<text x="640.5" y="401.5" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">C2 10u</text>
+<text x="756.0" y="493.5" font-size="8" text-anchor="middle" fill="#000">+5V</text>
+<text x="725.0" y="493.5" font-size="8" text-anchor="middle" fill="#000">GND</text>
+<text x="740.5" y="472.9" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">C3 100n</text>
+<text x="610.5" y="564.5" font-size="8" text-anchor="middle" fill="#000">NRST_U2</text>
+<text x="610.5" y="602.5" font-size="8" text-anchor="middle" fill="#000">GND</text>
+<text x="610.5" y="543.5" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">C4 100n</text>
+<text x="651.5" y="683.5" font-size="8" text-anchor="middle" fill="#000">ADC_PA1</text>
+<text x="689.5" y="683.5" font-size="8" text-anchor="middle" fill="#000">GND</text>
+<text x="670.5" y="657.9" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">C5 150n</text>
+<text x="751.0" y="333.5" font-size="8" text-anchor="middle" fill="#000">+9V</text>
+<text x="810.0" y="333.5" font-size="8" text-anchor="middle" fill="#000">GND</text>
+<text x="780.5" y="304.5" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">C6 4.7u</text>
+<text x="670.5" y="263.5" font-size="8" text-anchor="middle" fill="#000">+9V</text>
+<text x="590.5" y="263.5" font-size="8" text-anchor="middle" fill="#000">MOTOR_SW</text>
+<rect x="556.5" y="221.5" width="148.0" height="78.0" fill="none" stroke="#d0009a" stroke-width="2.5" stroke-dasharray="6,3"/>
+<text x="630.5" y="222.5" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">D1</text>
+<text x="740.5" y="687.8" font-size="8" text-anchor="middle" fill="#000">GND</text>
+<text x="740.5" y="719.2" font-size="8" text-anchor="middle" fill="#000">LED_D2_A</text>
+<text x="740.5" y="667.9" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">D2</text>
+<text x="791.8" y="723.5" font-size="8" text-anchor="middle" fill="#000">GND</text>
+<text x="829.3" y="723.5" font-size="8" text-anchor="middle" fill="#000">LED_D3_A</text>
+<text x="810.5" y="698.5" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">D3</text>
+<text x="760.5" y="253.5" font-size="8" text-anchor="middle" fill="#000">+9V</text>
+<text x="811.3" y="253.5" font-size="8" text-anchor="middle" fill="#000">GND</text>
+<text x="760.5" y="211.5" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">J1</text>
+<text x="650.5" y="163.5" font-size="8" text-anchor="middle" fill="#000">+9V</text>
+<text x="599.7" y="163.5" font-size="8" text-anchor="middle" fill="#000">MOTOR_SW</text>
+<text x="650.5" y="121.5" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">J2</text>
+<text x="870.5" y="483.5" font-size="8" text-anchor="middle" fill="#000">+5V</text>
+<text x="870.5" y="534.3" font-size="8" text-anchor="middle" fill="#000">GND</text>
+<text x="870.5" y="585.1" font-size="8" text-anchor="middle" fill="#000">SDA</text>
+<text x="870.5" y="635.9" font-size="8" text-anchor="middle" fill="#000">SCL</text>
+<text x="870.5" y="441.5" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">J3</text>
+<text x="929.3" y="272.5" font-size="8" text-anchor="middle" fill="#000">GATE</text>
+<text x="929.3" y="234.5" font-size="8" text-anchor="middle" fill="#000">ISENSE</text>
+<text x="891.8" y="253.5" font-size="8" text-anchor="middle" fill="#000">MOTOR_SW</text>
+<text x="910.5" y="213.5" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">Q1</text>
+<text x="600.5" y="370.0" font-size="8" text-anchor="middle" fill="#000">+5V</text>
+<text x="600.5" y="337.0" font-size="8" text-anchor="middle" fill="#000">FB_U1</text>
+<text x="600.5" y="317.9" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">R1 113k</text>
+<text x="654.0" y="743.5" font-size="8" text-anchor="middle" fill="#000">LED_PA2</text>
+<text x="687.0" y="743.5" font-size="8" text-anchor="middle" fill="#000">LED_D2_A</text>
+<text x="670.5" y="722.9" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">R10 680</text>
+<text x="917.0" y="713.5" font-size="8" text-anchor="middle" fill="#000">+5V</text>
+<text x="884.0" y="713.5" font-size="8" text-anchor="middle" fill="#000">LED_D3_A</text>
+<text x="900.5" y="692.9" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">R11 1.6k</text>
+<text x="664.0" y="353.5" font-size="8" text-anchor="middle" fill="#000">FB_U1</text>
+<text x="697.0" y="353.5" font-size="8" text-anchor="middle" fill="#000">GND</text>
+<text x="680.5" y="332.9" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">R2 21.5k</text>
+<text x="570.5" y="465.3" font-size="8" text-anchor="middle" fill="#000">+5V</text>
+<text x="570.5" y="501.8" font-size="8" text-anchor="middle" fill="#000">NRST_U2</text>
+<text x="570.5" y="443.9" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">R3 33k</text>
+<text x="1010.5" y="490.0" font-size="8" text-anchor="middle" fill="#000">PWM_PA0</text>
+<text x="1010.5" y="457.0" font-size="8" text-anchor="middle" fill="#000">GATE</text>
+<text x="1010.5" y="437.9" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">R4 68</text>
+<text x="919.8" y="403.5" font-size="8" text-anchor="middle" fill="#000">GATE</text>
+<text x="861.2" y="403.5" font-size="8" text-anchor="middle" fill="#000">GND</text>
+<text x="890.5" y="375.1" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">R5 47k</text>
+<text x="929.8" y="333.5" font-size="8" text-anchor="middle" fill="#000">ISENSE</text>
+<text x="871.2" y="333.5" font-size="8" text-anchor="middle" fill="#000">GND</text>
+<text x="900.5" y="305.1" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">R6 220m</text>
+<text x="990.5" y="344.2" font-size="8" text-anchor="middle" fill="#000">ISENSE</text>
+<text x="990.5" y="402.8" font-size="8" text-anchor="middle" fill="#000">ADC_PA1</text>
+<text x="990.5" y="321.9" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">R7 5.6k</text>
+<text x="950.5" y="507.0" font-size="8" text-anchor="middle" fill="#000">+5V</text>
+<text x="950.5" y="540.0" font-size="8" text-anchor="middle" fill="#000">SDA</text>
+<text x="950.5" y="487.9" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">R8 5.1k</text>
+<text x="977.0" y="593.5" font-size="8" text-anchor="middle" fill="#000">+5V</text>
+<text x="944.0" y="593.5" font-size="8" text-anchor="middle" fill="#000">SCL</text>
+<text x="960.5" y="572.9" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">R9 5.1k</text>
+<text x="753.2" y="442.5" font-size="8" text-anchor="middle" fill="#000">+9V</text>
+<text x="753.2" y="423.5" font-size="8" text-anchor="middle" fill="#000">GND</text>
+<text x="753.2" y="404.5" font-size="8" text-anchor="middle" fill="#000">+9V</text>
+<text x="707.8" y="404.5" font-size="8" text-anchor="middle" fill="#000">FB_U1</text>
+<text x="707.8" y="442.5" font-size="8" text-anchor="middle" fill="#000">+5V</text>
+<text x="730.5" y="383.5" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">U1</text>
+<text x="681.0" y="545.4" font-size="8" text-anchor="middle" fill="#000">NRST_U2</text>
+<text x="681.0" y="570.8" font-size="8" text-anchor="middle" fill="#000">ADC_PA1</text>
+<text x="681.0" y="596.2" font-size="8" text-anchor="middle" fill="#000">LED_PA2</text>
+<text x="681.0" y="621.6" font-size="8" text-anchor="middle" fill="#000">GND</text>
+<text x="780.0" y="621.6" font-size="8" text-anchor="middle" fill="#000">SDA</text>
+<text x="780.0" y="596.2" font-size="8" text-anchor="middle" fill="#000">PWM_PA0</text>
+<text x="780.0" y="570.8" font-size="8" text-anchor="middle" fill="#000">SCL</text>
+<text x="780.0" y="545.4" font-size="8" text-anchor="middle" fill="#000">+5V</text>
+<text x="730.5" y="523.5" font-size="12" font-weight="bold" text-anchor="middle" fill="#202020">U2</text>
+<polyline points="800.5,450.0 784.5,442.5 776.5,442.5 776.5,442.5 764.5,442.5 753.2,439.5" fill="none" stroke="#00b5d8" stroke-width="3" stroke-dasharray="7,4"><title>C1-&gt;U1.VIN 2.5 mm</title></polyline>
+<text x="753.2" y="453.5" font-size="10" fill="#007a92" stroke="#fff" stroke-width="3" paint-order="stroke">C1-&gt;U1.VIN 2.5 mm</text>
+<polyline points="640.5,421.0 656.5,424.5 684.5,424.5 684.5,424.5 684.5,424.5 696.5,436.5 707.8,439.5" fill="none" stroke="#00b5d8" stroke-width="3" stroke-dasharray="7,4"><title>C2-&gt;U1.VOUT 3.6 mm</title></polyline>
+<text x="707.8" y="453.5" font-size="10" fill="#007a92" stroke="#fff" stroke-width="3" paint-order="stroke">C2-&gt;U1.VOUT 3.6 mm</text>
+<polyline points="756.0,490.5 764.5,482.5 764.5,482.5 778.5,496.5 778.5,496.5 778.5,538.5 780.0,542.4" fill="none" stroke="#00b5d8" stroke-width="3" stroke-dasharray="7,4"><title>C3-&gt;U2.VDD 3.9 mm</title></polyline>
+<text x="780.0" y="556.4" font-size="10" fill="#007a92" stroke="#fff" stroke-width="3" paint-order="stroke">C3-&gt;U2.VDD 3.9 mm</text>
+</svg>

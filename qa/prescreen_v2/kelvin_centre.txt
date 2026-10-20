@@ -1,0 +1,6 @@
+pcbr2-hard_layout-5dd2d0dd: moved 2 track end(s) onto the shunt pad centre
+kelvin_ok: (False, 'sense connection R8.1 shares copper with the load-current path from Q1.S: it must leave from the shunt pad R7.1 itself (Kelvin)')
+VERIFY reward 0.0 {'layout_rules': False} ['kelvin_sense: sense connection R8.1 shares copper with the load-current path from Q1.S: it must leave from the shunt pad R7.1 itself (Kelvin)']
+pcbr2-hard_layout-f7d8d9c0: moved 2 track end(s) onto the shunt pad centre
+kelvin_ok: (False, 'sense connection R8.1 shares copper with the load-current path from Q1.S: it must leave from the shunt pad R7.1 itself (Kelvin)')
+VERIFY reward 0.0 {'layout_rules': False} ['kelvin_sense: sense connection R8.1 shares copper with the load-current path from Q1.S: it must leave from the shunt pad R7.1 itself (Kelvin)']

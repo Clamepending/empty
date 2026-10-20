@@ -1,0 +1,47 @@
+2-pin swap pcbr2-hard-30e7acc1 sys_motor_ctrl: load = brushed DC motor; alone fails ['rules', 'topology']
+2-pin swap pcbr2-hard-37b9c3b1 npn_switch: load = off-board relay coil (~220 Ω, 10 mH); alone fails ['rules', 'topology']
+2-pin swap pcbr2-hard-3d4359d6 nmos_switch: load = The load is an inductive load (solenoid/motor, ~120 Ω) with Schottky D; alone fails ['rules', 'topology']
+2-pin swap pcbr2-hard-54a772f5 npn_switch: load = off-board relay coil (~150 Ω, 10 mH); alone fails ['rules', 'topology']
+2-pin swap pcbr2-hard-5d032309 nmos_switch: load = The load is an inductive load (solenoid/motor, ~12 Ω) with Schottky D1; alone fails ['rules', 'topology']
+2-pin swap pcbr2-hard-604ce286 npn_switch: load = off-board relay coil (~100 Ω, 10 mH); alone fails ['rules', 'topology']
+2-pin swap pcbr2-hard-65673e8f sys_motor_ctrl: load = brushed DC motor; alone fails ['rules', 'topology']
+2-pin swap pcbr2-hard-6a2714dd nmos_switch: load = The load is an inductive load (solenoid/motor, ~18 Ω) with Schottky D1; alone fails ['rules', 'topology']
+2-pin swap pcbr2-hard-7821864f npn_switch: load = off-board relay coil (~220 Ω, 10 mH); alone fails ['rules', 'topology']
+2-pin swap pcbr2-hard-7c3dbf04 npn_switch: load = off-board relay coil (~330 Ω, 10 mH); alone fails ['rules', 'topology']
+2-pin swap pcbr2-hard-86850653 nmos_switch: load = The load is an inductive load (solenoid/motor, ~12 Ω) with Schottky D1; alone fails ['rules', 'topology']
+2-pin swap pcbr2-hard-954cdd78 npn_switch: load = off-board relay coil (~220 Ω, 10 mH); alone fails ['rules', 'topology']
+2-pin swap pcbr2-hard-99cc3d28 npn_switch: load = off-board relay coil (~100 Ω, 10 mH); alone fails ['rules', 'topology']
+2-pin swap pcbr2-hard-aad8ff1d sys_motor_ctrl: load = brushed DC motor; alone fails ['rules', 'topology']
+2-pin swap pcbr2-hard-bca22c92 npn_switch: load = off-board relay coil (~220 Ω, 10 mH); alone fails ['rules', 'topology']
+2-pin swap pcbr2-hard-d0ebb64e nmos_switch: load = The load is an inductive load (solenoid/motor, ~24 Ω) with Schottky D1; alone fails ['rules', 'topology']
+2-pin swap pcbr2-hard-d490960a nmos_switch: load = The load is an inductive load (solenoid/motor, ~30 Ω) with Schottky D1; alone fails ['rules', 'topology']
+2-pin swap pcbr2-hard-e26a1ec7 nmos_switch: load = The load is an inductive load (solenoid/motor, ~12 Ω) with Schottky D1; alone fails ['rules', 'topology']
+2-pin swap pcbr2-hard-fdfe7234 npn_switch: load = off-board relay coil (~100 Ω, 10 mH); alone fails ['rules', 'topology']
+2-pin swap pcbr2-hard_layout-089e60d9 sys_motor_ctrl: load = brushed DC motor; alone fails ['rules', 'topology']
+2-pin swap pcbr2-hard_layout-290163d4 sys_motor_ctrl: load = brushed DC motor; alone fails ['rules', 'topology']
+2-pin swap pcbr2-hard_layout-bdd9e6f0 sys_motor_ctrl: load = brushed DC motor; alone fails ['rules', 'topology']
+
+variants (type, family, swapped pins): count
+    3 ('connector_pin_swap', 'mcu_i2c', ('3', '4'))
+    7 ('connector_pin_swap', 'nmos_switch', ('1', '2'))
+    9 ('connector_pin_swap', 'npn_switch', ('1', '2'))
+   13 ('connector_pin_swap', 'sys_clocked_mcu', ('2', '3'))
+   19 ('connector_pin_swap', 'sys_clocked_mcu', ('2', '4'))
+   15 ('connector_pin_swap', 'sys_clocked_mcu', ('3', '4'))
+    6 ('connector_pin_swap', 'sys_motor_ctrl', ('1', '2'))
+    7 ('connector_pin_swap', 'sys_motor_ctrl', ('2', '3'))
+    9 ('connector_pin_swap', 'sys_motor_ctrl', ('2', '4'))
+   26 ('connector_pin_swap', 'sys_motor_ctrl', ('3', '4'))
+   12 ('connector_pin_swap', 'sys_sensor_node', ('2', '3'))
+    8 ('connector_pin_swap', 'sys_sensor_node', ('2', '4'))
+    7 ('connector_pin_swap', 'sys_sensor_node', ('3', '4'))
+    4 ('mcu_pin_swap', 'mcu_i2c', ('SCL', 'SDA'))
+   12 ('mcu_pin_swap', 'sys_clocked_mcu', ('NRST', 'SCL'))
+    9 ('mcu_pin_swap', 'sys_clocked_mcu', ('NRST', 'SDA'))
+   43 ('mcu_pin_swap', 'sys_clocked_mcu', ('SCL', 'SDA'))
+   15 ('mcu_pin_swap', 'sys_motor_ctrl', ('NRST', 'SCL'))
+    9 ('mcu_pin_swap', 'sys_motor_ctrl', ('NRST', 'SDA'))
+   35 ('mcu_pin_swap', 'sys_motor_ctrl', ('SCL', 'SDA'))
+    4 ('mcu_pin_swap', 'sys_sensor_node', ('NRST', 'SCL'))
+   10 ('mcu_pin_swap', 'sys_sensor_node', ('NRST', 'SDA'))
+   10 ('mcu_pin_swap', 'sys_sensor_node', ('SCL', 'SDA'))

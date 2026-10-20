@@ -94,7 +94,9 @@ def build(family: str, seed: int, kind: str, root: Path = ROOT) -> str:
 
 
 def all_specs(seeds: range = range(1, 3)) -> list[tuple[str, int, str]]:
-    return [(f, s, k) for f in sorted(FAMILIES) for s in seeds for k in KINDS]
+    # round-1 fixture = the v1 families (composite sys_* boards are covered by --source v2 / shipped)
+    from pcbenv.families import V1_FAMILIES
+    return [(f, s, k) for f in sorted(V1_FAMILIES) for s in seeds for k in KINDS]
 
 
 if __name__ == "__main__":

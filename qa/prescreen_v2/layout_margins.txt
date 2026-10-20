@@ -1,0 +1,16 @@
+GOLDEN boards (train hard_layout): metric / limit
+  loop area mm2 (limit 60)                      n= 86 min=0.26 median=0.59 max=0.80
+  analog parallel mm within 1 mm (limit 3)      n= 86 min=0.00 median=0.00 max=0.50
+  decap path mm (limit per task)                n=462 min=0.27 median=0.46 max=0.87
+  decap straight mm (limit 5)                   n=462 min=0.50 median=0.77 max=0.84
+  crystal path mm (limit 10)                    n=136 min=0.33 median=0.65 max=0.80
+FAULTED boards: violated metric / limit for the layout-latent fault
+  analog_near_switch   n= 32 measured= 32 min=2.14 median=4.45 max=8.18  <1.25x limit: 0
+     lowest: separation: U2.PA1 net length within 1 mm of Q1.D net=6.42 (lim 3); separation: U2.PA1 net length within 1 mm of Q1.D net=7.22 (lim 3); separation: U2.PA1 net length within 1 mm of Q1.D net=7.87 (lim 3)
+  crystal_far          n= 26 measured= 26 min=1.83 median=2.69 max=3.38  <1.25x limit: 0
+     lowest: crystal copper path U2.PA2->Y1.2=18.30 (lim 10); crystal copper path U2.PA2->Y1.2=18.83 (lim 10); crystal copper path U2.PA2->Y1.2=19.63 (lim 10)
+  decap_long_path      n= 56 measured= 56 min=1.38 median=3.32 max=6.02  <1.25x limit: 0
+     lowest: decoupling copper path C3 -> U2.VDD=11.01 (lim 8); decoupling copper path C3 -> U1.VOUT=16.80 (lim 8); decoupling copper path C2 -> U1.VOUT=17.17 (lim 8)
+  switch_loop_spread   n= 31 measured= 25 min=1.27 median=1.79 max=5.74  <1.25x limit: 0
+     lowest: switching-loop area (motor switch commutation loop)=75.92 (lim 60); switching-loop area (motor switch commutation loop)=76.39 (lim 60); switching-loop area (motor switch commutation loop)=78.26 (lim 60)
+crystal_via faulted: [('pcbr2-hard_layout-005e1476', {'crystal vias on net of U2.PA1': 0, 'crystal vias on net of U2.PA2': 2}), ('pcbr2-hard_layout-01b22c23', {'crystal vias on net of U2.PA1': 2, 'crystal vias on net of U2.PA2': 0}), ('pcbr2-hard_layout-0d9af415', {'crystal vias on net of U2.PA1': 2, 'crystal vias on net of U2.PA2': 0})]

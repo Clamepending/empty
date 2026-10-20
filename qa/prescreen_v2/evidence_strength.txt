@@ -1,0 +1,25 @@
+latent type | faults (train) | evidence found only in spec assertion lines / spec.json
+analog_near_switch       32    0
+bias_wrong_rail         130    0
+capacitor_underrated    147    0
+connector_pin_swap      141   16
+crystal_far              26    0
+crystal_via              32    0
+decap_long_path          56    0
+decap_swapped            51    0
+decap_wrong_rail         97    0
+flyback_misplaced        43    0
+kelvin_sense_tap         36    0
+led_underrated           13    0
+mcu_pin_swap            151    0
+protection_bypassed      99    0
+pullup_wrong_rail        39    0
+resistor_underrated      30    0
+switch_loop_spread       31    0
+weak_base_drive          31    0
+
+connector_pin_swap
+  pcbr2-hard-37b9c3b1 (reduced): connector J2 pins 1 and 2 exchanged (pinout fixed by the intent)
+  pcbr2-hard-3d4359d6 (reduced): connector J2 pins 1 and 2 exchanged (pinout fixed by the intent)
+  pcbr2-hard-54a772f5 (reduced): connector J2 pins 1 and 2 exchanged (pinout fixed by the intent)
+  pcbr2-hard-5d032309 (reduced): connector J2 pins 1 and 2 exchanged (pinout fixed by the intent)

@@ -1,6 +1,6 @@
 """Expert-QA review packets (G9): build reviewer packets for a stratified task sample, tally reviews.
 
-    python3 -m pcbenv.qa build --n 100 --out qa/packets --seed 7 [--workers 4]
+    python3 -m pcbenv.qa build --n 100 --out qa/packets --seed 7 [--mix normal=60,hard=25,hard_layout=15] [--workers 4]
     python3 -m pcbenv.qa tally qa/packets
 
 Only TRAIN tasks are ever used (manifest row not holdout AND no path part of the task dir contains
@@ -8,7 +8,9 @@ Only TRAIN tasks are ever used (manifest row not holdout AND no path part of the
 
 - `README.md`   TASK.md verbatim (what the agent sees) + reviewer-only section (faults, reference
                 fix as a diff, verifier verdicts on faulted and golden files, spec assertions
-                before/after, value bounds).
+                before/after, value bounds; hard tiers: latent faults with the exact public sentence
+                that reveals them, design-rule quantities before/after; hard_layout: layout-rule
+                metrics before/after with the loop polygon / rule copper paths drawn on the board).
 - `*.svg`       schematic-style netlist graph and board plot, faulted and golden (pure-python SVG).
 - `review.yaml` the form the EE fills (`review-<initials>.yaml` for further reviewers).
 
@@ -35,7 +37,14 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
-DISPUTED_TYPES = ("bom_mismatch", "footprint_swap", "decap_moved_far", "narrow_power_trace")
+DISPUTED_TYPES = ("bom_mismatch", "footprint_swap", "decap_moved_far", "narrow_power_trace",
+                  # v2 hard tiers: requirement inferred from intent text / a stated limit, not a function
+                  "bias_wrong_rail", "decap_swapped", "pullup_wrong_rail", "mcu_pin_swap", "connector_pin_swap",
+                  "switch_loop_spread", "analog_near_switch", "decap_long_path", "crystal_far")
+LAYOUT_LATENT = ("kelvin_sense_tap", "switch_loop_spread", "crystal_far", "crystal_via", "analog_near_switch",
+                 "decap_long_path")
+TIERS = ("normal", "hard", "hard_layout")
+DEFAULT_MIX = "normal=60,hard=25,hard_layout=15"
 NEAR_BOUND_FACTOR = 1.5
 AGREEMENT_MIN = 0.95  # acceptance rule (not yet in thresholds.yaml; orchestrator-owned)
 
@@ -46,6 +55,8 @@ REVIEW_FIELDS = {
     "verifier_verdict_agrees": ("yes", "no"),
     "alternative_valid_fixes_rejected": None,   # "none" or free text
     "severity_if_wrong": ("low", "med", "high"),
+    "rule_stated_clearly": ("yes", "no"),
+    "layout_rule_reasonable": ("yes", "no", "n/a"),
 }
 
 REVIEW_TEMPLATE = """\
@@ -59,6 +70,8 @@ reference_fix_correct: ""             # yes | no  -- section 2.2 (golden) is a c
 verifier_verdict_agrees: ""           # yes | no  -- section 2.3 verdicts match your judgement
 alternative_valid_fixes_rejected: ""  # none | <describe a valid repair the grader would reject>
 severity_if_wrong: ""                 # low | med | high  -- impact if task/verifier is wrong
+rule_stated_clearly: ""               # yes | no  -- every graded design/layout rule and latent requirement (2.7-2.9) is stated clearly in public text
+layout_rule_reasonable: ""            # yes | no | n/a  -- hard_layout: limits/definitions in 2.9 are defensible practice (else n/a)
 notes: ""
 """
 
@@ -118,13 +131,67 @@ def near_bound_faults(faults: list[dict], bounds: dict) -> list[str]:
     return out
 
 
-def task_features(row: dict, meta: dict) -> dict:
+def tier_of(row: dict) -> str:
+    return str(row.get("tier") or str(row.get("split", "")).split("/")[-1] or "v1")
+
+
+def parse_mix(text: str) -> dict[str, float]:
+    """`normal=60,hard=25,hard_layout=15` -> {tier: weight}."""
+    out: dict[str, float] = {}
+    for part in str(text).split(","):
+        if not part.strip():
+            continue
+        k, _, v = part.partition("=")
+        k = k.strip()
+        if k not in TIERS or not v.strip():
+            raise ValueError(f"bad --mix entry {part!r} (tiers: {', '.join(TIERS)})")
+        if "holdout" in k:
+            raise ValueError("holdout splits are never sampled")
+        out[k] = float(v)
+        if out[k] < 0:
+            raise ValueError(f"negative weight in --mix: {part!r}")
+    if not out or sum(out.values()) <= 0:
+        raise ValueError(f"empty --mix {text!r}")
+    return out
+
+
+def tier_quotas(n: int, mix: dict[str, float], available: dict[str, int] | None = None) -> dict[str, int]:
+    """Largest-remainder split of n over the mix weights (ties by TIERS order), capped by
+    `available` per tier (overflow goes to the other tiers by weight)."""
+    tot = sum(mix.values())
+    exact = {t: n * w / tot for t, w in mix.items()}
+    q = {t: int(math.floor(x)) for t, x in exact.items()}
+    order = sorted(mix, key=lambda t: (-(exact[t] - q[t]), TIERS.index(t)))
+    for t in order[: n - sum(q.values())]:
+        q[t] += 1
+    if available is not None:
+        spare = 0
+        for t in list(q):
+            if q[t] > available.get(t, 0):
+                spare += q[t] - available.get(t, 0)
+                q[t] = available.get(t, 0)
+        for t in sorted(mix, key=lambda t: (-mix[t], TIERS.index(t))):
+            add = min(spare, available.get(t, 0) - q[t])
+            q[t] += add
+            spare -= add
+    return q
+
+
+def task_features(row: dict, meta: dict, public_text: str | None = None) -> dict:
+    """Strata keys and ambiguity score of one task. `public_text` (TASK.md + spec.json + parts/*.md)
+    enables the latent-evidence check: a latent fault whose evidence text is missing from the
+    public material is the strongest 'unfair task' signal."""
+    tier = tier_of(row)
     types = [f["type"] for f in row["faults"]]
     cats = [f["category"] for f in row["faults"]]
     near = near_bound_faults(meta.get("faults", []), meta.get("value_bounds") or {})
+    latent = [t for t, c in zip(types, cats) if c == "latent"]
+    lay_lat = [t for t in latent if t in LAYOUT_LATENT]
+    mode = row.get("tools_mode") or meta.get("tools_mode") or "full"
+    many = row["n_faults"] >= (5 if tier.startswith("hard") else 3)
     reasons = []
-    if row["n_faults"] >= 3:
-        reasons.append("3 faults")
+    if many:
+        reasons.append(f"{row['n_faults']} faults")
     if row["hint_level"] == "vague":
         reasons.append("vague hint")
     if "connectivity" in cats:
@@ -133,41 +200,95 @@ def task_features(row: dict, meta: dict) -> dict:
         reasons.append(f"disputable type {t}")
     if near:
         reasons.append("value near bounds: " + "; ".join(near))
-    score = ((row["n_faults"] >= 3) + (row["hint_level"] == "vague") + 0.5 * ("connectivity" in cats)
-             + len(set(types) & set(DISPUTED_TYPES)) + bool(near))
-    keys = [("family", row["family"]), ("hint", row["hint_level"]), ("nf", row["n_faults"]),
-            ("fam_hint", row["family"], row["hint_level"])]
+    if latent:
+        reasons.append(f"{len(latent)} latent ({', '.join(sorted(set(latent)))})")
+    if row.get("n_interacting"):
+        reasons.append("interacting value fault")
+    if mode == "no_autoroute":
+        reasons.append("no_autoroute")
+    missing = []
+    if public_text is not None and latent:
+        from pcbenv.faults.latent import missing_evidence
+        for f in meta.get("faults", []):
+            if f.get("category") == "latent" and missing_evidence(f, public_text):
+                missing.append(f["type"])
+        if missing:
+            reasons.append("latent evidence NOT found in public text: " + ", ".join(missing))
+    score = (many + (row["hint_level"] == "vague") + 0.5 * ("connectivity" in cats)
+             + len(set(types) & set(DISPUTED_TYPES)) + bool(near) + min(1.5, 0.5 * len(latent))
+             + 1.0 * bool(lay_lat) + 0.5 * bool(row.get("n_interacting")) + 0.5 * (mode == "no_autoroute")
+             + 3.0 * bool(missing))
+    keys = [("tier", tier), ("family", row["family"]), ("fam_tier", tier, row["family"]),
+            ("hint", tier, row["hint_level"]), ("nf", tier, row["n_faults"]),
+            ("fam_hint", row["family"], row["hint_level"]), ("tools", tier, mode),
+            ("intent", tier, row.get("intent", "")), ("nlat", tier, len(latent))]
     for t in sorted(set(types)):
         keys += [("ftype", t), ("ftype_hint", t, row["hint_level"]), ("fam_ftype", row["family"], t)]
-    return {"keys": keys, "score": score, "reasons": reasons}
+    for r in sorted(meta.get("layout_rules") or {}):
+        if r != "version":
+            keys.append(("lrule", r))
+    return {"keys": keys, "score": score, "reasons": reasons, "missing_evidence": missing}
 
 
-KEY_WEIGHTS = {"family": 3.0, "hint": 3.0, "nf": 12.0, "fam_hint": 2.0, "ftype": 5.0, "ftype_hint": 1.0,
-               "fam_ftype": 1.0}
-FAULT_KEYS = ("ftype", "ftype_hint", "fam_ftype")  # divided by #faults so 3-fault tasks don't win by count
+KEY_WEIGHTS = {"tier": 0.0, "family": 1.0, "fam_tier": 3.0, "hint": 3.0, "nf": 12.0, "fam_hint": 2.0, "tools": 3.0, "intent": 1.0,
+               "nlat": 2.0, "ftype": 5.0, "ftype_hint": 1.0, "fam_ftype": 1.0, "lrule": 3.0}
+FAULT_KEYS = ("ftype", "ftype_hint", "fam_ftype")  # divided by #faults so many-fault tasks don't win by count
 AMBIG_WEIGHT = 0.25
 
 
-def select_tasks(rows: list[dict], metas: dict[str, dict], n: int, seed: int) -> list[dict]:
-    """Greedy stratified sample: each pick maximises coverage gain over strata (family, hint,
-    #faults, family x hint, fault type, fault type x hint, family x fault type), each stratum
-    giving weight/(1+already picked), times an ambiguity multiplier; seeded jitter breaks ties."""
+def _gain(r: dict, f: dict, counts: Counter, jitter: float) -> float:
+    nf = max(1, r["n_faults"])
+    cov = sum(KEY_WEIGHTS[k[0]] / (1 + counts[k]) / (nf if k[0] in FAULT_KEYS else 1) for k in f["keys"])
+    return cov * (1 + AMBIG_WEIGHT * f["score"]) + jitter
+
+
+def select_tasks(rows: list[dict], metas: dict[str, dict], n: int, seed: int,
+                 mix: dict[str, float] | None = None, public: dict[str, str] | None = None) -> list[dict]:
+    """Greedy stratified sample: each pick maximises coverage gain over strata (tier, family, hint,
+    #faults, tool mode, intent, #latent, family x hint, fault type, fault type x hint, family x fault
+    type, layout rule), each stratum giving weight/(1+already picked), times an ambiguity
+    multiplier; seeded jitter breaks ties. With `mix`, picks are drawn per tier up to its quota
+    (strata counts are shared across tiers). A final repair pass swaps in a task for every fault
+    type of the eligible tiers that the greedy pass left uncovered."""
     rng = random.Random(seed)
-    feats = {r["id"]: task_features(r, metas[r["id"]]) for r in rows}
+    public = public or {}
+    feats = {r["id"]: task_features(r, metas[r["id"]], public.get(r["id"])) for r in rows}
     jitter = {r["id"]: rng.random() * 1e-3 for r in rows}
+    if mix:
+        avail = Counter(tier_of(r) for r in rows)
+        quota = tier_quotas(min(n, len(rows)), mix, dict(avail))
+    else:
+        quota = None
     counts: Counter = Counter()
     chosen: list[dict] = []
-    left = list(rows)
+    taken: Counter = Counter()
+    left = [r for r in rows if quota is None or quota.get(tier_of(r), 0) > 0]
     while left and len(chosen) < n:
-        def gain(r):
-            f = feats[r["id"]]
-            nf = max(1, r["n_faults"])
-            cov = sum(KEY_WEIGHTS[k[0]] / (1 + counts[k]) / (nf if k[0] in FAULT_KEYS else 1) for k in f["keys"])
-            return cov * (1 + AMBIG_WEIGHT * f["score"]) + jitter[r["id"]]
-        best = max(left, key=gain)
+        best = max(left, key=lambda r: _gain(r, feats[r["id"]], counts, jitter[r["id"]]))
         left.remove(best)
         chosen.append(best)
         counts.update(feats[best["id"]]["keys"])
+        taken[tier_of(best)] += 1
+        if quota is not None and taken[tier_of(best)] >= quota.get(tier_of(best), 0):
+            left = [r for r in left if tier_of(r) != tier_of(best)]
+    # coverage repair: every fault type of the eligible tiers appears at least once
+    eligible = [r for r in rows if quota is None or quota.get(tier_of(r), 0) > 0]
+    universe = sorted({f["type"] for r in eligible for f in r["faults"]})
+    for t in universe:
+        have = Counter(f2 for r in chosen for f2 in {f["type"] for f in r["faults"]})
+        if have[t]:
+            continue
+        ids = {r["id"] for r in chosen}
+        cands = [r for r in eligible if r["id"] not in ids and t in {f["type"] for f in r["faults"]}]
+        if not cands:
+            continue
+        add = max(cands, key=lambda r: (feats[r["id"]]["score"], jitter[r["id"]]))
+        same = [r for r in chosen if tier_of(r) == tier_of(add)] if quota is not None else list(chosen)
+        removable = [r for r in same if all(have[x] > 1 for x in {f["type"] for f in r["faults"]})]
+        if not removable:
+            continue
+        out = min(removable, key=lambda r: (feats[r["id"]]["score"], jitter[r["id"]]))
+        chosen[chosen.index(out)] = add
     return chosen
 
 
@@ -377,9 +498,11 @@ def _palette(name: str) -> str:
     return f"hsl({h % 360},60%,38%)"
 
 
-def render_board_svg(geo: dict, other: dict | None, title: str) -> str:
+def render_board_svg(geo: dict, other: dict | None, title: str, overlay: dict | None = None) -> str:
     """Board plot: outline, courtyards, pads (net-labelled), tracks by layer, vias. Items that
-    differ from `other` (the counterpart board) are drawn with a yellow halo / magenta box."""
+    differ from `other` (the counterpart board) are drawn with a yellow halo / magenta box.
+    `overlay` (hard_layout, `layout_overlay`): switching-loop polygon, rule copper paths, Kelvin
+    sense island, separation stretches."""
     x0, y0, w, h = geo["bbox"]
     pad_mm = 2.0
     scale = 20.0  # px per mm
@@ -405,8 +528,25 @@ def render_board_svg(geo: dict, other: dict | None, title: str) -> str:
          f'<text x="8" y="18" font-size="15" font-weight="bold">{html.escape(title)}</text>',
          '<text x="8" y="34" font-size="11">red = F.Cu track, blue = B.Cu track, grey = courtyard, '
          'yellow halo = differs from the other board, magenta box = footprint moved/changed</text>']
+    if overlay is not None:
+        H += 16
+        o[0] = (f'<svg xmlns="http://www.w3.org/2000/svg" width="{W:.0f}" height="{H:.0f}" '
+                f'viewBox="0 0 {W:.0f} {H:.0f}" font-family="Helvetica,Arial,sans-serif">')
+        o.append('<text x="8" y="{:.0f}" font-size="11">layout rules: purple fill = switching-loop polygon, '
+                 'cyan dashed = rule copper paths (crystal / decoupling), green glow = Kelvin sense island '
+                 '(shunt pad deleted), black dash = analog track within the separation gap</text>'.format(H - 6))
     for e in geo["edges"]:
         o.append(f'<polyline points="{poly(e)}" fill="none" stroke="#c9b000" stroke-width="2"/>')
+    if overlay is not None:
+        for lp in overlay.get("loop", []):
+            o.append(f'<polygon points="{poly(lp)}" fill="#8a2be2" fill-opacity="0.22" stroke="#6a0dad" '
+                     f'stroke-width="2"><title>switching-loop polygon</title></polygon>')
+        for pts in overlay.get("kelvin", []):
+            if len(pts) == 1:
+                o.append(f'<circle cx="{X(pts[0][0])}" cy="{Y(pts[0][1])}" r="12" fill="#00c000" fill-opacity="0.45"/>')
+            else:
+                o.append(f'<polyline points="{poly(pts)}" fill="none" stroke="#00c000" stroke-opacity="0.55" '
+                         f'stroke-width="16" stroke-linecap="round"/>')
     # halos for differing tracks first
     for t in geo["tracks"]:
         if other is not None and t["key"] not in okeys:
@@ -451,6 +591,15 @@ def render_board_svg(geo: dict, other: dict | None, title: str) -> str:
         val = f" {fp['value']}" if fp["value"] and fp["value"] != ref else ""
         o.append(f'<text x="{X(fp["x"])}" y="{float(Y(min(ys))) - 3:.1f}" font-size="12" font-weight="bold" '
                  f'text-anchor="middle" fill="#202020">{html.escape(ref + val)}</text>')
+    if overlay is not None:
+        for label, pts in overlay.get("paths", []):
+            o.append(f'<polyline points="{poly(pts)}" fill="none" stroke="#00b5d8" stroke-width="3" '
+                     f'stroke-dasharray="7,4"><title>{html.escape(label)}</title></polyline>')
+            o.append(f'<text x="{X(pts[-1][0])}" y="{float(Y(pts[-1][1])) + 14:.1f}" font-size="10" fill="#007a92" '
+                     f'stroke="#fff" stroke-width="3" paint-order="stroke">{html.escape(label)}</text>')
+        for pts in overlay.get("near", []):
+            o.append(f'<polyline points="{poly(pts)}" fill="none" stroke="#000" stroke-width="4" '
+                     f'stroke-dasharray="3,3"><title>analog track within separation gap</title></polyline>')
     o.append("</svg>")
     return "\n".join(o) + "\n"
 
@@ -585,6 +734,383 @@ def render_schematic_svg(design: dict, golden: dict, title: str) -> str:
     return "\n".join(o) + "\n"
 
 
+# ====================================================================== v2: public evidence of latent faults
+def public_sources(task_dir: Path) -> list[tuple[str, str]]:
+    """[(public file name, text)]: TASK.md, spec.json, parts/*.md (what the agent can read)."""
+    pub = Path(task_dir) / "public"
+    out = [("TASK.md", (pub / "TASK.md").read_text(encoding="utf-8")),
+           ("spec.json", (pub / "spec.json").read_text(encoding="utf-8"))]
+    out += [(f"parts/{f.name}", f.read_text(encoding="utf-8")) for f in sorted((pub / "parts").glob("*.md"))]
+    return out
+
+
+def public_text(task_dir: Path) -> str:
+    """Same concatenation the hard generators use for their evidence gate."""
+    return "\n".join(t for _, t in public_sources(task_dir))
+
+
+def _sentence(line: str, needle: str) -> str:
+    """The sentence of `line` holding `needle` (whole line if short)."""
+    line = line.strip()
+    if len(line) <= 320:
+        return line
+    k = max(0, line.find(needle))
+    a = max(line.rfind(". ", 0, k), line.rfind("; ", 0, k))
+    b = min([x for x in (line.find(". ", k), line.find("; ", k)) if x >= 0] or [len(line)])
+    return ("… " if a > 0 else "") + line[a + 2 if a > 0 else 0: b + 1].strip() + (" …" if b < len(line) - 1 else "")
+
+
+def evidence_quotes(fault: dict, sources: list[tuple[str, str]]) -> list[dict]:
+    """For each evidence group of a latent fault (`latent.evidence_groups`): the first alternative
+    found in the public material, the file and the exact line/sentence it is in. `found` False =
+    no alternative of the group is public (the fault would be unfair)."""
+    from pcbenv.faults.latent import evidence_groups
+    out = []
+    for g in evidence_groups(fault):
+        hit = None
+        for alt in g:
+            if alt.startswith("line:"):
+                a, b = alt[5:].split("&", 1)
+                pa = re.compile(r"(?<![A-Za-z0-9])" + re.escape(a) + r"(?![A-Za-z0-9])")
+                for fname, text in sources:
+                    ln = next((x for x in text.splitlines() if pa.search(x) and b in x), None)
+                    if ln is not None:
+                        hit = (alt, fname, _sentence(ln, a))
+                        break
+            else:
+                for fname, text in sources:
+                    k = text.find(alt)
+                    if k >= 0:
+                        s0 = text.rfind("\n", 0, k) + 1
+                        s1 = text.find("\n", k)
+                        hit = (alt, fname, _sentence(text[s0: s1 if s1 >= 0 else len(text)], alt))
+                        break
+            if hit:
+                break
+        files = []
+        if hit:
+            for fname, text in sources:
+                if hit[0].startswith("line:"):
+                    a, b = hit[0][5:].split("&", 1)
+                    pa = re.compile(r"(?<![A-Za-z0-9])" + re.escape(a) + r"(?![A-Za-z0-9])")
+                    if any(pa.search(x) and b in x for x in text.splitlines()):
+                        files.append(fname)
+                elif hit[0] in text:
+                    files.append(fname)
+        out.append({"group": g, "found": hit is not None, "alt": hit[0] if hit else None,
+                    "file": hit[1] if hit else None, "quote": hit[2] if hit else None, "files": files})
+    return out
+
+
+# ====================================================================== v2: design-rule metrics
+def _rule_scenarios(ctx: dict) -> list[dict]:
+    return list(ctx.get("scenarios", []))
+
+
+def rule_metrics(design: dict, ctx: dict) -> dict[tuple, dict]:
+    """Every quantity the `rules` check limits (pcbenv.rules), worst case over the rule context's
+    operating conditions: {(code, subject, quantity): {value, limit, unit, ratio, ok, cond}}.
+    `ratio` = value / limit (>1 violates). Simulation failures appear as code 'simulation'."""
+    from pcbenv import rules as RL
+    out: dict[tuple, dict] = {}
+    only = set(ctx.get("only") or RL.RULE_CODES)
+
+    def put(code, subj, qty, value, limit, unit, ratio, cond, pkg=""):
+        if code not in only:
+            return
+        k = (code, subj, qty)
+        cur = out.get(k)
+        if cur is None or ratio > cur["ratio"] + 1e-12:
+            out[k] = {"value": value, "limit": limit, "unit": unit, "ratio": ratio, "ok": ratio <= 1 + 1e-6,
+                      "cond": cond, "pkg": pkg}
+
+    if "flyback" in only:
+        net_of = {p: n for n, pins in design["nets"].items() for p in pins}
+        for ld in ctx.get("inductive_loads", []):
+            ok = not RL.check_flyback(design, {"inductive_loads": [ld]})
+            ds = [r for r, c in sorted(design["components"].items()) if c["part"] == "D_SCHOTTKY"]
+            where = "; ".join(f"{d}: K on `{net_of.get(d + '.K')}`, A on `{net_of.get(d + '.A')}`" for d in ds)
+            out[("flyback", f"{ld['supply_pin']}-{ld['switched_pin']}", "diode across load")] = {
+                "value": "present" if ok else "missing", "limit": "K on supply side, A on switched side",
+                "unit": "", "ratio": 0.0 if ok else 2.0, "ok": ok, "cond": where or "no Schottky"}
+    for k, sc in enumerate(_rule_scenarios(ctx)):
+        try:
+            op = RL.operating_point(design, sc)
+        except Exception as e:  # noqa: BLE001
+            out[("simulation", f"condition {k}", "op")] = {"value": "fails", "limit": "", "unit": "", "ratio": 9.0,
+                                                           "ok": False, "cond": str(e)[:120]}
+            continue
+        v, i = op.v, op.i
+        c = f"cond {k}"
+        for ref, comp in RL._comps(design, "MCU8"):
+            g = v[f"{ref}.GND"]
+            vdd = v[f"{ref}.VDD"] - g
+            put("mcu_abs_max", ref, "VDD-GND", vdd, RL.MCU_VDD_MAX, "V", vdd / RL.MCU_VDD_MAX, c)
+            for pin in ("NRST", "PA0", "PA1", "PA2", "SDA", "SCL"):
+                pp = f"{ref}.{pin}"
+                if not RL._connected(design, pp):
+                    continue
+                vp = v[pp] - g
+                hi = vdd + RL.MCU_PIN_MARGIN
+                # ratio = overshoot beyond [0, VDD] in units of the 0.3 V margin (1 = at the limit)
+                r = max(0.0, (vp - vdd) / RL.MCU_PIN_MARGIN, -vp / RL.MCU_PIN_MARGIN)
+                put("mcu_abs_max", pp, "pin voltage (ratio: overshoot / 0.3 V)", vp, f"-0.3 … {hi:.3g} V", "V", r, c)
+                lim = RL.MCU_I2C_MAX_A if pin in ("SDA", "SCL") else RL.MCU_GPIO_MAX_A
+                ip = abs(i.get(pp, 0.0))
+                put("mcu_pin_current", pp, "|I|", ip, lim, "A", ip / lim, c)
+        for ref, comp in RL._comps(design, "OPAMP"):
+            vn, vpp = v[f"{ref}.V-"], v[f"{ref}.V+"]
+            put("opamp_abs_max", ref, "V+ - V-", vpp - vn, RL.OPAMP_SUPPLY_MAX, "V", (vpp - vn) / RL.OPAMP_SUPPLY_MAX, c)
+            for pin in ("IN+", "IN-"):
+                pp = f"{ref}.{pin}"
+                if RL._connected(design, pp):
+                    r = max(0.0, (v[pp] - vpp) / RL.OPAMP_IN_MARGIN, (vn - v[pp]) / RL.OPAMP_IN_MARGIN)
+                    put("opamp_abs_max", pp, "input vs rails (ratio: overshoot / 0.3 V)", v[pp] - vn,
+                        f"-0.3 … {vpp - vn + RL.OPAMP_IN_MARGIN:.3g} V", "V", r, c)
+        for ref, comp in RL._comps(design, "LDO_ADJ"):
+            g = v[f"{ref}.GND"]
+            vin, ven, vout = v[f"{ref}.VIN"] - g, v[f"{ref}.EN"] - g, v[f"{ref}.VOUT"] - g
+            iout = -i.get(f"{ref}.VOUT", 0.0)
+            put("ldo_abs_max", ref, "VIN", vin, RL.LDO_VIN_MAX, "V", vin / RL.LDO_VIN_MAX, c)
+            if RL._connected(design, f"{ref}.EN") and vin > 0:
+                put("ldo_abs_max", f"{ref}.EN", "EN (ratio: (EN-VIN) / 0.3 V)", ven, f"VIN+0.3 = {vin + 0.3:.3g} V", "V",
+                    max(0.0, (ven - vin) / 0.3), c)
+            put("ldo_abs_max", ref, "IOUT", iout, RL.LDO_IOUT_MAX, "A", iout / RL.LDO_IOUT_MAX, c)
+            pd = max(0.0, vin - vout) * max(0.0, iout)
+            put("ldo_abs_max", ref, "(VIN-VOUT)·IOUT", pd, RL.LDO_PD_MAX, "W", pd / RL.LDO_PD_MAX, c)
+        for ref, comp in RL._comps(design, "NMOS"):
+            vgs, vds = v[f"{ref}.G"] - v[f"{ref}.S"], v[f"{ref}.D"] - v[f"{ref}.S"]
+            idr = abs(i.get(f"{ref}.D", 0.0))
+            put("nmos_abs_max", ref, "|VGS|", abs(vgs), RL.NMOS_VGS_MAX, "V", abs(vgs) / RL.NMOS_VGS_MAX, c)
+            put("nmos_abs_max", ref, "VDS", vds, RL.NMOS_VDS_MAX, "V", vds / RL.NMOS_VDS_MAX, c)
+            put("nmos_abs_max", ref, "ID", idr, RL.NMOS_ID_MAX, "A", idr / RL.NMOS_ID_MAX, c)
+        for ref, comp in RL._comps(design, "NPN"):
+            vce = v[f"{ref}.C"] - v[f"{ref}.E"]
+            ic, ib = i.get(f"{ref}.C", 0.0), i.get(f"{ref}.B", 0.0)
+            put("npn_abs_max", ref, "VCE", vce, RL.NPN_VCE_MAX, "V", vce / RL.NPN_VCE_MAX, c)
+            put("npn_abs_max", ref, "IC", abs(ic), RL.NPN_IC_MAX, "A", abs(ic) / RL.NPN_IC_MAX, c)
+            put("npn_abs_max", ref, "IB", abs(ib), RL.NPN_IB_MAX, "A", abs(ib) / RL.NPN_IB_MAX, c)
+            if 0 <= vce <= RL.NPN_SAT_VCE and ic >= RL.NPN_SAT_IC_MIN:
+                beta = ic / ib if ib > 1e-12 else math.inf
+                put("npn_saturation", ref, "forced beta IC/IB (saturated)", beta, RL.NPN_FORCED_BETA_MAX, "",
+                    beta / RL.NPN_FORCED_BETA_MAX if math.isfinite(beta) else 9.0, c)
+        for ref, comp in RL._comps(design, "LED_"):
+            ia = i.get(f"{ref}.A", 0.0)
+            lim = RL.LED_IF_MAX_A.get(comp["footprint"], min(RL.LED_IF_MAX_A.values())) * RL.LED_DERATING
+            put("led_current", ref, "IF", ia, lim, "A", ia / lim, c, comp["footprint"].split(":")[-1].split("_")[1])
+            vr = v[f"{ref}.K"] - v[f"{ref}.A"]
+            put("led_reverse", ref, "VR", vr, RL.LED_VR_MAX, "V", vr / RL.LED_VR_MAX, c)
+        for ref, comp in RL._comps(design, "D_SCHOTTKY"):
+            ia = i.get(f"{ref}.A", 0.0)
+            vr = v[f"{ref}.K"] - v[f"{ref}.A"]
+            put("diode_ratings", ref, "VR", vr, RL.SCHOTTKY_VR_MAX, "V", vr / RL.SCHOTTKY_VR_MAX, c)
+            put("diode_ratings", ref, "IF", ia, RL.SCHOTTKY_IF_MAX, "A", ia / RL.SCHOTTKY_IF_MAX, c)
+        for ref, comp in RL._comps(design, "R"):
+            if comp["part"] != "R" or comp["footprint"] not in RL.R_POWER_W:
+                continue
+            try:
+                rv = parse_value_safe(comp["value"])
+            except ValueError:
+                continue
+            ir = i.get(f"{ref}.1", 0.0)
+            pw = ir * ir * rv
+            lim = RL.R_POWER_W[comp["footprint"]] * RL.R_DERATING
+            put("resistor_power", ref, "I²R", pw, lim, "W", pw / lim, c, comp["footprint"].split(":")[-1].split("_")[1])
+        for ref, comp in RL._comps(design, "C"):
+            if comp["part"] != "C" or comp["footprint"] not in RL.C_VOLTAGE_V:
+                continue
+            vc = abs(v[f"{ref}.1"] - v[f"{ref}.2"])
+            lim = RL.C_VOLTAGE_V[comp["footprint"]] * RL.C_DERATING
+            put("capacitor_voltage", ref, "|V|", vc, lim, "V", vc / lim, c, comp["footprint"].split(":")[-1].split("_")[1])
+    return out
+
+
+def parse_value_safe(v: str) -> float:
+    from pcbenv.parts import parse_value
+    return parse_value(str(v))
+
+
+def _q(x, unit: str) -> str:
+    if isinstance(x, str):
+        return x
+    if x is None or (isinstance(x, float) and not math.isfinite(x)):
+        return "∞" if x is not None else "—"
+    if abs(x) < 1e-12:
+        x = 0.0
+    if unit == "":
+        return f"{x:.3g}"
+    return _fmt(x, unit)
+
+
+RULE_NEAR = 0.8   # rows at >= 80 % of a limit are shown even if untouched by a fault
+
+
+def rules_table(meta: dict, fdesign: dict, gdesign: dict) -> tuple[list[str], int]:
+    """Markdown table of the design rules involved (violated on either side, touching a fault's
+    refs, or within 80 % of the limit), faulted vs golden. Returns (lines, #rules evaluated)."""
+    ctx = meta.get("rules") or meta.get("rules_power")
+    if not ctx:
+        return [], 0
+    fm, gm = rule_metrics(fdesign, ctx), rule_metrics(gdesign, ctx)
+    touched = set()
+    for f in meta.get("faults", []):
+        for t in f.get("targets", []):
+            if not t.startswith("net:"):
+                touched.add(t)
+        d = f.get("data") or {}
+        for k in ("ref", "cap", "diode", "pin"):
+            if isinstance(d.get(k), str):
+                touched.add(d[k].split(".")[0])
+        for pin in d.get("pins") or []:
+            touched.add(str(pin).split(".")[0])
+    keys = sorted(set(fm) | set(gm), key=lambda k: (k[0], k[1], k[2]))
+    rows = []
+    for k in keys:
+        a, b = fm.get(k), gm.get(k)
+        subj_ref = k[1].split(".")[0].split("-")[0]
+        bad = (a and not a["ok"]) or (b and not b["ok"])
+        near = any(x and x["ratio"] >= RULE_NEAR for x in (a, b))
+        ra, rb = (a["ratio"] if a else 0.0), (b["ratio"] if b else 0.0)
+        relevant = subj_ref in touched and (max(ra, rb) >= 0.05 or abs(ra - rb) >= 0.05
+                                            or (a and b and a.get("pkg") != b.get("pkg")))
+        if not (bad or near or relevant or k[0] in ("flyback", "simulation")):
+            continue
+        def cell(x):
+            if x is None:
+                return "—"
+            x = dict(x, ratio=0.0 if abs(x["ratio"]) < 5e-3 else x["ratio"])
+            lim_x = x["limit"] if isinstance(x["limit"], str) else _q(x["limit"], x["unit"])
+            pkg = f"{x['pkg']}: " if x.get("pkg") else ""
+            return (f"{pkg}{_q(x['value'], x['unit'])} of {lim_x} ({x['ratio']:.0%}){'' if x['ok'] else ' ❌'}"
+                    if x.get("pkg") or k[0] in ("mcu_abs_max", "ldo_abs_max", "opamp_abs_max") and isinstance(x["limit"], str)
+                    else f"{_q(x['value'], x['unit'])} ({x['ratio']:.0%}){'' if x['ok'] else ' ❌'}")
+        lim = (a or b)
+        lim_s = ("per package / condition, see cells" if (a and b and a["limit"] != b["limit"]) else
+                 (_q(lim["limit"], lim["unit"]) if not isinstance(lim["limit"], str) else lim["limit"]))
+        why = "violated" if bad else ("fault target" if subj_ref in touched else ("near limit" if near else ""))
+        rows.append(f"| `{k[0]}` | `{k[1]}` | {_md_escape(k[2])} | {_md_escape(lim_s)} | {cell(a)} | {cell(b)} | "
+                    f"{why} | {_md_escape((a or b)['cond'])} |")
+    head = ["| rule | subject | quantity | limit | faulted (of limit) | golden (of limit) | shown because | "
+            "worst condition (faulted) |", "|---|---|---|---|---|---|---|---|"]
+    return (head + rows if rows else ["- no rule quantity is violated, touched by a fault, or within 80 % of a limit"]), \
+        len(set(fm) | set(gm))
+
+
+# ====================================================================== v2: layout-rule metrics and overlay
+def _board_pad(b, pin: str, ref_parts: dict[str, str]):
+    from pcbenv.layout_rules import _pad
+    return _pad(b, pin, ref_parts)
+
+
+def layout_metrics(board_path: str, meta: dict) -> dict[str, tuple]:
+    """{label: (value, limit, unit, ok)} for every layout rule (layout_rules) and decoupling rule."""
+    from pcbenv import boardnet
+    from pcbenv import layout as LY
+    from pcbenv import layout_rules as LR
+    b = boardnet.load_board(board_path)
+    rp = meta.get("ref_parts") or {}
+    lctx = meta.get("layout_rules") or {}
+    out: dict[str, tuple] = {}
+    for r in lctx.get("kelvin", []):
+        ok, why = LR.kelvin_ok(b, r, rp)
+        out[f"Kelvin: {r['sense_pin']} leaves from {r['shunt_pin']} (not sharing copper with "
+            f"{', '.join(r['load_pins'])})"] = ("ok" if ok else "VIOLATED: " + why, "own trace from shunt pad", "", ok)
+    for r in lctx.get("switch_loop", []):
+        a = LR.loop_area(b, r, rp)
+        ok = not isinstance(a, str) and a <= r["max_area_mm2"] + LR.EPS
+        out[f"switching-loop area ({r['name']})"] = (a, r["max_area_mm2"], "mm²", ok)
+    for r in lctx.get("crystal", []):
+        for label, d, nv in LR.crystal_metrics(b, r, rp):
+            out[f"crystal copper path {label}"] = (d if d is not None else "not connected", r["max_path_mm"], "mm",
+                                                   d is not None and d <= r["max_path_mm"] + LR.EPS)
+            out[f"crystal vias on net of {label.split('->')[0]}"] = (nv, 0, "", nv == 0 or not r.get("no_vias"))
+    for r in lctx.get("separation", []):
+        s = LR.separation_length(b, r, rp)
+        ok = not isinstance(s, str) and s <= r["max_parallel_mm"] + LR.EPS
+        out[f"separation: {'/'.join(r['victim_pins'])} net length within {r['min_gap_mm']:g} mm of "
+            f"{'/'.join(r['aggressor_pins'])} net"] = (s, r["max_parallel_mm"], "mm", ok)
+    for dc in meta.get("decoupling") or []:
+        d = LY.decoupling_path_mm(b, dc["cap"], dc["ic_pin"], rp)
+        lim = LY.max_path_mm(dc)
+        out[f"decoupling copper path {dc['cap']} -> {dc['ic_pin']}"] = (
+            d if d is not None else "not connected", lim, "mm", d is not None and d <= lim + 1e-6)
+        ip = LY._ic_pad(b, dc["ic_pin"], rp)
+        fp = b.FindFootprintByReference(dc["cap"])
+        if ip is not None and fp is not None:
+            ix, iy = ip.GetPosition().x / 1e6, ip.GetPosition().y / 1e6
+            dist = max(math.hypot(p.GetPosition().x / 1e6 - ix, p.GetPosition().y / 1e6 - iy) for p in fp.Pads())
+            out[f"decoupling straight line {dc['cap']} pads -> {dc['ic_pin']}"] = (dist, dc["max_mm"], "mm",
+                                                                                 dist <= dc["max_mm"] + 1e-6)
+    return out
+
+
+def layout_overlay(board_path: str, meta: dict) -> dict:
+    """Geometry the reviewer needs drawn on the board render (mm): switching-loop polygon, copper
+    paths of the crystal / decoupling / loop legs, the Kelvin sense island, and the victim-track
+    stretches that run within the separation gap of the switching node."""
+    from pcbenv import boardnet
+    from pcbenv import layout as LY
+    from pcbenv import layout_rules as LR
+    b = boardnet.load_board(board_path)
+    rp = meta.get("ref_parts") or {}
+    lctx = meta.get("layout_rules") or {}
+    ov: dict = {"loop": [], "paths": [], "kelvin": [], "near": []}
+    for r in lctx.get("switch_loop", []):
+        poly = LR.loop_polygon(b, r, rp)
+        if not isinstance(poly, str):
+            ov["loop"].append([(round(x, 4), round(y, 4)) for x, y in poly])
+    for r in lctx.get("crystal", []):
+        for a, c in r["pairs"]:
+            pa, pc = _board_pad(b, a, rp), _board_pad(b, c, rp)
+            res = LY.copper_path(b, pa, pc) if pa is not None and pc is not None else None
+            if res:
+                ov["paths"].append((f"{a}->{c} {res[0]:.1f} mm", [(round(x, 4), round(y, 4)) for x, y in res[1]]))
+    for dc in meta.get("decoupling") or []:
+        ip = LY._ic_pad(b, dc["ic_pin"], rp)
+        fp = b.FindFootprintByReference(dc["cap"])
+        best = None
+        if ip is not None and fp is not None and ip.GetNetCode() > 0:
+            for cp in sorted(fp.Pads(), key=lambda p: p.GetNumber()):
+                if cp.GetNetCode() == ip.GetNetCode():
+                    res = LY.copper_path(b, cp, ip)
+                    if res and (best is None or res[0] < best[0]):
+                        best = res
+        if best:
+            ov["paths"].append((f"{dc['cap']}->{dc['ic_pin']} {best[0]:.1f} mm",
+                                [(round(x, 4), round(y, 4)) for x, y in best[1]]))
+    for r in lctx.get("kelvin", []):
+        sh, se = _board_pad(b, r["shunt_pin"], rp), _board_pad(b, r["sense_pin"], rp)
+        if sh is None or se is None or se.GetNetCode() <= 0:
+            continue
+        for t in LR.island_items(b, se.GetNetCode(), se, drop_pad=sh):
+            if t.GetClass() == "PCB_VIA":
+                q = t.GetPosition()
+                ov["kelvin"].append([(round(q.x / 1e6, 4), round(q.y / 1e6, 4))])
+            else:
+                ov["kelvin"].append([(round(t.GetStart().x / 1e6, 4), round(t.GetStart().y / 1e6, 4)),
+                                     (round(t.GetEnd().x / 1e6, 4), round(t.GetEnd().y / 1e6, 4))])
+    for r in lctx.get("separation", []):
+        vp = [_board_pad(b, p, rp) for p in r["victim_pins"]]
+        ap = [_board_pad(b, p, rp) for p in r["aggressor_pins"]]
+        if any(p is None or p.GetNetCode() <= 0 for p in vp + ap):
+            continue
+        for vc in sorted({p.GetNetCode() for p in vp}):
+            vs, _ = LR.net_tracks(b, vc)
+            for ac in sorted({p.GetNetCode() for p in ap}):
+                ags, _ = LR.net_tracks(b, ac)
+                for lay, x1, y1, x2, y2, _w in vs:
+                    for la, a1, b1, a2, b2, _wa in ags:
+                        if la != lay:
+                            continue
+                        iv = LR._near_interval((x1, y1, x2, y2), (a1, b1, a2, b2), r["min_gap_mm"])
+                        if iv and iv[1] - iv[0] > 1e-9:
+                            ov["near"].append([(round(x1 + (x2 - x1) * t, 4), round(y1 + (y2 - y1) * t, 4))
+                                               for t in iv])
+    ov["kelvin"].sort()
+    ov["near"].sort()
+    return ov
+
+
 # ====================================================================== packet
 def _verify_both(task_dir: Path) -> tuple[dict, dict]:
     from pcbenv.verify import verify
@@ -648,7 +1174,8 @@ def _value_table(meta: dict, fdesign: dict, gdesign: dict, fgeo: dict) -> list[s
 def _verdict_table(fres: dict, gres: dict) -> list[str]:
     from pcbenv.verify import CHECKS, GATES
     lines = ["| stage | kind | faulted files | golden files |", "|---|---|---|---|"]
-    for k in GATES + CHECKS:
+    extra = tuple(sorted((set(fres["checks"]) | set(gres["checks"])) - set(CHECKS)))
+    for k in GATES + CHECKS + extra:
         kind = "gate" if k in GATES else "check"
         fv = (fres["gates"] if k in GATES else fres["checks"]).get(k)
         gv = (gres["gates"] if k in GATES else gres["checks"]).get(k)
@@ -673,13 +1200,18 @@ def build_packet(row: dict, task_dir: Path, out_dir: Path, nn: int, reasons: lis
         shutil.rmtree(pdir)
     pdir.mkdir(parents=True)
 
-    fgeo = board_geometry(str(task_dir / "public" / "board.kicad_pcb"))
-    ggeo = board_geometry(str(task_dir / "hidden" / "golden_board.kicad_pcb"))
+    fboard = str(task_dir / "public" / "board.kicad_pcb")
+    gboard = str(task_dir / "hidden" / "golden_board.kicad_pcb")
+    fgeo = board_geometry(fboard)
+    ggeo = board_geometry(gboard)
+    has_lr = bool(meta.get("layout_rules"))
+    fov = layout_overlay(fboard, meta) if has_lr else None
+    gov = layout_overlay(gboard, meta) if has_lr else None
     renders = {
         "schematic_faulted.svg": render_schematic_svg(fdesign, gdesign, f"{row['id']} — design.json as given (faulted)"),
         "schematic_golden.svg": render_schematic_svg(gdesign, gdesign, f"{row['id']} — golden design (reference fix)"),
-        "board_faulted.svg": render_board_svg(fgeo, ggeo, f"{row['id']} — board.kicad_pcb as given (faulted)"),
-        "board_golden.svg": render_board_svg(ggeo, fgeo, f"{row['id']} — golden board (reference fix)"),
+        "board_faulted.svg": render_board_svg(fgeo, ggeo, f"{row['id']} — board.kicad_pcb as given (faulted)", fov),
+        "board_golden.svg": render_board_svg(ggeo, fgeo, f"{row['id']} — golden board (reference fix)", gov),
     }
     for fname, svg in renders.items():
         (pdir / fname).write_text(svg, encoding="utf-8")
@@ -689,11 +1221,14 @@ def build_packet(row: dict, task_dir: Path, out_dir: Path, nn: int, reasons: lis
     bdiff = board_diff(fgeo, ggeo)
     rel = os.path.relpath(task_dir, pdir)
 
+    tier = tier_of(row)
+    mode = row.get("tools_mode") or meta.get("tools_mode") or "full"
+    n_lat = sum(1 for f in meta.get("faults", []) if f.get("category") == "latent")
     L: list[str] = [f"# QA packet {num}: `{row['id']}`", "",
-                    "| family | tier | hint level | intent in TASK.md | faults | predicted difficulty |",
-                    "|---|---|---|---|---|---|",
-                    f"| {row['family']} | {row.get('tier', 'v1')} | {row['hint_level']} | {row.get('intent', '')} | "
-                    f"{row['n_faults']} | {row.get('difficulty_predicted', '')} |", "",
+                    "| family | tier | tool mode | hint level | intent in TASK.md | faults | latent | predicted difficulty |",
+                    "|---|---|---|---|---|---|---|---|",
+                    f"| {row['family']} | {tier} | {mode} | {row['hint_level']} | {row.get('intent', '')} | "
+                    f"{row['n_faults']} | {n_lat} | {row.get('difficulty_predicted', '')} |", "",
                     f"Task files: [`{rel}/public/`]({rel}/public/) (what the agent gets) and "
                     f"[`{rel}/hidden/`]({rel}/hidden/) (grader only). "
                     f"Why sampled: {', '.join(reasons) or 'stratum coverage'}.", "",
@@ -717,13 +1252,15 @@ def build_packet(row: dict, task_dir: Path, out_dir: Path, nn: int, reasons: lis
               txt.rstrip("\n"), fd, "", "</details>", ""]
 
     L += ["## 2. Reviewer-only (hidden from the agent)", "", "### 2.1 Injected faults", "",
-          "| # | type | category | DRC/ERC-invisible | detail | verifier, this fault alone |", "|---|---|---|---|---|---|"]
+          "| # | type | category | DRC/ERC-invisible | latent (pcbtool-clean) | detail | verifier, this fault alone |",
+          "|---|---|---|---|---|---|---|"]
     alone = {i: a for i, a in enumerate(row.get("alone", []))}
     for i, f in enumerate(meta.get("faults", [])):
         a = alone.get(i, {})
         al = f"reward {a.get('reward', '?')}; fails {', '.join(a.get('failing', [])) or '—'}" if a else "—"
+        lat = "**yes**" + (" (layout)" if f["type"] in LAYOUT_LATENT else "") if f.get("category") == "latent" else ""
         L.append(f"| {i + 1} | `{f['type']}` | {f.get('category', '')} | "
-                 f"{'yes' if f.get('invisible_to_drc_erc') else 'no'} | {_md_escape(f.get('detail', ''))} | {al} |")
+                 f"{'yes' if f.get('invisible_to_drc_erc') else 'no'} | {lat} | {_md_escape(f.get('detail', ''))} | {al} |")
     L += ["", "### 2.2 Reference fix (faulted → golden)", "",
           "The reference repair is the hidden golden pair (`golden_design.json`, `golden_board.kicad_pcb`). "
           "Any repair that passes every gate and check scores 1.0; it need not be byte-identical.", "",
@@ -766,6 +1303,69 @@ def build_packet(row: dict, task_dir: Path, out_dir: Path, nn: int, reasons: lis
         L += [f"- decoupling: `{d['cap']}` within {d.get('max_path_mm', d['max_mm'])} mm of copper path (and {d['max_mm']} mm straight-line) of `{d['ic_pin']}`" for d in dc]
     if meta.get("alt_partitions"):
         L += ["", f"Alternative accepted topologies: {len(meta['alt_partitions'])} (see meta.json)."]
+    latent = [(i, f) for i, f in enumerate(meta.get("faults", [])) if f.get("category") == "latent"]
+    if latent:
+        srcs = public_sources(task_dir)
+        L += ["", "### 2.7 Latent faults and their public evidence", "",
+              "A latent fault leaves `pcbtool check` clean; the agent can only find it by reading the public text. "
+              "For each one: the generator's evidence claim, then every evidence group the generator's fairness gate "
+              "requires (`pcbenv/faults/latent.py:evidence_groups`) with the exact public line it matched. Judge "
+              "whether that text really lets an engineer infer the requirement (`task_fair`, `rule_stated_clearly`).", ""]
+        for i, f in latent:
+            d = f.get("data") or {}
+            L += [f"**Fault {i + 1}: `{f['type']}`** — {_md_escape(f.get('detail', ''))}", "",
+                  f"- detected by: `{d.get('detected_by') or f.get('detected_by') or '?'}`"
+                  + (f"; rule violations it causes: {_md_escape('; '.join(d.get('rule_violations') or []))}"
+                     if d.get("rule_violations") else ""),
+                  f"- generator's evidence claim: {_md_escape(d.get('evidence') or f.get('evidence') or '—')}"]
+            for e in evidence_quotes(f, srcs):
+                alts = " / ".join(f"`{a}`" for a in e["group"])
+                if e["found"]:
+                    more = [x for x in e["files"] if x != e["file"]]
+                    L.append(f"- evidence group {alts}: matched `{e['alt']}` in `{e['file']}`"
+                             + (f" (also in {', '.join(f'`{x}`' for x in more)})" if more else "") + ":")
+                    L.append(f"  > {_md_escape(e['quote'])}")
+                else:
+                    L.append(f"- evidence group {alts}: **⚠ NOT FOUND in the public material**")
+            L.append("")
+    rtab, nrules = rules_table(meta, fdesign, gdesign)
+    if rtab:
+        ctx = meta.get("rules") or meta.get("rules_power") or {}
+        scope = ("all datasheet rules (hard tier)" if meta.get("rules") else
+                 "resistor power only (`rules_power`, all v2 tiers)")
+        L += ["", "### 2.8 Design rules (`rules` check, not run by pcbtool)", "",
+              f"Scope: {scope}; {len(ctx.get('scenarios', []))} operating condition(s) from the spec's stimuli; "
+              f"{nrules} rule quantities evaluated per design. Rows shown: violated on either side, on a part a fault "
+              f"touches (if ≥ 5 % of its limit or changed by ≥ 5 points or by a footprint change), or at ≥ {RULE_NEAR:.0%} of the limit. Values are the worst case over the conditions "
+              "(computed with `pcbenv.rules.operating_point`; limits from `pcbenv/rules.py`, stated in "
+              "`parts/<PART>.md` and TASK.md \"Design rules\").", ""]
+        L += rtab
+        L += ["", "Rule violations reported by the verifier: faulted: "
+              + (_md_escape("; ".join(fres["detail"].get("rules", []))) or "none")
+              + "; golden: " + (_md_escape("; ".join(gres["detail"].get("rules", []))) or "none") + "."]
+    if has_lr or (tier == "hard_layout"):
+        fm, gm = layout_metrics(fboard, meta), layout_metrics(gboard, meta)
+        L += ["", "### 2.9 Layout rules (`layout_rules` check + decoupling, not run by pcbtool)", "",
+              "Measured with `pcbenv/layout_rules.py` / `pcbenv/layout.py` on each board (definitions in TASK.md "
+              "\"Layout rules\"). The board renders draw the loop polygon (purple), the rule copper paths (cyan "
+              "dashed), the Kelvin sense island with the shunt pad deleted (green) and analog-track stretches inside "
+              "the separation gap (black dashes).", "",
+              "| metric | limit | faulted | golden |", "|---|---|---|---|"]
+        for k in sorted(set(fm) | set(gm)):
+            a, b = fm.get(k), gm.get(k)
+            lim = a or b
+
+            def c(x):
+                if x is None:
+                    return "—"
+                val = _q(x[0], "") if x[2] in ("",) else (f"{x[0]:.2f} {x[2]}" if isinstance(x[0], (int, float))
+                                                         else str(x[0]))
+                return f"{_md_escape(val)}{'' if x[3] else ' ❌'}"
+            lim_s = lim[1] if isinstance(lim[1], str) else f"{lim[1]:g} {lim[2]}".strip()
+            L.append(f"| {_md_escape(k)} | {_md_escape(lim_s)} | {c(a)} | {c(b)} |")
+        lr = meta.get("layout_rules") or {}
+        L += ["", f"Golden builder target: every layout rule at 0.8 × its limit. Rules in this task: "
+              f"{', '.join(sorted(k for k in lr if k != 'version')) or 'none'}."]
     L += ["", "## 3. Review", "",
           "Fill `review.yaml` in this directory (second reviewer: copy `../../review_template.yaml` to "
           "`review-<initials>.yaml` here, without looking at the first form). Questions to answer:", "",
@@ -777,11 +1377,19 @@ def build_packet(row: dict, task_dir: Path, out_dir: Path, nn: int, reasons: lis
           "given in 2.3?",
           "4. **alternative_valid_fixes_rejected**: is there an engineering-valid repair the grader would reject "
           "(e.g. a different E-series value that meets intent but fails an assertion window or value bound; "
-          "keeping a swapped footprint and re-routing; a different valid placement)?", ""]
+          "keeping a swapped footprint and re-routing; a different valid placement)?",
+          "5. **rule_stated_clearly**: is every design rule / layout rule / latent requirement this task grades "
+          "(2.7–2.9) stated in the public material clearly enough that an engineer would apply it the way the "
+          "grader does (limit, which part, which condition)? Normal-tier tasks: answer for the resistor-power rule "
+          "(`yes` if no rule is involved).",
+          "6. **layout_rule_reasonable**: hard_layout tasks only (else `n/a`): are the layout-rule limits and their "
+          "geometric definitions (2.9) defensible engineering practice for this board, i.e. would you reject the "
+          "faulted layout in a design review, and accept the golden one?", ""]
     (pdir / "README.md").write_text("\n".join(L) + "\n", encoding="utf-8")
     (pdir / "review.yaml").write_text(REVIEW_TEMPLATE.format(packet=name, task_id=row["id"]), encoding="utf-8")
-    return {"packet": name, "id": row["id"], "family": row["family"], "hint": row["hint_level"],
-            "faults": [f["type"] for f in row["faults"]], "reasons": reasons,
+    return {"packet": name, "id": row["id"], "family": row["family"], "hint": row["hint_level"], "tier": tier,
+            "tools_mode": mode, "faults": [f["type"] for f in row["faults"]],
+            "latent": [f["type"] for f in row["faults"] if f.get("category") == "latent"], "reasons": reasons,
             "faulted_reward": fres["reward"], "golden_reward": gres["reward"]}
 
 
@@ -790,77 +1398,116 @@ def _build_job(args: tuple) -> dict:
     return build_packet(row, Path(task_dir), Path(out_dir), nn, reasons, width)
 
 
-def render_index(summaries: list[dict], n: int, seed: int) -> str:
-    fams = Counter(s["family"] for s in summaries)
-    hints = Counter(s["hint"] for s in summaries)
-    ftypes = Counter(t for s in summaries for t in set(s["faults"]))
-    nf = Counter(len(s["faults"]) for s in summaries)
-    L = ["# Expert QA packets (G9)", "",
-         f"{len(summaries)} review packets for TRAIN tasks only (holdout is never sampled), built by "
-         f"`python3 -m pcbenv.qa build --n {n} --out qa/packets --seed {seed}`. "
+def _xtab(summaries: list[dict], key: str, label: str) -> list[str]:
+    tiers = [t for t in TIERS if any(s["tier"] == t for s in summaries)]
+    vals = sorted({v for s in summaries for v in (s[key] if isinstance(s[key], list) else [s[key]])}, key=str)
+    out = [f"| {label} | " + " | ".join(tiers) + " | total |", "|---" * (len(tiers) + 2) + "|"]
+    for v in vals:
+        cs = [sum(1 for s in summaries if s["tier"] == t and (v in s[key] if isinstance(s[key], list) else s[key] == v))
+              for t in tiers]
+        out.append(f"| `{v}` | " + " | ".join(str(c) for c in cs) + f" | {sum(cs)} |")
+    return out
+
+
+def render_index(summaries: list[dict], n: int, seed: int, mix: str = DEFAULT_MIX,
+                 pool: dict[str, int] | None = None) -> str:
+    for s in summaries:
+        s["ftypes"] = sorted(set(s["faults"]))
+        s["nf"] = str(len(s["faults"]))
+    tiers = Counter(s["tier"] for s in summaries)
+    L = ["# Expert QA packets (G9, v2 tasks)", "",
+         f"{len(summaries)} review packets for TRAIN tasks only (the `*_holdout` splits are never read or sampled), "
+         f"built by `python3 -m pcbenv.qa build --n {n} --out qa/packets --seed {seed} --mix {mix}`. "
          "Tally with `python3 -m pcbenv.qa tally qa/packets`.", "",
+         "Tiers: " + ", ".join(f"{t} {tiers.get(t, 0)}" + (f" (of {pool[t]} train tasks)" if pool and t in pool else "")
+                               for t in TIERS) + ".", "",
          "## Instructions for reviewers", "",
          "You are a qualified electrical engineer checking that this benchmark is fair and graded correctly. "
          "You do **not** need KiCad: each packet's `README.md` has everything (TASK.md verbatim, datasheets, "
-         "renders, the hidden faults, the reference fix as a diff, and the verifier's verdicts).", "",
-         "- **Time budget:** about 5 minutes per packet. If a packet needs more than 10, mark `unsure` and say why "
-         "in `notes`; that is itself a finding.",
+         "renders, the hidden faults, the reference fix as a diff, the verifier's verdicts and, for the hard tiers, "
+         "the design-rule and layout-rule numbers before and after).", "",
+         "- **Time budget:** about 5 minutes per normal packet, 10 per hard / hard_layout packet. If a packet needs "
+         "more than twice that, mark `unsure` and say why in `notes`; that is itself a finding.",
          "- **Order:** read section 1 (agent's view) first and form your own opinion of what is wrong. Then read "
          "section 2 and compare.",
+         "- **Tiers:** `normal` = visible faults (pcbtool finds most of them). `hard` adds the `rules` check "
+         "(datasheet design rules stated in TASK.md \"Design rules\" and `parts/*.md`, NOT run by pcbtool) and "
+         "**latent** faults that leave `pcbtool check` clean and can only be found by reading the public text "
+         "(section 2.7 quotes the exact sentence the generator relies on). `hard_layout` adds the `layout_rules` "
+         "check (Kelvin sense, switching-loop area, crystal path / vias, analog-switching separation; decoupling "
+         "copper path under `layout`), with metrics in 2.9 and the loop / paths drawn on the board renders. "
+         "`no_autoroute` tasks disable `pcbtool route` / `sync` (hand-edited tracks).",
          "- **What to look for:**",
          "  - The task demands something the public material does not state (hidden requirement, ambiguous "
-         "connection, a value with no assertion and no published range).",
+         "connection, a value with no assertion and no published range, a latent fault whose quoted evidence "
+         "does not really imply the requirement).",
          "  - The injected fault is not actually a fault (e.g. a value change that is still within a sensible "
-         "engineering tolerance; a footprint that is equally valid; a decap distance that is fine in practice).",
+         "engineering tolerance; a footprint that is equally valid; a decap distance or loop area that is fine "
+         "in practice).",
+         "  - A design / layout rule an expert would dispute (limit too tight or too loose, wrong definition, "
+         "a rule that real datasheets do not impose).",
          "  - The golden/reference design is itself wrong or poor practice.",
          "  - The verifier fails the faulted files for the wrong reason, or would reject a valid alternative "
-         "repair (different E-series value, re-routing instead of restoring, keeping an allowed footprint).",
+         "repair (different E-series value, re-routing instead of restoring, keeping an allowed footprint, a "
+         "different but compliant layout).",
          "  - The verdict on the golden is anything but reward 1.",
          "- **Form:** fill `review.yaml` (first reviewer). The second reviewer copies `qa/review_template.yaml` to "
-         "`review-<initials>.yaml` in the same packet dir, **without reading the first form**.",
+         "`review-<initials>.yaml` in the same packet dir, **without reading the first form**. v2 adds "
+         "`rule_stated_clearly: yes|no` and `layout_rule_reasonable: yes|no|n/a` (`n/a` outside hard_layout).",
          "- Unfilled fields count as pending; you can stop and resume at any time.", "",
          "## Acceptance rule", "",
-         f"- Two independent EEs review every packet.",
+         "- Two independent EEs review every packet.",
          f"- Per reviewer, at least {AGREEMENT_MIN:.0%} of completed packets have `verifier_verdict_agrees: yes`, "
          f"`reference_fix_correct: yes` and `task_fair: yes` (computed by `tally`).",
-         "- Every disputed packet (any `no`/`unsure`, any rejected alternative fix, or the two reviewers "
-         "disagreeing) must be resolved before sign-off: the orchestrator decides whether the **task** "
-         "(regenerate / drop it, fix the TASK.md writer or fault injector) or the **verifier** (assertion window, "
-         "value bound, alt_partitions, check logic) is wrong, fixes it in the owning module, regenerates the "
-         "affected tasks and packets, and the disputing reviewer re-reviews them. No task ships with an open dispute.",
+         "- Every disputed packet (any `no`/`unsure` incl. `rule_stated_clearly: no` / `layout_rule_reasonable: no`, "
+         "any rejected alternative fix, or the two reviewers disagreeing) must be resolved before sign-off: the "
+         "orchestrator decides whether the **task** (regenerate / drop it, fix the TASK.md writer or fault injector) "
+         "or the **verifier** (assertion window, value bound, rule limit, alt_partitions, check logic) is wrong, "
+         "fixes it in the owning module, regenerates the affected tasks and packets, and the disputing reviewer "
+         "re-reviews them. No task ships with an open dispute.",
          f"- The {AGREEMENT_MIN:.0%} threshold is not yet in `thresholds.yaml` (orchestrator-owned); "
          "proposed key `qa.ee_verifier_agreement_min: 0.95`.",
-         "- Human sign-off is founder-owned. [`self_review.md`](self_review.md) is a pre-screen of 15 packets by "
-         "the packaging agent (not a substitute); read its findings before starting, they list the cases most "
-         "likely to be disputed.", "",
-         "## Sample composition", "",
-         "| family | packets |", "|---|---|"] + [f"| {k} | {v} |" for k, v in sorted(fams.items())] + [
-         "", "| hint level | packets |", "|---|---|"] + [f"| {k} | {v} |" for k, v in sorted(hints.items())] + [
-         "", "| faults per task | packets |", "|---|---|"] + [f"| {k} | {v} |" for k, v in sorted(nf.items())] + [
-         "", "| fault type | packets containing it |", "|---|---|"] + [
-         f"| `{k}` | {v} |" for k, v in sorted(ftypes.items())] + [
-         "", "## Packets", "",
-         "| # | task | family | faults | hint | why sampled | packet |", "|---|---|---|---|---|---|---|"]
+         "- Human sign-off is founder-owned. [`self_review_v2.md`](self_review_v2.md) is a pre-screen of 15 v2 "
+         "packets by the QA agent (not a substitute); read its findings before starting, they list the cases most "
+         "likely to be disputed. ([`self_review.md`](self_review.md) is the v1 pre-screen, kept for history; its "
+         "packet numbers refer to the deleted v1 packets.)", "",
+         "## Sample composition", ""]
+    L += _xtab(summaries, "family", "family") + [""]
+    L += _xtab(summaries, "hint", "hint level") + [""]
+    L += _xtab(summaries, "tools_mode", "tool mode") + [""]
+    L += _xtab(summaries, "nf", "faults per task") + [""]
+    L += _xtab(summaries, "ftypes", "fault type (packets containing it)") + [""]
+    L += ["Latent fault types are the ones also listed in the packets' `latent` column; every latent and "
+          "layout-latent type of the train splits is covered.", "",
+          "## Packets", "",
+          "| # | tier | task | family | faults (latent in bold) | hint | tools | why sampled | packet |",
+          "|---|---|---|---|---|---|---|---|---|"]
     for s in summaries:
-        L.append(f"| {s['packet'].split('-', 1)[0]} | `{s['id']}` | {s['family']} | {', '.join(s['faults'])} | {s['hint']} | "
-                 f"{_md_escape('; '.join(s['reasons'])) or 'coverage'} | [README](packets/{s['packet']}/README.md) |")
+        fl = ", ".join(f"**{t}**" if t in s.get("latent", []) else t for t in s["faults"])
+        L.append(f"| {s['packet'].split('-', 1)[0]} | {s['tier']} | `{s['id']}` | {s['family']} | {fl} | {s['hint']} | "
+                 f"{s['tools_mode']} | {_md_escape('; '.join(s['reasons'])) or 'coverage'} | "
+                 f"[README](packets/{s['packet']}/README.md) |")
     return "\n".join(L) + "\n"
 
 
 def build(n: int, out: Path, seed: int, manifest: Path, tasks_root: Path, workers: int = 4,
-          index: Path | None = None) -> list[dict]:
+          index: Path | None = None, mix: str | None = DEFAULT_MIX) -> list[dict]:
     rows = load_train_rows(manifest, tasks_root)
+    mixd = parse_mix(mix) if mix else None
+    if mixd is not None:
+        rows = [r for r in rows if tier_of(r) in mixd]
     metas = {r["id"]: json.loads((task_dir_of(tasks_root, r) / "hidden" / "meta.json").read_text())
              for r in rows}
-    chosen = select_tasks(rows, metas, n, seed)
-    chosen.sort(key=lambda r: (r["family"], r["id"]))
+    pub = {r["id"]: public_text(task_dir_of(tasks_root, r)) for r in rows}
+    chosen = select_tasks(rows, metas, n, seed, mixd, pub)
+    chosen.sort(key=lambda r: (TIERS.index(tier_of(r)) if tier_of(r) in TIERS else 9, r["family"], r["id"]))
     out.mkdir(parents=True, exist_ok=True)
     for old in out.iterdir():
         if old.is_dir() and re.match(r"\d\d+-pcbr2?-", old.name):
             shutil.rmtree(old)
     width = max(2, len(str(len(chosen))))
-    jobs = [(r, str(task_dir_of(tasks_root, r)), str(out), i + 1, task_features(r, metas[r["id"]])["reasons"], width)
-            for i, r in enumerate(chosen)]
+    jobs = [(r, str(task_dir_of(tasks_root, r)), str(out), i + 1,
+             task_features(r, metas[r["id"]], pub[r["id"]])["reasons"], width) for i, r in enumerate(chosen)]
     if workers > 1 and len(jobs) > 1:
         import multiprocessing as mp
         with mp.get_context("spawn").Pool(workers) as pool:
@@ -868,7 +1515,8 @@ def build(n: int, out: Path, seed: int, manifest: Path, tasks_root: Path, worker
     else:
         summaries = [_build_job(j) for j in jobs]
     idx = index if index is not None else out.parent / "INDEX.md"
-    idx.write_text(render_index(summaries, n, seed), encoding="utf-8")
+    idx.write_text(render_index(summaries, n, seed, mix or "", dict(Counter(tier_of(r) for r in rows))),
+                   encoding="utf-8")
     (idx.parent / "review_template.yaml").write_text(
         REVIEW_TEMPLATE.format(packet="<packet>", task_id="<task id>"), encoding="utf-8")
     return summaries
@@ -913,6 +1561,10 @@ def review_status(d: dict) -> str:
     return "complete" if len(filled) == len(REVIEW_FIELDS) else "partial"
 
 
+DISPUTE_KEYS = ("task_fair", "solvable_from_public_material", "reference_fix_correct", "verifier_verdict_agrees",
+                "rule_stated_clearly", "layout_rule_reasonable")
+
+
 def _agrees(d: dict) -> bool:
     return (_norm(d.get("verifier_verdict_agrees")) == "yes" and _norm(d.get("reference_fix_correct")) == "yes"
             and _norm(d.get("task_fair")) == "yes")
@@ -920,7 +1572,7 @@ def _agrees(d: dict) -> bool:
 
 def _disputes(d: dict) -> list[str]:
     out = []
-    for k in ("task_fair", "solvable_from_public_material", "reference_fix_correct", "verifier_verdict_agrees"):
+    for k in DISPUTE_KEYS:
         v = _norm(d.get(k))
         if v in ("no", "unsure"):
             out.append(f"{k}={v}")
@@ -963,8 +1615,7 @@ def tally(packets_dir: Path) -> dict:
         if not any_filled:
             pending.append(p.name)
         if len(complete) >= 2:
-            keys = ("task_fair", "solvable_from_public_material", "reference_fix_correct", "verifier_verdict_agrees")
-            if len({tuple(_norm(d.get(k)) for k in keys) for d in complete}) > 1:
+            if len({tuple(_norm(d.get(k)) for k in DISPUTE_KEYS) for d in complete}) > 1:
                 disputed.append((p.name, "reviewers disagree"))
     reviewers = {r: {"complete": len(v), "agree": sum(x["agrees"] for x in v),
                      "rate": (sum(x["agrees"] for x in v) / len(v)) if v else None} for r, v in sorted(by_reviewer.items())}
@@ -1003,13 +1654,15 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("--manifest", default=str(ROOT / "tasks" / "manifest.jsonl"))
     b.add_argument("--tasks", default=str(ROOT / "tasks"))
     b.add_argument("--workers", type=int, default=4)
+    b.add_argument("--mix", default=DEFAULT_MIX,
+                   help=f"tier quotas as percentages (default {DEFAULT_MIX}); holdout splits are never sampled")
     t = sub.add_parser("tally")
     t.add_argument("packets")
     t.add_argument("--json", action="store_true")
     a = ap.parse_args(argv)
     if a.cmd == "build":
         t0 = time.monotonic()
-        s = build(a.n, Path(a.out), a.seed, Path(a.manifest), Path(a.tasks), a.workers)
+        s = build(a.n, Path(a.out), a.seed, Path(a.manifest), Path(a.tasks), a.workers, mix=a.mix)
         dt = time.monotonic() - t0
         bad = [x["packet"] for x in s if x["faulted_reward"] != 0.0 or x["golden_reward"] != 1.0]
         print(f"built {len(s)} packets in {dt:.1f} s ({dt / max(len(s), 1):.2f} s/packet, {a.workers} workers)",
