@@ -163,3 +163,23 @@ def test_pack_deterministic(runs, tmp_path):
     G.pack(root / "a" / tid, tmp_path / "x.tar.gz", "t")
     G.pack(root / "b" / tid, tmp_path / "y.tar.gz", "t")
     assert (tmp_path / "x.tar.gz").read_bytes() == (tmp_path / "y.tar.gz").read_bytes()
+
+
+def test_v21_holdout_membership_pinned_to_v20():
+    """v2.1 regeneration keeps every generator index on the same side of the train / holdout line as
+    in v2.0 (`--holdout-pin`): no v2.0 training golden became a v2.1 holdout task or vice versa."""
+    import json as _json
+    from pathlib import Path as _P
+    from pcbenv.generate import holdout_pins
+    root = _P(__file__).resolve().parent.parent / "tasks"
+    arch = root / "v2.0_archive" / "private"
+    if not arch.is_dir() or not (root / "private").is_dir():
+        pytest.skip("v2.0 archive / private manifests not present (generation machine only)")
+    for tier in ("normal", "hard", "hard_layout"):
+        old, new = holdout_pins(str(arch / f"{tier}.jsonl")), holdout_pins(str(root / "private" / f"{tier}.jsonl"))
+        both = set(old) & set(new)
+        assert len(both) > 100, tier
+        assert all(old[i] == new[i] for i in both), tier
+        rows = [_json.loads(x) for x in (root / "private" / f"{tier}.jsonl").read_text().splitlines() if x.strip()]
+        n = sum("id" in r for r in rows)
+        assert abs(sum(new.values()) / n - 0.2) < 0.02, tier

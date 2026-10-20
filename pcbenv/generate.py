@@ -424,9 +424,25 @@ def run_pool(fn, jobs: list, workers: int, log, every: int = 25, maxtasks: int =
     return results
 
 
+def holdout_pins(path: str | None) -> dict[int, bool]:
+    """{generator index: was holdout} from a previous release's private manifest (v2.1: keeps every
+    index on the same side of the train/holdout line as in v2.0, so no v2.0 training task's golden
+    becomes a v2.1 holdout task or vice versa)."""
+    if not path:
+        return {}
+    out = {}
+    for e in load_manifest(path):
+        if "id" in e and "index" in e:
+            out[int(e["index"])] = str(e.get("split", "")).endswith("_holdout")
+    return out
+
+
 def finalize(results: list[dict], outp: Path, holdp: Path, staging: Path, holdout_frac: float,
-             tasks_root: Path, dedupe_against: list[str] | None, private: str | None) -> tuple[list, list]:
+             tasks_root: Path, dedupe_against: list[str] | None, private: str | None,
+             holdout_pin: str | None = None) -> tuple[list, list]:
     """Dedupe, split (smallest sha256(id) -> holdout), move into place, write manifests.
+    `holdout_pin` (a previous private manifest): indices listed there keep their side of the split;
+    only the other indices are assigned by hash, up to the holdout fraction.
     Returns (accepted, dropped). Public manifest rows carry no seed/index (RT37)."""
     seen_pairs, seen_fhash, seen_ids = set(), set(), set()
     for m in dedupe_against or []:
@@ -450,8 +466,11 @@ def finalize(results: list[dict], outp: Path, holdp: Path, staging: Path, holdou
         seen_ids.add(e["id"])
         accepted.append(e)
     n_hold = round(holdout_frac * len(accepted))
-    by_hash = sorted(accepted, key=lambda e: hashlib.sha256(e["id"].encode()).hexdigest())
-    hold = {e["id"] for e in by_hash[:n_hold]}
+    pins = holdout_pins(holdout_pin)
+    hold = {e["id"] for e in accepted if pins.get(e["index"]) is True}
+    free_rows = [e for e in accepted if e["index"] not in pins]
+    by_hash = sorted(free_rows, key=lambda e: hashlib.sha256(e["id"].encode()).hexdigest())
+    hold |= {e["id"] for e in by_hash[:max(0, n_hold - len(hold))]}
     for e in accepted:
         dst_root = holdp if e["id"] in hold else outp
         e["holdout"] = e["id"] in hold
@@ -480,7 +499,8 @@ def finalize(results: list[dict], outp: Path, holdp: Path, staging: Path, holdou
 
 def generate(out: str, start: int, count: int, holdout_frac: float = 0.2, workers: int = 4,
              dedupe_against: list[str] | None = None, log=print, holdout_out: str | None = None,
-             secret: str = "default", private: str | None = None, tasks_root: str | None = None) -> dict:
+             secret: str = "default", private: str | None = None, tasks_root: str | None = None,
+             holdout_pin: str | None = None) -> dict:
     """Normal tier: task indices [start, start+count). `secret` is the secret itself (see
     `taskids.load_secret`); `holdout_out` defaults to `<out>_holdout`; split names in the manifest
     are the split dirs relative to `tasks_root` (default: the parent of `out`)."""
@@ -496,7 +516,8 @@ def generate(out: str, start: int, count: int, holdout_frac: float = 0.2, worker
     staging.mkdir(parents=True)
     jobs = [(i, str(staging), secret) for i in range(start, start + count)]
     results = run_pool(build_one, jobs, workers, log)
-    accepted, dropped = finalize(results, outp, holdp, staging, holdout_frac, troot, dedupe_against, private)
+    accepted, dropped = finalize(results, outp, holdp, staging, holdout_frac, troot, dedupe_against, private,
+                                 holdout_pin)
 
     # statistics (per fault type: attempts / validity / detection)
     per_type = {t: {"attempts": 0, "applied": 0, "invalid": 0, "not_applicable": 0, "alone_checked": 0,
@@ -569,6 +590,8 @@ def main(argv: list[str] | None = None) -> int:
                     "for the documented public reproducibility secret")
     ap.add_argument("--create-secret", action="store_true", help="create the secret file if missing")
     ap.add_argument("--private", default=None, help="private manifest (ids -> index/seed), e.g. tasks/private/normal.jsonl")
+    ap.add_argument("--holdout-pin", default=None, help="previous private manifest: its indices keep their train/holdout "
+                                                       "side (v2.1: tasks/v2.0_archive/private/<tier>.jsonl)")
     ap.add_argument("--combine", nargs="*", metavar="SPLIT_DIR", help="only write --manifest from these split dirs")
     ap.add_argument("--manifest", default="tasks/manifest.jsonl")
     ap.add_argument("--pack", metavar="V2_ROOT", help="only write deterministic tarballs of V2_ROOT/<split>")
@@ -589,14 +612,16 @@ def main(argv: list[str] | None = None) -> int:
         from pcbenv.generate_hard_layout import generate_hard_layout
         st = generate_hard_layout(out, a.holdout_out or f"{out}_holdout", a.start, a.count, a.holdout_frac, a.workers,
                                   secret=secret, private=a.private, tasks_root=a.tasks_root,
-                                  dedupe_against=a.dedupe_against)
+                                  dedupe_against=a.dedupe_against, holdout_pin=a.holdout_pin)
     elif a.tier == "hard":
         from pcbenv.generate_hard import generate_hard
         st = generate_hard(out, a.holdout_out or f"{out}_holdout", a.start, a.count, a.holdout_frac, a.workers,
-                           secret=secret, private=a.private, tasks_root=a.tasks_root, dedupe_against=a.dedupe_against)
+                           secret=secret, private=a.private, tasks_root=a.tasks_root, dedupe_against=a.dedupe_against,
+                           holdout_pin=a.holdout_pin)
     else:
         st = generate(out, a.start, a.count, a.holdout_frac, a.workers, a.dedupe_against,
-                      holdout_out=a.holdout_out, secret=secret, private=a.private, tasks_root=a.tasks_root)
+                      holdout_out=a.holdout_out, secret=secret, private=a.private, tasks_root=a.tasks_root,
+                      holdout_pin=a.holdout_pin)
     print(json.dumps({k: v for k, v in st.items() if k not in ("per_type", "dropped_tasks")}, indent=2))
     return 0 if st["accepted"] else 1
 

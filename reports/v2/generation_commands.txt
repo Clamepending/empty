@@ -1,8 +1,8 @@
 python3 -c "from pcbenv.taskids import load_secret; load_secret('tasks/.secret', create=True)"   # once; keep private
 python3 -m pcbenv.generate --tier normal --out tasks/v2/normal --holdout-out tasks/v2/normal_holdout --start 0 --count 822 --workers 4 --secret tasks/.secret --private tasks/private/normal.jsonl
-python3 -m pcbenv.generate --tier hard --out tasks/v2/hard --holdout-out tasks/v2/hard_holdout --start 0 --count 640 --workers 4 --secret tasks/.secret --private tasks/private/hard.jsonl
+python3 -m pcbenv.generate --tier hard --out tasks/v2/hard --holdout-out tasks/v2/hard_holdout --start 0 --count 640 --workers 4 --secret tasks/.secret --private tasks/private/hard.jsonl --holdout-pin tasks/v2.0_archive/private/hard.jsonl
 python3 -m pcbenv.layout_rules --sweep 50 --out reports/v2/layout_rules_sweep.txt
-python3 -m pcbenv.generate --tier hard_layout --out tasks/v2/hard_layout --holdout-out tasks/v2/hard_layout_holdout --start 0 --count 205 --workers 4 --secret tasks/.secret --private tasks/private/hard_layout.jsonl
+python3 -m pcbenv.generate --tier hard_layout --out tasks/v2/hard_layout --holdout-out tasks/v2/hard_layout_holdout --start 0 --count 205 --workers 4 --secret tasks/.secret --private tasks/private/hard_layout.jsonl --holdout-pin tasks/v2.0_archive/private/hard_layout.jsonl
 python3 -m pcbenv.generate --combine tasks/v2/normal tasks/v2/normal_holdout tasks/v2/hard tasks/v2/hard_holdout tasks/v2/hard_layout tasks/v2/hard_layout_holdout --manifest tasks/manifest.jsonl
 python3 -m pcbenv.generate --pack tasks/v2 --dist dist
 python3 -m pcbenv.generate --tier normal --out tasks/refresh-v2/normal --start 100000 --count 120 --holdout-frac 0 --workers 4 --secret tasks/.secret --dedupe-against tasks/manifest.jsonl --private tasks/private/refresh_normal.jsonl

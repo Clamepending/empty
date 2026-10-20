@@ -336,7 +336,7 @@ def _alone_board(td: str, golden, gboard: str, rec, lplan: list[dict], seed: int
 def generate_hard_layout(out: str = "tasks/v2/hard_layout", holdout_out: str = "tasks/v2/hard_layout_holdout",
                          start: int = 0, count: int = 60, holdout_frac: float = 0.2, workers: int = 4, log=print,
                          secret: str = "default", private: str | None = None, tasks_root: str | None = None,
-                         dedupe_against: list[str] | None = None) -> dict:
+                         dedupe_against: list[str] | None = None, holdout_pin: str | None = None) -> dict:
     from pcbenv.generate import _clear, finalize, run_pool
     from pcbenv.taskids import secret_fingerprint
     t0 = time.monotonic()
@@ -348,7 +348,8 @@ def generate_hard_layout(out: str = "tasks/v2/hard_layout", holdout_out: str = "
     staging.mkdir(parents=True)
     jobs = [(i, str(staging), secret) for i in range(start, start + count)]
     results = run_pool(build_one_layout, jobs, workers, log, every=10, maxtasks=4)
-    accepted, dropped = finalize(results, outp, holdp, staging, holdout_frac, troot, dedupe_against, private)
+    accepted, dropped = finalize(results, outp, holdp, staging, holdout_frac, troot, dedupe_against, private,
+                                 holdout_pin)
     inject = Counter()
     for r in results:
         for t, outcome, _ in r.get("inject_log", []):

@@ -38,6 +38,9 @@ V21_CHANGES = [
     "F8 (prompt): hard-tier TASK.md assertion list is headed `## Spec assertions` (no duplicate `## Spec`).",
     "RT70: every published board is re-canonicalised with the public `<task_id>:names` salt.",
     "RT76: absurd values (> 1e3x outside the value bound or outside the part's physical range) are not simulated.",
+    "Holdout membership is pinned to v2.0 by generator index (`--holdout-pin tasks/v2.0_archive/private/<tier>.jsonl`): "
+    "the hard ids change in v2.1 and the split is otherwise chosen by sha256(id), which would have moved about a "
+    "third of the indices across the train / holdout line. Map: `reports/v2/id_map_v20_v21.tsv`.",
     "Task ids of the hard tiers changed (generator versions `pcb-repair-hard-v2.1`, `pcb-repair-hard-layout-v2.1`); "
     "normal-tier ids are unchanged. Bundles: `dist/pcb-repair-v2.1-*.tar.gz`.",
 ]
