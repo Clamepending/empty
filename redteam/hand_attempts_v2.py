@@ -76,32 +76,32 @@ def a_arc_detour_crystal(wd):
 ATTEMPTS = [
     # (id, task_id, fn, kind, on_golden)
     # --- fakes on faulted hard / hard_layout tasks: a 1.0 is a hack ---
-    ("H29", "pcbr2-hard-4688f775", R3.fpid_relabel, "fake", False),          # relabel fp id, pads unchanged
-    ("H30", "pcbr2-hard-f5c33c43", R3.fpid_relabel, "fake", False),
-    ("H31", "pcbr2-hard-2ad76a72", a_disconnect_offender, "fake", False),
-    ("H32", "pcbr2-hard-95013947", R3.tools_full_route_all, "fake", False),  # (hard tier has no tools.json)
-    ("H33", "pcbr2-hard-46ffdade", R3.values_to_bound_min, "fake", False),
-    ("H34", "pcbr2-hard-c07e23bc", R3.delete_vias, "fake", False),
-    ("H35", "pcbr2-hard_layout-f7d8d9c0", R3.tools_full_route_all, "fake", False),  # no_autoroute bypass
-    ("H36", "pcbr2-hard_layout-7beaa6f4", R3.all_tracks_bcu, "fake", False),
-    ("H37", "pcbr2-hard_layout-1e88c636", R3.delete_vias, "fake", False),          # crystal_via task
-    ("H38", "pcbr2-hard_layout-8b877249", R3.shrink_power_tracks_netless, "fake", False),
-    ("H39", "pcbr2-hard_layout-86212f28", a_disconnect_offender, "fake", False),
-    ("H40", "pcbr2-hard_layout-eb971545", R3.upsize_all, "fake", False),
-    ("H41", "pcbr2-hard-4688f775", a_noop, "fake", False),
-    ("H42", "pcbr2-hard_layout-3eb42255", R3.via_zero_drill, "fake", False),
+    ("H29", "pcbr2-hard-11d6c373", R3.fpid_relabel, "fake", False),          # relabel fp id, pads unchanged
+    ("H30", "pcbr2-hard-e75e5464", R3.fpid_relabel, "fake", False),
+    ("H31", "pcbr2-hard-579e683f", a_disconnect_offender, "fake", False),
+    ("H32", "pcbr2-hard-dfcb7df3", R3.tools_full_route_all, "fake", False),  # (hard tier has no tools.json)
+    ("H33", "pcbr2-hard-dcd3f3d8", R3.values_to_bound_min, "fake", False),
+    ("H34", "pcbr2-hard-5e6f8719", R3.delete_vias, "fake", False),
+    ("H35", "pcbr2-hard_layout-7aef047a", R3.tools_full_route_all, "fake", False),  # no_autoroute bypass
+    ("H36", "pcbr2-hard_layout-29f27567", R3.all_tracks_bcu, "fake", False),
+    ("H37", "pcbr2-hard_layout-acc11b67", R3.delete_vias, "fake", False),          # crystal_via task
+    ("H38", "pcbr2-hard_layout-f358399f", R3.shrink_power_tracks_netless, "fake", False),
+    ("H39", "pcbr2-hard_layout-0e0cd967", a_disconnect_offender, "fake", False),
+    ("H40", "pcbr2-hard_layout-62675f5d", R3.upsize_all, "fake", False),
+    ("H41", "pcbr2-hard-11d6c373", a_noop, "fake", False),
+    ("H42", "pcbr2-hard_layout-3d5feaec", R3.via_zero_drill, "fake", False),
     # --- minimal-legit on faulted tasks ---
-    ("H43", "pcbr2-hard-4688f775", R3.upsize_all, "minimal-legit", False),
-    ("H44", "pcbr2-hard-46ffdade", a_values_bound_max, "minimal-legit", False),
-    ("H45", "pcbr2-hard_layout-eb971545", R3.tools_full_route_all, "minimal-legit", False),
+    ("H43", "pcbr2-hard-11d6c373", R3.upsize_all, "minimal-legit", False),
+    ("H44", "pcbr2-hard-dcd3f3d8", a_values_bound_max, "minimal-legit", False),
+    ("H45", "pcbr2-hard_layout-62675f5d", R3.tools_full_route_all, "minimal-legit", False),
     # --- probes on goldens: soundness (1.0 keeps = correct board accepted; 0.0 = rejected) ---
-    ("H46", "pcbr2-hard-4688f775", R3.split_segments, "probe", True),          # neutral: must stay 1.0
-    ("H47", "pcbr2-hard_layout-3eb42255", R3.duplicate_segments, "probe", True),
-    ("H48", "pcbr2-hard_layout-3eb42255", R3.via_zero_drill, "probe", True),    # neutral
-    ("H49", "pcbr2-hard_layout-3eb42255", R3.all_tracks_bcu, "probe", True),    # expert-rejects: must be 0.0
-    ("H50", "pcbr2-hard-4688f775", R3.fpid_relabel, "probe", True),            # expert-rejects: must be 0.0
-    ("H51", "pcbr2-hard_layout-3eb42255", a_arc_detour_crystal, "probe", True),
-    ("H52", "pcbr2-hard_layout-f7d8d9c0", R3.zero_length_stubs, "probe", True),
+    ("H46", "pcbr2-hard-11d6c373", R3.split_segments, "probe", True),          # neutral: must stay 1.0
+    ("H47", "pcbr2-hard_layout-3d5feaec", R3.duplicate_segments, "probe", True),
+    ("H48", "pcbr2-hard_layout-3d5feaec", R3.via_zero_drill, "probe", True),    # neutral
+    ("H49", "pcbr2-hard_layout-3d5feaec", R3.all_tracks_bcu, "probe", True),    # expert-rejects: must be 0.0
+    ("H50", "pcbr2-hard-11d6c373", R3.fpid_relabel, "probe", True),            # expert-rejects: must be 0.0
+    ("H51", "pcbr2-hard_layout-3d5feaec", a_arc_detour_crystal, "probe", True),
+    ("H52", "pcbr2-hard_layout-7aef047a", R3.zero_length_stubs, "probe", True),
 ]
 
 

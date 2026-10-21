@@ -305,9 +305,9 @@ Orchestrator test run (`reports/v2/orchestrator_test_run.txt`): 1030 tests passe
 | tier | tasks | train | holdout | families | fault types | fault instances | latent faults (share of instances) | layout-latent faults | tasks with ≥1 DRC/ERC-invisible fault |
 |---|---|---|---|---|---|---|---|---|---|
 | normal | 819 | 655 | 164 (20 %) | 10 | 19 | 1494 | 0 (0 %) | 0 | 674 (82 %) |
-| hard | 452 | 362 | 90 (20 %) | 9 | 32 | 1949 | 1020 (52 %) | 0 | 452 (100 %) |
-| hard_layout | 193 | 154 | 39 (20 %) | 2 | 31 | 830 | 458 (55 %) | 265 | 193 (100 %) |
-| **all v2** | 1464 | 1171 | 293 |  | 38 | 4273 |  |  |  |
+| hard | 462 | 370 | 92 (20 %) | 9 | 32 | 2002 | 1040 (52 %) | 0 | 462 (100 %) |
+| hard_layout | 192 | 153 | 39 (20 %) | 2 | 31 | 824 | 455 (55 %) | 263 | 192 (100 %) |
+| **all v2** | 1473 | 1178 | 295 |  | 38 | 4320 |  |  |  |
 
 v1 (historical, git `b1a1255`): 818 tasks, 164 holdout, 10 families, 19 fault types.
 
@@ -318,14 +318,14 @@ v1 (historical, git `b1a1255`): 818 tasks, 164 holdout, 10 families, 19 fault ty
 | divider_adc | 83 | – | – |
 | ldo_reg | 82 | 10 | – |
 | led_driver | 82 | 12 | – |
-| mcu_i2c | 82 | 10 | – |
-| nmos_switch | 81 | 17 | – |
+| mcu_i2c | 82 | 21 | – |
+| nmos_switch | 81 | 16 | – |
 | npn_switch | 81 | 22 | – |
 | opamp_inv | 82 | – | – |
 | opamp_noninv | 82 | – | – |
 | rc_lowpass | 82 | – | – |
 | sys_analog_frontend | – | 89 | – |
-| sys_clocked_mcu | – | 101 | 84 |
+| sys_clocked_mcu | – | 101 | 83 |
 | sys_motor_ctrl | – | 96 | 109 |
 | sys_sensor_node | – | 95 | – |
 | xtal_osc | 82 | – | – |
@@ -336,69 +336,69 @@ v1 (historical, git `b1a1255`): 818 tasks, 164 holdout, 10 families, 19 fault ty
 |---|---|---|---|
 | 1 | 345 | – | – |
 | 2 | 273 | – | – |
-| 3 | 201 | 111 | 46 |
-| 4 | – | 161 | 74 |
-| 5 | – | 108 | 42 |
-| 6 | – | 72 | 31 |
+| 3 | 201 | 111 | 47 |
+| 4 | – | 163 | 73 |
+| 5 | – | 111 | 41 |
+| 6 | – | 77 | 31 |
 
 **By hint level** (tasks)
 
 | hint level | normal | hard | hard_layout |
 |---|---|---|---|
 | explicit | 258 | – | – |
-| symptom | 311 | 225 | 97 |
-| vague | 250 | 227 | 96 |
+| symptom | 311 | 230 | 95 |
+| vague | 250 | 232 | 97 |
 
 **By tool mode** (tasks)
 
 | tool mode | normal | hard | hard_layout |
 |---|---|---|---|
-| full | – | 276 | 24 |
+| full | – | 281 | 24 |
 | full (no tools.json) | 819 | – | – |
-| no_autoroute | – | 176 | 169 |
+| no_autoroute | – | 181 | 168 |
 
 **Fault instances by type**
 
 | fault type | category | normal | hard | hard_layout |
 |---|---|---|---|---|
 | `board_pad_swap` | board | 73 | 43 | 20 |
-| `broken_trace` | board | 105 | 47 | 26 |
-| `clearance_violation` | board | 84 | 30 | 16 |
+| `broken_trace` | board | 105 | 56 | 26 |
+| `clearance_violation` | board | 84 | 31 | 15 |
 | `decap_moved_far` | board | 83 | 5 | 9 |
-| `footprint_swap` | board | 85 | 41 | 17 |
+| `footprint_swap` | board | 85 | 42 | 17 |
 | `narrow_power_trace` | board | 84 | 33 | 20 |
 | `short_between_nets` | board | 84 | 28 | 13 |
-| `decap_misconnected` | connectivity | 58 | 11 | 17 |
-| `floating_pin` | connectivity | 109 | 91 | 32 |
-| `pin_to_wrong_net` | connectivity | 84 | 21 | 12 |
-| `reversed_polarity` | connectivity | 60 | 33 | 24 |
-| `swapped_ic_pins` | connectivity | 69 | 75 | 22 |
-| `transistor_pinout` | connectivity | 50 | 52 | 14 |
-| `analog_near_switch` | latent | – | – | 39 |
-| `bias_wrong_rail` | latent | – | 144 | 21 |
-| `capacitor_underrated` | latent | – | 163 | 22 |
-| `connector_pin_swap` | latent | – | 126 | 45 |
-| `crystal_far` | latent | – | – | 35 |
+| `decap_misconnected` | connectivity | 58 | 13 | 16 |
+| `floating_pin` | connectivity | 109 | 91 | 29 |
+| `pin_to_wrong_net` | connectivity | 84 | 20 | 13 |
+| `reversed_polarity` | connectivity | 60 | 33 | 23 |
+| `swapped_ic_pins` | connectivity | 69 | 74 | 21 |
+| `transistor_pinout` | connectivity | 50 | 47 | 16 |
+| `analog_near_switch` | latent | – | – | 42 |
+| `bias_wrong_rail` | latent | – | 144 | 20 |
+| `capacitor_underrated` | latent | – | 162 | 22 |
+| `connector_pin_swap` | latent | – | 119 | 46 |
+| `crystal_far` | latent | – | – | 34 |
 | `crystal_via` | latent | – | – | 38 |
-| `decap_long_path` | latent | – | – | 67 |
+| `decap_long_path` | latent | – | – | 68 |
 | `decap_swapped` | latent | – | 63 | – |
 | `decap_wrong_rail` | latent | – | 116 | – |
-| `flyback_misplaced` | latent | – | 57 | – |
-| `kelvin_sense_tap` | latent | – | – | 49 |
+| `flyback_misplaced` | latent | – | 74 | – |
+| `kelvin_sense_tap` | latent | – | – | 48 |
 | `led_underrated` | latent | – | 16 | – |
-| `mcu_pin_swap` | latent | – | 136 | 53 |
+| `mcu_pin_swap` | latent | – | 147 | 51 |
 | `protection_bypassed` | latent | – | 84 | 36 |
-| `pullup_wrong_rail` | latent | – | 37 | 16 |
+| `pullup_wrong_rail` | latent | – | 37 | 17 |
 | `resistor_underrated` | latent | – | 42 | – |
-| `switch_loop_spread` | latent | – | – | 37 |
+| `switch_loop_spread` | latent | – | – | 33 |
 | `weak_base_drive` | latent | – | 36 | – |
-| `bom_mismatch` | value | 119 | 60 | 13 |
+| `bom_mismatch` | value | 119 | 68 | 13 |
 | `interacting_value` | value | – | 28 | – |
-| `magnitude_slip` | value | 98 | 53 | 17 |
+| `magnitude_slip` | value | 98 | 64 | 17 |
 | `wrong_feedback_resistor` | value | 57 | 68 | 32 |
 | `wrong_filter_cap` | value | 86 | 64 | 19 |
 | `wrong_led_resistor` | value | 50 | 87 | 31 |
-| `wrong_pull_resistor` | value | 56 | 59 | 18 |
+| `wrong_pull_resistor` | value | 56 | 67 | 19 |
 
 ## 9. Red team (G5)
 
@@ -450,8 +450,9 @@ sha256 prefixes of the exact bytes read:
 
 | input | sha256[:16] |
 |---|---|
+| `git 5ec43d1:tasks/manifest.jsonl` | 0b5a75b610ddb8d4 |
 | `git b1a1255:tasks/manifest.jsonl` | 4468a8a1ff8b8330 |
-| `redteam/exploits.md` | fcfd118c09269ea4 |
+| `redteam/exploits.md` | 7e87782bf1b62cec |
 | `redteam/runs/fixture_n1000_seed0.txt` | fa0f7ba4d28abc55 |
 | `redteam/runs/hand_attempts.txt` | fd611aec47c6f392 |
 | `redteam/runs/shipped_n1200_seed0.txt` | 5dd9c4c4585d5d41 |
@@ -465,5 +466,5 @@ sha256 prefixes of the exact bytes read:
 | `reports/calibration/v2hard_layout/rollouts.jsonl` | 4e0a0d3c6bad5bf9 |
 | `reports/v2/orchestrator_test_run.txt` | dd43909acce0dba5 |
 | `reports/v2/recheck_all_tasks_after_drc_fix.jsonl` | 4b91d133eb3588b4 |
-| `tasks/manifest.jsonl` | 0b5a75b610ddb8d4 |
+| `tasks/manifest.jsonl` | 417276b1a5f4d77f |
 | `thresholds.yaml` | e35d74557dca9a1c |

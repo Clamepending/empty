@@ -1,0 +1,25 @@
+# v2.1 test run (one pytest process per file): for f in tests/test_*.py redteam/test_redteam.py; do python3 -m pytest -q -p no:cacheprovider $f | tail -1; done
+tests/test_adapters.py 19 passed in 10.06s
+tests/test_board.py 165 passed in 120.52s (0:02:00)
+tests/test_bounds_policy.py 58 passed in 30.11s
+tests/test_determinism.py 4 passed in 13.91s
+tests/test_drc_rules.py 1 passed in 0.20s
+tests/test_families.py 105 passed in 135.10s (0:02:15)
+tests/test_faults.py 23 passed in 39.83s
+tests/test_generate.py 10 passed in 24.05s
+tests/test_harness.py 5 passed in 6.00s
+tests/test_latent.py 78 passed in 259.25s (0:04:19)
+tests/test_layout_rules.py 30 passed in 318.57s (0:05:18)
+tests/test_onboarding_paths.py 20 passed in 6.95s
+tests/test_qa.py 9 passed in 25.54s
+tests/test_rules.py 22 passed in 73.66s (0:01:13)
+tests/test_sim.py 23 passed in 1.28s
+tests/test_sim_convergence.py 13 passed in 12.58s
+tests/test_tool.py 12 passed in 35.79s
+tests/test_v2_hardening.py 37 passed in 8.62s
+tests/test_value_bounds.py 41 passed in 20.12s
+tests/test_verify.py 327 passed in 169.39s (0:02:49)
+redteam/test_redteam.py 14 failed, 118 passed in 99.43s (0:01:39)
+DONE
+# redteam failures: test_blocked_hand_attempt_v2[H29..H42] -> KeyError: they pin v2.0 hard/hard_layout task ids that v2.1 renamed (redteam/ is read-only for builders).
+# The same 14 fake attempts on the archived v2.0 tasks with the v2.1 verifier: reports/v2/redteam_hand_attempts_on_v20_archive.txt (14/14 at 0.0).

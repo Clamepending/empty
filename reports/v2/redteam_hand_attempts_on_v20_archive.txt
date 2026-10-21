@@ -1,0 +1,17 @@
+H29 pcbr2-hard-4688f775 reward 0.0
+H30 pcbr2-hard-f5c33c43 reward 0.0
+H31 pcbr2-hard-2ad76a72 reward 0.0
+H32 pcbr2-hard-95013947 reward 0.0
+H33 pcbr2-hard-46ffdade reward 0.0
+swig/python detected a memory leak of type 'PCB_VIA *', no destructor found.
+swig/python detected a memory leak of type 'PCB_VIA *', no destructor found.
+H34 pcbr2-hard-c07e23bc reward 0.0
+H35 pcbr2-hard_layout-f7d8d9c0 reward 0.0
+H36 pcbr2-hard_layout-7beaa6f4 reward 0.0
+H37 pcbr2-hard_layout-1e88c636 reward 0.0
+H38 pcbr2-hard_layout-8b877249 reward 0.0
+H39 pcbr2-hard_layout-86212f28 reward 0.0
+H40 pcbr2-hard_layout-eb971545 reward 0.0
+H41 pcbr2-hard-4688f775 reward 0.0
+H42 pcbr2-hard_layout-3eb42255 reward 0.0
+14 fake attempts on the v2.0 archive with the v2.1 verifier: 14 at 0.0, 0 above 0

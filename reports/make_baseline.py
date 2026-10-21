@@ -27,6 +27,9 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "reports" / "baseline.md"
 CMD = "python3 reports/make_baseline.py && python3 reports/make_baseline.py --check"
 V1_MANIFEST_COMMIT = "b1a1255"  # "G4+G10: 19 fault types, 818 gated tasks": last commit with the v1 manifest
+# v2 calibration ran on v2.0 tasks; v2.1 regenerated the hard tiers with new ids, so calibration
+# rows are looked up in the last v2.0 manifest (task-set stats still use the current manifest).
+V20_MANIFEST_COMMIT = "5ec43d1"
 MODELS = ("haiku", "sonnet", "opus")
 Z = 1.959964  # 95 % two-sided
 
@@ -98,10 +101,11 @@ def table(header: list[str], rows: list[list[str]]) -> list[str]:
 def load():
     v2 = {r["id"]: r for r in _jsonl(_read("tasks/manifest.jsonl"))}
     v1 = {r["id"]: r for r in _jsonl(_read_git(V1_MANIFEST_COMMIT, "tasks/manifest.jsonl"))}
+    v20 = {r["id"]: r for r in _jsonl(_read_git(V20_MANIFEST_COMMIT, "tasks/manifest.jsonl"))}
     roll = {}
     for key, _, path, src in TIERS:
         rows = _jsonl(_read(path))
-        man = v1 if src == "v1" else v2
+        man = v1 if src == "v1" else v20
         for r in rows:
             r["_m"] = man.get(r["task_id"], {})
         roll[key] = sorted(rows, key=lambda r: (r["job"], r.get("attempt", 0)))
