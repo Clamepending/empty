@@ -48,8 +48,8 @@ separate directory (`data/`), not into the checkout's `tasks/`.
 ```bash
 export PATH="$PWD/bin:$PATH"                                            # puts pcbtool on PATH
 python3 -m pcbenv.api extract dist/pcb-repair-v2.1-normal.tar.gz data       # 655 tasks -> data/v2/normal/
-python3 -m pcbenv.api extract dist/pcb-repair-v2.1-hard.tar.gz data         # 362 tasks -> data/v2/hard/
-python3 -m pcbenv.api splits data                                         # v2/hard 362, v2/normal 655
+python3 -m pcbenv.api extract dist/pcb-repair-v2.1-hard.tar.gz data         # 370 tasks -> data/v2/hard/
+python3 -m pcbenv.api splits data                                         # v2/hard 370, v2/normal 655
 ```
 
 Other bundles:
@@ -269,7 +269,7 @@ From [reports/v2_generation.md](reports/v2_generation.md) (train / holdout):
 | Tier | Families | Faults per task | # tasks |
 |---|---|---|---|
 | normal | 10 v1 families: `ldo_reg`, `led_driver`, `npn_switch`, `nmos_switch`, `opamp_noninv`, `opamp_inv`, `rc_lowpass`, `divider_adc`, `mcu_i2c`, `xtal_osc` | 1–3 of 19 types (wrong values, swapped / floating pins, reversed polarity, decap misconnected or moved, broken / narrow / shorted traces, clearance, footprint and board-pad swaps, BOM mismatch) | 655 / 164 |
-| hard | 4 composite boards (`sys_sensor_node`, `sys_motor_ctrl`, `sys_clocked_mcu`, `sys_analog_frontend`, 84 %) + 5 v1 families | 3–6, ≥ 2 latent (12 types: underrated parts, weak base drive, misplaced flyback, connector / MCU pin swaps, decap on the wrong rail, bias or pull-up to the wrong rail, bypassed protection diode), interacting value faults, 39 % no_autoroute | 362 / 90 |
+| hard | 4 composite boards (`sys_sensor_node`, `sys_motor_ctrl`, `sys_clocked_mcu`, `sys_analog_frontend`, 82 %) + 5 v1 families | 3–6, ≥ 2 latent (12 types: underrated parts, weak base drive, misplaced flyback, connector / MCU pin swaps, decap on the wrong rail, bias or pull-up to the wrong rail, bypassed protection diode), interacting value faults, 39 % no_autoroute | 370 / 92 |
 
 ## Limitations
 

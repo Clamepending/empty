@@ -78,7 +78,7 @@
     {
       "family": null,
       "index": 97,
-      "reason": "exception: BuildError: build failed for sys_clocked_mcu/163841777579520 seed 0: attempt 15: layout rules (with golden margin): ['crystal_trace: U2.PA1->Y1.1: copper path 11.84 mm > 8.0 mm']; attempt 16: layout rules (with golden margin): ['crystal_trace: U2.PA1->Y1.1: copper path 9.35 mm > 8.0 mm', 'crystal_trace: U2.PA2->Y1.2: copper path 8.11 mm > 8.0 mm']; attempt 17: layout rules (with golden margin): ['crystal_trace: U2.PA1->Y1.1: copper path 8.17 mm > 8.0 mm', 'crystal_trace: U2.PA2->Y1.2: copper path 14.86 mm > 8.0 mm']; attempt 18: layout rules (with golden margin): ['crystal_trace: U2.PA1->Y1.1: copper path 9.53 mm > 8.0 mm', 'crystal_trace: U2.PA2->Y1.2: copper path 17.39 mm > 8.0 mm']; attempt 19: layout rules (with golden margin): ['crystal_trace: U2.PA1->Y1.1: copper path 45.14 mm > 8.0 mm', 'crystal_via: U2.PA2->Y1.2: 2 via(s) on the oscillator net']"
+      "reason": "exception: BuildError: build failed for sys_clocked_mcu/163841777579520 seed 0: attempt 16: layout rules (with golden margin): ['crystal_trace: U2.PA1->Y1.1: copper path 9.35 mm > 8.0 mm', 'crystal_trace: U2.PA2->Y1.2: copper path 8.11 mm > 8.0 mm']; attempt 17: layout rules (with golden margin): ['crystal_trace: U2.PA1->Y1.1: copper path 8.17 mm > 8.0 mm', 'crystal_trace: U2.PA2->Y1.2: copper path 14.86 mm > 8.0 mm']; attempt 18: layout rules (with golden margin): ['crystal_trace: U2.PA1->Y1.1: copper path 9.53 mm > 8.0 mm', 'crystal_trace: U2.PA2->Y1.2: copper path 17.39 mm > 8.0 mm']; attempt 19: layout rules (with golden margin): ['crystal_trace: U2.PA1->Y1.1: copper path 45.14 mm > 8.0 mm', 'crystal_via: U2.PA2->Y1.2: 2 via(s) on the oscillator net']; attempt 20: routing failed: no path to U1.2"
     },
     {
       "family": "sys_clocked_mcu",
@@ -98,7 +98,7 @@
     {
       "family": null,
       "index": 128,
-      "reason": "exception: BuildError: build failed for sys_clocked_mcu/82974263321291 seed 0: attempt 30: layout rules (with golden margin): ['crystal_trace: U2.PA1->Y1.1: copper path 9.87 mm > 8.0 mm']; attempt 31: layout rules (with golden margin): ['crystal_trace: U2.PA2->Y1.2: copper path 10.87 mm > 8.0 mm']; attempt 32: layout rules (with golden margin): ['crystal_trace: U2.PA2->Y1.2: copper path 14.30 mm > 8.0 mm']; attempt 33: cannot place C2; attempt 34: routing failed: no path to U1.2"
+      "reason": "exception: BuildError: build failed for sys_clocked_mcu/82974263321291 seed 0: attempt 31: layout rules (with golden margin): ['crystal_trace: U2.PA2->Y1.2: copper path 10.87 mm > 8.0 mm']; attempt 32: layout rules (with golden margin): ['crystal_trace: U2.PA2->Y1.2: copper path 14.30 mm > 8.0 mm']; attempt 33: cannot place C2; attempt 34: layout rules (with golden margin): ['crystal_trace: U2.PA1->Y1.1: copper path 24.02 mm > 8.0 mm', 'crystal_trace: U2.PA2->Y1.2: copper path 8.10 mm > 8.0 mm', 'crystal_via: U2.PA2->Y1.2: 2 via(s) on the oscillator net']; attempt 35: routing failed: no path to U1.2"
     },
     {
       "family": "sys_clocked_mcu",
@@ -243,10 +243,10 @@
     "2": 71
   },
   "per_split": {
-    "v2/hard_layout": 154,
-    "v2/hard_layout_holdout": 38
+    "v2/hard_layout": 153,
+    "v2/hard_layout_holdout": 39
   },
-  "seconds": 2442.8,
+  "seconds": 2378.3,
   "secret_fingerprint": "b9dd97d0757e",
   "visible_types": {
     "board_pad_swap": 20,

@@ -27,7 +27,7 @@ The host had 4 cores and a load average of about 0.5–2.5, with other agents ru
 | 0 | preflight (`import pcbnew, numpy, yaml`; ngspice) | 0 | 0.2 |
 | 1 | `export PATH=...` | 0 | 0.0 |
 | 1 | `api extract ...-normal.tar.gz data` (655 tasks) | 0 | 3.7 |
-| 1 | `api extract ...-hard.tar.gz data` (362 tasks) | 0 | 4.0 |
+| 1 | `api extract ...-hard.tar.gz data` (370 tasks) | 0 | 4.0 |
 | 1 | `api splits data` | 0 | 0.2 |
 | 2 | `api list data --split v2/normal \| head -3` | 0 | 0.2 |
 | 2 | `api list data --split v2/hard \| head -3` | 0 | 0.2 |

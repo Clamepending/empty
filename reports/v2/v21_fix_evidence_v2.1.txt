@@ -1,0 +1,76 @@
+## F1 Kelvin rule (golden / golden with track ends at the shunt-pad centre / kelvin-faulted board)
+  centre variant pcbr2-hard_layout-42b21cef: kelvin_ok=False sense connection R7.1 shares copper with the load-current path from Q1.S outside the shunt pad: it must leave from the shunt pad R6.1 itself, on its own trace (Kelvin)
+  centre variant pcbr2-hard_layout-bd2b591b: kelvin_ok=False sense connection R7.1 shares copper with the load-current path from Q1.S outside the shunt pad: it must leave from the shunt pad R6.1 itself, on its own trace (Kelvin)
+  centre variant pcbr2-hard_layout-da62bc62: kelvin_ok=False sense connection R8.1 shares copper with the load-current path from Q1.S outside the shunt pad: it must leave from the shunt pad R7.1 itself, on its own trace (Kelvin)
+  centre variant pcbr2-hard_layout-f9f19c38: kelvin_ok=False sense connection R8.1 shares copper with the load-current path from Q1.S outside the shunt pad: it must leave from the shunt pad R7.1 itself, on its own trace (Kelvin)
+  centre variant pcbr2-hard_layout-b9ba8959: kelvin_ok=False sense connection R8.1 shares copper with the load-current path from Q1.S outside the shunt pad: it must leave from the shunt pad R7.1 itself, on its own trace (Kelvin)
+  goldens passing 109/109; centre variants passing 104/109 (a failing centre variant = moving the ends made the two tracks merge before the pad edge); kelvin-faulted boards still failing 48/48
+
+## F3 separation: parallel length within 1 mm (v2.0 same-layer / v2.1 both layers), limit 3 mm
+  fault pcbr2-hard_layout-0e081a70: v2.0 15.07 mm, v2.1 15.07 mm
+  fault pcbr2-hard_layout-0ede5e20: v2.0 12.13 mm, v2.1 12.13 mm
+  fault pcbr2-hard_layout-0eef1b7b: v2.0 9.57 mm, v2.1 9.57 mm
+  fault pcbr2-hard_layout-182d279f: v2.0 16.87 mm, v2.1 16.87 mm
+  fault pcbr2-hard_layout-244eae2f: v2.0 25.87 mm, v2.1 27.84 mm
+  fault pcbr2-hard_layout-2beeccfc: v2.0 13.36 mm, v2.1 13.36 mm
+  fault pcbr2-hard_layout-2eb50176: v2.0 18.99 mm, v2.1 19.07 mm
+  fault pcbr2-hard_layout-42b21cef: v2.0 12.54 mm, v2.1 12.54 mm
+  fault pcbr2-hard_layout-463665d8: v2.0 13.67 mm, v2.1 13.90 mm
+  fault pcbr2-hard_layout-493bab09: v2.0 23.48 mm, v2.1 23.63 mm
+  fault pcbr2-hard_layout-5fee28da: v2.0 12.44 mm, v2.1 13.26 mm
+  fault pcbr2-hard_layout-6bdc1c02: v2.0 15.45 mm, v2.1 15.45 mm
+  fault pcbr2-hard_layout-79872425: v2.0 8.44 mm, v2.1 8.81 mm
+  fault pcbr2-hard_layout-80bebe28: v2.0 15.83 mm, v2.1 15.83 mm
+  fault pcbr2-hard_layout-881fc081: v2.0 9.86 mm, v2.1 10.07 mm
+  fault pcbr2-hard_layout-896d385f: v2.0 12.04 mm, v2.1 12.04 mm
+  fault pcbr2-hard_layout-8bc4a143: v2.0 11.37 mm, v2.1 11.37 mm
+  fault pcbr2-hard_layout-958e07f4: v2.0 13.61 mm, v2.1 13.89 mm
+  fault pcbr2-hard_layout-9958fa5d: v2.0 18.65 mm, v2.1 19.23 mm
+  fault pcbr2-hard_layout-a0fb497d: v2.0 22.16 mm, v2.1 22.16 mm
+  fault pcbr2-hard_layout-a3295622: v2.0 13.74 mm, v2.1 13.74 mm
+  fault pcbr2-hard_layout-a60dc9d7: v2.0 13.08 mm, v2.1 13.67 mm
+  fault pcbr2-hard_layout-b30d10de: v2.0 19.05 mm, v2.1 19.27 mm
+  fault pcbr2-hard_layout-b690e219: v2.0 11.83 mm, v2.1 11.83 mm
+  fault pcbr2-hard_layout-c08d4177: v2.0 8.89 mm, v2.1 8.89 mm
+  fault pcbr2-hard_layout-c1bdd373: v2.0 20.54 mm, v2.1 20.54 mm
+  fault pcbr2-hard_layout-c2139701: v2.0 7.22 mm, v2.1 7.22 mm
+  fault pcbr2-hard_layout-c4ed4d7d: v2.0 23.34 mm, v2.1 23.34 mm
+  fault pcbr2-hard_layout-cb2bd022: v2.0 15.38 mm, v2.1 15.38 mm
+  fault pcbr2-hard_layout-da62bc62: v2.0 10.98 mm, v2.1 12.59 mm
+  fault pcbr2-hard_layout-dbd755d9: v2.0 11.74 mm, v2.1 12.98 mm
+  fault pcbr2-hard_layout-f358399f: v2.0 13.34 mm, v2.1 15.14 mm
+  fault pcbr2-hard_layout-fa0254b0: v2.0 14.84 mm, v2.1 14.84 mm
+  fault pcbr2-hard_layout-fca8c2dd: v2.0 11.54 mm, v2.1 11.68 mm
+  fault pcbr2-hard_layout-035b3afa: v2.0 14.54 mm, v2.1 14.54 mm
+  fault pcbr2-hard_layout-065326bf: v2.0 8.08 mm, v2.1 8.08 mm
+  fault pcbr2-hard_layout-08221b83: v2.0 6.97 mm, v2.1 6.97 mm
+  fault pcbr2-hard_layout-08da15c6: v2.0 7.65 mm, v2.1 7.65 mm
+  fault pcbr2-hard_layout-15919e4b: v2.0 15.38 mm, v2.1 15.38 mm
+  fault pcbr2-hard_layout-c0ff9ac6: v2.0 16.35 mm, v2.1 17.39 mm
+  fault pcbr2-hard_layout-c3891f39: v2.0 20.21 mm, v2.1 20.21 mm
+  fault pcbr2-hard_layout-fcb7c1d2: v2.0 13.64 mm, v2.1 13.64 mm
+  goldens: 109; max v2.0 0.00 mm, max v2.1 0.41 mm; goldens over the 0.8x golden target (2.4 mm) under v2.1: 0
+
+## F4 latent evidence gate (requirement sentences only)
+  analog_near_switch       42 latent faults, evidence missing 0
+  bias_wrong_rail         164 latent faults, evidence missing 0
+  capacitor_underrated    184 latent faults, evidence missing 0
+  connector_pin_swap      165 latent faults, evidence missing 0
+  crystal_far              34 latent faults, evidence missing 0
+  crystal_via              38 latent faults, evidence missing 0
+  decap_long_path          68 latent faults, evidence missing 0
+  decap_swapped            63 latent faults, evidence missing 0
+  decap_wrong_rail        116 latent faults, evidence missing 0
+  flyback_misplaced        74 latent faults, evidence missing 0
+  kelvin_sense_tap         48 latent faults, evidence missing 0
+  led_underrated           16 latent faults, evidence missing 0
+  mcu_pin_swap            198 latent faults, evidence missing 0
+  protection_bypassed     120 latent faults, evidence missing 0
+  pullup_wrong_rail        54 latent faults, evidence missing 0
+  resistor_underrated      42 latent faults, evidence missing 0
+  switch_loop_spread       33 latent faults, evidence missing 0
+  weak_base_drive          36 latent faults, evidence missing 0
+
+## F5 flyback rule on goldens with the 2-pin load connector's pins swapped
+  goldens with an inductive load: 239; flyback violation reported after swapping its connector pins: 0; shipped connector_pin_swap faults on that load connector: 7
+
