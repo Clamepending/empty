@@ -1,0 +1,22 @@
+tests/test_adapters.py 19 passed in 9.95s
+tests/test_board.py 165 passed in 124.55s (0:02:04)
+tests/test_bounds_policy.py 58 passed in 28.57s
+tests/test_determinism.py 4 passed in 13.81s
+tests/test_drc_rules.py 1 passed in 0.21s
+tests/test_families.py 105 passed in 146.96s (0:02:26)
+tests/test_faults.py 23 passed in 40.99s
+tests/test_generate.py 10 passed in 25.34s
+tests/test_harness.py 5 passed in 6.20s
+tests/test_latent.py 78 passed in 269.98s (0:04:29)
+tests/test_layout_rules.py 30 passed in 318.43s (0:05:18)
+tests/test_onboarding_paths.py 20 passed in 6.59s
+tests/test_qa.py 9 passed in 26.72s
+tests/test_rules.py 22 passed in 75.65s (0:01:15)
+tests/test_sim.py 23 passed in 1.35s
+tests/test_sim_convergence.py 13 passed in 12.93s
+tests/test_tool.py 12 passed in 35.97s
+tests/test_v2_hardening.py 37 passed in 9.32s
+tests/test_value_bounds.py 41 passed in 22.07s
+tests/test_verify.py 327 passed in 171.65s (0:02:51)
+redteam/test_redteam.py 132 passed in 134.98s (0:02:14)
+DONE
